@@ -44,9 +44,6 @@ public with sharing class ATKFakerTest {
 
     @isTest
     static void testFakerFakeCoverage() {
-        ATKFaker.helper.toDate(null);
-        ATKFaker.helper.toDate('2018-1-1');
-        ATKFaker.helper.toDate(Datetime.now());
         ATKFaker.fake('{!name.firstName} {!name.lastName}');
         ATKFaker.fake('{!random.number(9)} {!random.number(0, 9)}');
 

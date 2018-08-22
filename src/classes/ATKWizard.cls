@@ -2,6 +2,7 @@
  * Apex Test Kit
  */
 global with sharing class ATKWizard {
+    private static final BOOLEAN IS_INIT = true;
     private ATKSpellBook spellBook { get; set; }
 
     /*
@@ -36,6 +37,11 @@ global with sharing class ATKWizard {
 
     global ATKWizard total(Integer count) {
         this.spellBook.apply(new ATKSpellBook.TotalAttribute(count));
+        return this;
+    }
+
+    global ATKWizard fieldsInit(Map<String, Object> fieldRuleMap) {
+        this.spellBook.apply(new ATKSpellBook.FieldAttribute(fieldRuleMap, IS_INIT));
         return this;
     }
 
