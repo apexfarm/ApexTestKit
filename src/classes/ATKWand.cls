@@ -368,13 +368,15 @@ public with sharing class ATKWand {
 
     class FieldEvaluator {
         private Map<String, List<String>> picklistCache { get; set; }
-        private Map<String, List<String>> addressFieldCache { get; set; }
+        private Map<String, Set<String>> addressFieldCache { get; set; }
+        private Map<String, Set<String>> geolocationFieldCache { get; set; }
         private Map<String, Set<Object>> uniqueValueCache { get; set; }
         private Map<String, Integer> ruleIndexCache { get; set; }
 
         FieldEvaluator() {
             picklistCache = new Map<String, List<String>>();
-            addressFieldCache = new Map<String, List<String>>();
+            addressFieldCache = new Map<String, Set<String>>();
+            geolocationFieldCache = new Map<String, Set<String>>();
             uniqueValueCache = new Map<String, Set<Object>>();
             ruleIndexCache = new Map<String, Integer>();
         }
@@ -400,6 +402,10 @@ public with sharing class ATKWand {
 
             String key = dsr.getName() + '.' + dfr.getName();
             Object value;
+            if (isGeolocationField(dsr, dfr)) {
+                return value;
+            }
+
             if (!hasRule) {
                 value = defaultRandomFieldValue(dsr, dfr);
             } else if (rule instanceOf String) {
@@ -479,6 +485,7 @@ public with sharing class ATKWand {
                     } else {
                         value = ATKFaker.random.number(dfr.getPrecision(), dfr.getScale());
                     }
+                    System.debug('Double - ' + fieldName + ': ' + value);
                 }
                 when INTEGER {
                     value = Integer.valueOf(ATKFaker.random.number(dfr.getPrecision(), dfr.getScale()));
@@ -554,32 +561,60 @@ public with sharing class ATKWand {
                 || fieldName == 'JIGSAW';     // Used by Database.com
         }
 
-        Boolean isAddressField(Schema.DescribeSObjectResult dsr, Schema.DescribeFieldResult dfr) {
-            List<String> addressFieldList = getAddressFields(dsr);
-            return addressFieldList.contains(dfr.getName().toUpperCase());
+        Boolean isGeolocationField(Schema.DescribeSObjectResult dsr, Schema.DescribeFieldResult dfr) {
+            Set<String> geolocationFieldSet = getGeolocationFields(dsr);
+            return geolocationFieldSet.contains(dfr.getName().toUpperCase());
         }
 
-        List<String> getAddressFields(Schema.DescribeSObjectResult dsr) {
-            if (addressFieldCache.get(dsr.getName()) == null) {
-                List<String> addressFieldList = new List<String>();
+        Set<String> getGeolocationFields(Schema.DescribeSObjectResult dsr) {
+            String objectName = dsr.getName();
+            if (geolocationFieldCache.get(objectName) == null) {
+                Set<String> geolocationFieldSet = new Set<String>();
+                Map<String, SObjectField> fieldMemeberMap = dsr.fields.getMap();
+                for (SObjectField field : fieldMemeberMap.values()) {
+                    Schema.DescribeFieldResult dfr = field.getDescribe();
+                    String fieldName = dfr.getName().toUpperCase();
+                    if (fieldName.endsWith('__LATITUDE__S')) {
+                        geolocationFieldSet.add(fieldName.replace('__LATITUDE__S', '__C'));
+                    } else if (fieldName.endsWith('__LONGITUDE__S')) {
+                        geolocationFieldSet.add(fieldName.replace('__LONGITUDE__S', '__C'));
+                    }
+                }
+                geolocationFieldSet.add('LONGITUDE');
+                geolocationFieldSet.add('LATITUDE');
+                System.debug('geolocation of ' + objectName + ': ' + geolocationFieldSet);
+                geolocationFieldCache.put(objectName, geolocationFieldSet);
+            }
+            return geolocationFieldCache.get(objectName);
+        }
+
+        Boolean isAddressField(Schema.DescribeSObjectResult dsr, Schema.DescribeFieldResult dfr) {
+            Set<String> addressFieldSet = getAddressFields(dsr);
+            return addressFieldSet.contains(dfr.getName().toUpperCase());
+        }
+
+        Set<String> getAddressFields(Schema.DescribeSObjectResult dsr) {
+            String objectName = dsr.getName();
+            if (addressFieldCache.get(objectName) == null) {
+                Set<String> addressFieldSet = new Set<String>();
                 Map<String, SObjectField> fieldMemeberMap = dsr.fields.getMap();
                 for (SObjectField field : fieldMemeberMap.values()) {
                     Schema.DescribeFieldResult dfr = field.getDescribe();
                     if (dfr.getType() == Schema.DisplayType.ADDRESS) {
                         String addressPrefix = dfr.getName().toUpperCase().replace('ADDRESS', '');
-                        addressFieldList.add(addressPrefix + 'STREET');
-                        addressFieldList.add(addressPrefix + 'CITY');
-                        addressFieldList.add(addressPrefix + 'STATE');
-                        addressFieldList.add(addressPrefix + 'POSTALCODE');
-                        addressFieldList.add(addressPrefix + 'COUNTRY');
-                        addressFieldList.add(addressPrefix + 'LATITUDE');
-                        addressFieldList.add(addressPrefix + 'LONGITUDE');
-                        addressFieldList.add(addressPrefix + 'GEOCODEACCURACY');
+                        addressFieldSet.add(addressPrefix + 'STREET');
+                        addressFieldSet.add(addressPrefix + 'CITY');
+                        addressFieldSet.add(addressPrefix + 'STATE');
+                        addressFieldSet.add(addressPrefix + 'POSTALCODE');
+                        addressFieldSet.add(addressPrefix + 'COUNTRY');
+                        addressFieldSet.add(addressPrefix + 'LATITUDE');
+                        addressFieldSet.add(addressPrefix + 'LONGITUDE');
+                        addressFieldSet.add(addressPrefix + 'GEOCODEACCURACY');
                     }
                 }
-                addressFieldCache.put(dsr.getName(), addressFieldList);
+                addressFieldCache.put(objectName, addressFieldSet);
             }
-            return addressFieldCache.get(dsr.getName());
+            return addressFieldCache.get(objectName);
         }
 
         List<String> getPicklistValues(
@@ -592,7 +627,7 @@ public with sharing class ATKWand {
                 List<String> values = new List<String>();
                 for (Schema.PicklistEntry entry : picklistEntries) {
                     if (entry.isActive()) {
-                        System.debug('PickList(' + key + '): label(' + entry.getLabel() + '), value(' + entry.getValue() + ')');
+                        // System.debug('PickList(' + key + '): label(' + entry.getLabel() + '), value(' + entry.getValue() + ')');
                         values.add(entry.getValue());
                     }
                 }
