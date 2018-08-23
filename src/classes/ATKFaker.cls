@@ -12,9 +12,11 @@ global with sharing class ATKFaker {
     global static Random random { get; set; }
     global static Helper helper { get; set; }
 
-    private static MethodParser parser = new MethodParser();
     @TestVisible
     private static ATKFakerDefinition definition = new ATKFakerDefinition();
+    public static final ATKCommon.MethodParser parser = ATKCommon.parser;
+    private static final ATKCommon.MethodEvaluator evaluator = new MethodEvaluator();
+    public static ATKCommon.ParamEvaluator paramEvaluator;
 
     static {
         internet = new Internet();
@@ -37,137 +39,38 @@ global with sharing class ATKFaker {
         helperMap.put('helper', helper);
     }
 
-    public static Object fake(MethodGroup methodGroup) {
-        List<Object> evals = new List<Object>();
-        for (Method method : methodGroup.methodList) {
-            evals.add(evaluate(method));
-        }
-
-        List<String> splits = methodGroup.splits;
-        if (splits.size() == 2 && String.isBlank(splits[0]) && String.isBlank(splits[1])) {
-            return evals.get(0);
-        }
-
-        if (splits.size() == evals.size() + 1) {
-            String output = splits[0];
-            for (Integer i = 0; i < evals.size(); i++) {
-                String eval = helper.toString(evals[i]);                                       
-                output += (eval == null ? '' : eval);
-                output += splits[i+1];
-            }
-            return output;
-        }
-
-        return methodGroup.input;
-    }
-
     global static Object fake(String input) {
-        MethodGroup methodGroup = parser.parse(input);
-        return fake(methodGroup);
+        ATKCommon.MethodGroup methodGroup = parser.parse(input);
+        return methodGroup.evaluate(evaluator);
     }
 
-    private static Object evaluate(Method method) {
-        Object value;
-        if (method.format != null) {
-            value = helper.replaceSymbols(method.format);
-        } else {
-            IProvider helper = helperMap.get(method.helperName);
-            if (helper != null) {
-                value = helper.call(method.name, method.params);
+    class MethodEvaluator implements ATKCommon.MethodEvaluator {
+        public Object evaluate(ATKCommon.Method method) {
+            Object value;
+            if (method.format != null) {
+                value = helper.replaceSymbols(method.format);
+            } else {
+                IProvider helper = helperMap.get(method.helperName);
+                if (helper != null) {
+                    method.loadParams(paramEvaluator);
+                    value = helper.call(method.name, method.params);
+                }
             }
+            return value;
         }
-        return value;
     }
 
     /**
-     * Interpolation Method Parser
+     * PROVIDERS
      */
-    public class MethodGroup {
-        public List<Method> methodList { get; set; }
-        List<String> splits { get; set; }
-        String input { get; set; }
-
-        MethodGroup() {
-            methodList = new List<Method>();
-            splits = new List<String>();
-        }
-    }
-
-    public class Method {
-        String format { get; set; }
-        String helperName { get; set; }
-        String name { get; set; }
-        List<String> params { get; set; }
-    }
-
-    public class MethodParser {
-        private Map<String, MethodGroup> methodCache = new Map<String, MethodGroup>();
-        private Pattern methodPattern = Pattern.compile(
-            '\\{![\\s]*([a-zA-Z_]*)\\.([a-zA-Z_]*)(\\(.*?\\))?[\\s]*\\}' +
-            '|' +
-            '\\{\\{[\\s]*((.*?))[\\s]*\\}\\}'
-        );
-
-        public MethodGroup parse(String input) {
-            MethodGroup methodGroup;
-            if (methodCache.get(input) != null) {
-                methodGroup = methodCache.get(input);
-            } else {
-                methodGroup = new MethodGroup();
-                methodGroup.input = input;
-                methodCache.put(input, methodGroup);
-                
-                System.Matcher matcher = methodPattern.matcher(input);
-                String remaining = input;
-                Integer prevEnd = 0;
-                while(matcher.find()) {
-                    Method method = buildMethod(matcher);
-                    methodGroup.splits.add(input.substring(prevEnd, matcher.start()));
-                    prevEnd = matcher.end();
-                    remaining = input.substring(prevEnd);
-                    methodGroup.methodList.add(method);
-                }
-                methodGroup.splits.add(remaining);
-            }
-            return methodGroup;
-        }
-
-        private Method buildMethod(System.Matcher matcher) {
-            String format = matcher.group(4);
-            String helperName = matcher.group(1);
-            String methodName = matcher.group(2);
-            
-            List<String> params;
-            String paramText = matcher.group(3);
-            if (paramText != null) {
-                paramText = paramText.replaceAll('[\\(\\)\\s]', '');
-                params = paramText.split(',');
-            }
-
-            Method method = new Method();
-            method.format = format;
-            method.helperName = helperName;
-            method.name = methodName;
-            method.params = params;
-            // System.debug('format: ' +format);
-            // System.debug('helperName: ' + helperName);
-            // System.debug('methodName: ' + methodName);
-            // System.debug('params: ' + params);
-            return method;
-        }
-    }
-
     private interface IProvider {
-        Object call(String method, List<String> params);
+        Object call(String method, List<Object> params);
     }
 
-    /*
-     * HELPER PROVIDER
-     */
     global class Helper implements IProvider {
-        global Object call(String method, List<String> params) {
-            String param0;
-            String param1;
+        global Object call(String method, List<Object> params) {
+            Object param0;
+            Object param1;
             if (params != null) {
                 if (params.size() > 0) {
                     param0 = params.get(0);
@@ -179,7 +82,7 @@ global with sharing class ATKFaker {
             Object output;
             switch on method {
                 when 'replaceSymbols' {
-                    output = replaceSymbols(param0);
+                    output = replaceSymbols(ATKCommon.converter.toString(param0));
                 }
                 when else {
                     
@@ -252,108 +155,17 @@ global with sharing class ATKFaker {
             }
             return output;
         }
-
-        global Integer toInteger(Object input) {
-            if (input == null) {
-                return null;
-            } else if (input instanceof Integer) {
-                return (Integer)input;
-            } else {
-                try {
-                    return Integer.valueOf(input);
-                } catch (Exception e) {}
-                return null;
-            }
-        }
-
-        global Decimal toDecimal(Object input) {
-            if (input == null) {
-                return null;
-            } else if (input instanceof Decimal) {
-                return (Decimal)input;
-            } else {
-                try {
-                    String inputString;
-                    if (input instanceOf String) {
-                        inputString = (String)input;
-                    } else {
-                        inputString = String.valueOf(input);
-                    }
-                    return Decimal.valueOf(inputString);
-                } catch (Exception e) {}
-                return null;
-            }
-        }
-
-        global String toString(Object input) {
-            if (input == null) {
-                return null;
-            } else if (input instanceof String) {
-                return (String)input;
-            } else {
-                try {
-                    return String.valueOf(input);
-                } catch (Exception e) {}
-                return null;
-            }
-        }
-
-        global Date toDate(Object input) {
-            if (input == null) {
-                return null;
-            } else if (input instanceof Date) {
-                return (Date)input;
-            } else if (input instanceof Datetime){
-                return ((Datetime)input).date();
-            } else if (input instanceof String) {
-                try {
-                    return (Date)JSON.deserialize(
-                        String.format('"{0}"', new List<String> { (String)input }),
-                        Date.class);
-                } catch (Exception e) {}
-            }
-            return null;
-        }
-
-        global Datetime toDatetime(Object input) {
-            if (input == null) {
-                return null;
-            } else if (input instanceof Datetime) {
-                return (Datetime)input;
-            } else if (input instanceof String) {
-                try {
-                    return (Datetime)JSON.deserialize(
-                        String.format('"{0}"', new List<String> { (String)input }),
-                        Datetime.class);
-                } catch (Exception e) {}
-            }
-            return null;
-        }
-
-        global Time toTime(Object input) {
-            if (input == null) {
-                return null;
-            } else if (input instanceof Time) {
-                return (Time)input;
-            } else if (input instanceof Datetime){
-                return ((Datetime)input).time();
-            }
-            return null;
-        }
     }
 
-    /*
-     * RANDOM PROVIDER
-     */
     global class Random implements IProvider {
         private Integer RANDOM_NUMBER_CACHE_SIZE = 569;
         private List<Double> randomNumberCache = new List<Double>();
         private Integer randomNumberIndex = 0;
 
-        global Object call(String method, List<String> params) {
-            String param0;
-            String param1;
-            String param2;
+        global Object call(String method, List<Object> params) {
+            Object param0;
+            Object param1;
+            Object param2;
             if (params != null) {
                 if (params.size() > 0) {
                     param0 = params.get(0);
@@ -374,16 +186,16 @@ global with sharing class ATKFaker {
                 when 'number' {
                     if (params != null) {
                         if (params.size() == 1) {
-                            Decimal max = helper.toDecimal(param0);
+                            Decimal max = ATKCommon.converter.toDecimal(param0);
                             output = number(max);
                         } else if (params.size() == 2) {
-                            Integer precision = helper.toInteger(param0);
-                            Integer scale = helper.toInteger(param1);
+                            Integer precision = ATKCommon.converter.toInteger(param0);
+                            Integer scale = ATKCommon.converter.toInteger(param1);
                             output = number(precision, scale);
                         } else {
-                            Decimal min = helper.toDecimal(param0);
-                            Decimal max = helper.toDecimal(param1);
-                            Integer scale = helper.toInteger(param2);
+                            Decimal min = ATKCommon.converter.toDecimal(param0);
+                            Decimal max = ATKCommon.converter.toDecimal(param1);
+                            Integer scale = ATKCommon.converter.toInteger(param2);
                             output = number(min, max, scale);
                         }
                     }
@@ -509,14 +321,11 @@ global with sharing class ATKFaker {
         }
     }
 
-    /*
-     * INTERNET PROVIDER
-     */
     global class Internet implements IProvider {
-        global Object call(String method, List<String> params) {
-            String param0;
-            String param1;
-            String param2;
+        global Object call(String method, List<Object> params) {
+            Object param0;
+            Object param1;
+            Object param2;
             if (params != null) {
                 if (params.size() > 0) {
                     param0 = params.get(0);
@@ -532,10 +341,17 @@ global with sharing class ATKFaker {
             Object output;
             switch on method {
                 when 'userName' {
-                    output = userName(param0, param1);
+                    output = userName(
+                        ATKCommon.converter.toString(param0),
+                        ATKCommon.converter.toString(param1)
+                    );
                 }
                 when 'email' {
-                    output = email(param0, param1, param2);
+                    output = email(
+                        ATKCommon.converter.toString(param0),
+                        ATKCommon.converter.toString(param1),
+                        ATKCommon.converter.toString(param2)
+                    );
                 }
                 when 'url' {
                     output = url();
@@ -617,12 +433,9 @@ global with sharing class ATKFaker {
         }
     }
 
-    /*
-     * PHONE NUMBER
-     */
     global class Phone implements IProvider {
-        global Object call(String method, List<String> params) {
-            String param0;
+        global Object call(String method, List<Object> params) {
+            Object param0;
             if (params != null) {
                 if (params.size() > 0) {
                     param0 = params.get(0);
@@ -632,7 +445,9 @@ global with sharing class ATKFaker {
             Object output;
             switch on method {
                 when 'phoneNumber' {
-                    output = phoneNumber(param0);
+                    output = phoneNumber(
+                        ATKCommon.converter.toString(param0)
+                    );
                 }
                 when else {
                     
@@ -656,12 +471,9 @@ global with sharing class ATKFaker {
         }
     }
 
-    /*
-     * NAME PROVIDER
-     */
     global class Name implements IProvider {
-        global Object call(String method, List<String> params) {
-            String param0;
+        global Object call(String method, List<Object> params) {
+            Object param0;
             if (params != null) {
                 if (params.size() > 0) {
                     param0 = params.get(0);
@@ -671,7 +483,9 @@ global with sharing class ATKFaker {
             Object output;
             switch on method {
                 when 'firstName' {
-                    output = firstName(param0);
+                    output = firstName(
+                        ATKCommon.converter.toString(param0)
+                    );
                 }
                 when 'lastName' {
                     output = lastName();
@@ -707,9 +521,9 @@ global with sharing class ATKFaker {
     }
 
     global class Finance implements IProvider {
-        global Object call(String method, List<String> params) {
-            String param0;
-            String param1;
+        global Object call(String method, List<Object> params) {
+            Object param0;
+            Object param1;
             if (params != null) {
                 if (params.size() > 0) {
                     param0 = params.get(0);
@@ -722,8 +536,8 @@ global with sharing class ATKFaker {
             Object output;
             switch on method {
                 when 'amount' {
-                    Integer precision = helper.toInteger(param0);
-                    Integer scale = helper.toInteger(param1);
+                    Integer precision = ATKCommon.converter.toInteger(param0);
+                    Integer scale = ATKCommon.converter.toInteger(param1);
                     output = amount(precision, scale);
                 }
                 when else {
@@ -742,14 +556,11 @@ global with sharing class ATKFaker {
         }
     }
 
-    /*
-     * LOREM PROVIDER
-     */
     global class Lorem implements IProvider {
-        global Object call(String method, List<String> params) {
-            String param0;
-            String param1;
-            String param2;
+        global Object call(String method, List<Object> params) {
+            Object param0;
+            Object param1;
+            Object param2;
             if (params != null) {
                 if (params.size() > 0) {
                     param0 = params.get(0);
@@ -763,36 +574,31 @@ global with sharing class ATKFaker {
             }
 
             Object output;
+            Integer count = ATKCommon.converter.toInteger(param0);
+            String separator = ATKCommon.converter.toString(param1);
             switch on method {
                 when 'word' {
                     output = word();
                 }
                 when 'words' {
-                    Integer count = helper.toInteger(param0);
                     output = words(count);
                 }
                 when 'sentence' {
-                    Integer count = helper.toInteger(param0);
                     output = sentence(count);
                 }
                 when 'sentences' {
-                    Integer count = helper.toInteger(param0);
-                    output = sentences(count, param1);
+                    output = sentences(count, separator);
                 }
                 when 'paragraph' {
-                    Integer count = helper.toInteger(param0);
                     output = paragraph(count);
                 }
                 when 'paragraphs' {
-                    Integer count = helper.toInteger(param0);
-                    output = paragraphs(count, param1);
+                    output = paragraphs(count, separator);
                 }
                 when 'lines' {
-                    Integer count = helper.toInteger(param0);
                     output = words(count);
                 }
                 when 'text' {
-                    Integer count = helper.toInteger(param0);
                     output = words(count);
                 }
                 when else {
@@ -845,16 +651,16 @@ global with sharing class ATKFaker {
             return sentences(count, null);
         }
 
-        global String sentences(Integer count, String seperator) {
+        global String sentences(Integer count, String separator) {
             count = count == null ? Integer.valueOf(random.number(2, 6, 0)) : count;
-            seperator = seperator == null ? ' ' : seperator;
+            separator = separator == null ? ' ' : separator;
 
             String output = '';
             for (Integer i = 0; i < count;) {
                 output += sentence();
                 i++;
                 if (i != count) {
-                    output += seperator;
+                    output += separator;
                 }
             }
             return output;
@@ -873,8 +679,8 @@ global with sharing class ATKFaker {
             return paragraphs(null, null);
         }
 
-        global String paragraphs(Integer count, String seperator) {
-            seperator = seperator == null ? '\n \r' : seperator;
+        global String paragraphs(Integer count, String separator) {
+            separator = separator == null ? '\n \r' : separator;
             count = count == null ? 3 : count;
 
             String output = '';
@@ -882,7 +688,7 @@ global with sharing class ATKFaker {
                 output += paragraph();
                 i++;
                 if (i != count) {
-                    output += seperator;
+                    output += separator;
                 }
             }
             return output;
@@ -908,14 +714,10 @@ global with sharing class ATKFaker {
         }
     }
 
-    /*
-     * DATEHELPER
-     */
     global class DateHelper implements IProvider {
-        global Object call(String method, List<String> params) {
-            String param0;
-            String param1;
-            String param2;
+        global Object call(String method, List<Object> params) {
+            Object param0;
+            Object param1;
             if (params != null) {
                 if (params.size() > 0) {
                     param0 = params.get(0);
@@ -928,44 +730,48 @@ global with sharing class ATKFaker {
             Object output;
             switch on method {
                 when 'past' {
-                    Integer years = helper.toInteger(param0);
-                    output = past(years, param1);
+                    Integer years = ATKCommon.converter.toInteger(param0);
+                    String dt = ATKCommon.converter.toString(param1);
+                    output = past(years, dt);
                 }
                 when 'future' {
-                    Integer years = helper.toInteger(param0);
-                    output = future(years, param1);
+                    Integer years = ATKCommon.converter.toInteger(param0);
+                    String dt = ATKCommon.converter.toString(param1);
+                    output = future(years, dt);
                 }
                 when 'between' {
-                    output = between(param0, param1);
+                    String dt1 = ATKCommon.converter.toString(param0);
+                    String dt2 = ATKCommon.converter.toString(param1);
+                    output = between(dt1, dt2);
                 }
                 when 'addDays' {
-                    Datetime dt = helper.toDatetime(param0);
-                    Integer days = helper.toInteger(param1);
+                    Datetime dt = ATKCommon.converter.toDatetime(param0);
+                    Integer days = ATKCommon.converter.toInteger(param1);
                     output = addDays(dt, days);
                 }
                 when 'addHours' {
-                    Datetime dt = helper.toDatetime(param0);
-                    Integer hours = helper.toInteger(param1);
+                    Datetime dt = ATKCommon.converter.toDatetime(param0);
+                    Integer hours = ATKCommon.converter.toInteger(param1);
                     output = addHours(dt, hours);
                 }
                 when 'addMinutes' {
-                    Datetime dt = helper.toDatetime(param0);
-                    Integer minutes = helper.toInteger(param1);
+                    Datetime dt = ATKCommon.converter.toDatetime(param0);
+                    Integer minutes = ATKCommon.converter.toInteger(param1);
                     output = addMinutes(dt, minutes);
                 }
                 when 'addMonths' {
-                    Datetime dt = helper.toDatetime(param0);
-                    Integer months = helper.toInteger(param1);
+                    Datetime dt = ATKCommon.converter.toDatetime(param0);
+                    Integer months = ATKCommon.converter.toInteger(param1);
                     output = addMonths(dt, months);
                 }
                 when 'addSeconds' {
-                    Datetime dt = helper.toDatetime(param0);
-                    Integer seconds = helper.toInteger(param1);
+                    Datetime dt = ATKCommon.converter.toDatetime(param0);
+                    Integer seconds = ATKCommon.converter.toInteger(param1);
                     output = addSeconds(dt, seconds);
                 }
                 when 'addYears' {
-                    Datetime dt = helper.toDatetime(param0);
-                    Integer years = helper.toInteger(param1);
+                    Datetime dt = ATKCommon.converter.toDatetime(param0);
+                    Integer years = ATKCommon.converter.toInteger(param1);
                     output = addYears(dt, years);
                 }
                 when else {
@@ -1004,7 +810,7 @@ global with sharing class ATKFaker {
         }
 
         global Datetime past(Integer years, String refDate) {
-            Datetime d = helper.toDatetime(refDate);
+            Datetime d = ATKCommon.converter.toDatetime(refDate);
             d = d == null ? Datetime.now() : d;
             years = years == null ? 1 : years;
             return d.addSeconds(-Integer.valueOf(random.number(1, years * 365 * 24 * 3600, 0)));
@@ -1015,25 +821,22 @@ global with sharing class ATKFaker {
         }
 
         global Datetime future(Integer years, String refDate) {
-            Datetime d = helper.toDatetime(refDate);
+            Datetime d = ATKCommon.converter.toDatetime(refDate);
             d = d == null ? Datetime.now() : d;
             years = years == null ? 1 : years;
             return d.addSeconds(Integer.valueOf(random.number(1, years * 365 * 24 * 3600, 0)));
         }
 
         global Datetime between(String fo, String to) {
-            Datetime fromDatetime = helper.toDatetime(fo);
-            Datetime toDatetime = helper.toDatetime(to);
+            Datetime fromDatetime = ATKCommon.converter.toDatetime(fo);
+            Datetime toDatetime = ATKCommon.converter.toDatetime(to);
             Integer dateOffset = Integer.valueOf(random.number(toDatetime.getTime() - fromDatetime.getTime())/1000);
             return fromDatetime.addSeconds(dateOffset);
         }
     }
 
-    /*
-     * ADDRESS PROVIDER
-     */
     global class Address implements IProvider {
-        global Object call(String method, List<String> params) {
+        global Object call(String method, List<Object> params) {
             Object output;
             switch on method {
                 when 'city' {

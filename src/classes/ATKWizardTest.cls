@@ -6,9 +6,9 @@ private with sharing class ATKWizardTest {
     @isTest
     static void TestTotal() {
         ATKWizard me = new ATKWizard();
-        me.wantMany('Account').total(100).generate();
+        me.wantMany('Account').total(10).generate();
         List<Account> accountList = [SELECT Id FROM Account];
-        System.assertEquals(100, accountList.size());
+        System.assertEquals(10, accountList.size());
     }
 
     /*
@@ -136,31 +136,35 @@ private with sharing class ATKWizardTest {
     @isTest
     static void TestHasMany() {
         ATKWizard me = new ATKWizard();
-        me.wantMany('Account')
+        ATKWizard.Bag bag = me.wantMany('Account')
             .total(10)
             .fields(new Map<String, Object> {
                 'Name' => new List<String> {
                     'Microsoft-{{###}}',
-                    'Google-{{###}}','Apple-{{###}}'
+                    'Google-{{###}}',
+                    'Apple-{{###}}'
                 },
                 'Fax' => '{{1##-###-####}}'
             })
             .hasMany('Contact')
                 .referenceBy('AccountId')
-                .total(40)
+                .total(20)
                 .fields(new Map<String, Object> {
                     'FirstName' => '{!name.firstName(female)}',
                     'LastName' => '{!name.lastName}'
                 })
             .generate();
 
+        System.debug(bag.query('Account'));
+        System.debug(bag.query('Contact'));
+
         List<Account> accountList = [SELECT Id, (SELECT Id FROM Contacts) FROM Account];
         List<Contact> contactList = [SELECT Id FROM Contact];
 
         System.assertEquals(10, accountList.size());
-        System.assertEquals(40, contactList.size());
+        System.assertEquals(20, contactList.size());
         for (Account account : accountList) {
-           System.assertEquals(4, account.Contacts.size());
+            System.assertEquals(2, account.Contacts.size());
         }
     }
 

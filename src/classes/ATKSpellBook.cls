@@ -67,6 +67,7 @@ public with sharing class ATKSpellBook implements Iterable<EntityNode> {
 
 		public String name { get; set; }
 		public Integer total { get; set; }
+		public Map<String, Object> fieldInitMap { get; set; }
 		public Map<String, Object> fieldRuleMap { get; set; }
 		public Map<String, EntityNode> referenceToMap { get; set; }
 		public List<SObject> repository { get; set; }
@@ -91,6 +92,7 @@ public with sharing class ATKSpellBook implements Iterable<EntityNode> {
 			this.name = name.trim().toUpperCase();
 			this.type = type;
 			fieldRuleMap = new Map<String, Object>();
+			fieldInitMap = new Map<String, Object>();
 			referenceToMap = new Map<String, EntityNode>();
 			repository = new List<SObject>();
 		}
@@ -138,15 +140,26 @@ public with sharing class ATKSpellBook implements Iterable<EntityNode> {
 
 	public class FieldAttribute implements IEntityAttribute, IRelatedEntityAttribute {
 		private Map<String, Object> fieldRuleMap { get; set; }
+		private Boolean isInit { get; set; }
+
 		public FieldAttribute(Map<String, Object> fieldRuleMap) {
+            this(fieldRuleMap, false);
+		}
+
+        public FieldAttribute(Map<String, Object> fieldRuleMap, Boolean isInit) {
             this.fieldRuleMap = new Map<String, Object>();
+            this.isInit = isInit;
             for (String key : fieldRuleMap.keySet()) {
                this.fieldRuleMap.put(key.trim().toUpperCase(), fieldRuleMap.get(key));
             }
 		}
 
 		public void apply(EntityNode entityNode) {
-			entityNode.fieldRuleMap.putAll(fieldRuleMap);
+            if (this.isInit) {
+                entityNode.fieldInitMap.putAll(fieldRuleMap);
+            } else {
+			    entityNode.fieldRuleMap.putAll(fieldRuleMap);
+            }
 		}
 	}
 
