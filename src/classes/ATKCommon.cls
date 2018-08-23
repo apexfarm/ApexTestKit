@@ -199,7 +199,7 @@ global with sharing class ATKCommon {
     public class Param {
         Object value { get; set; }
         Integer index { get; set; }
-        Integer xrefLevel { get; set; }
+        public Integer xrefLevel { get; set; }
         public String xrefField { get; set; }
     }
 

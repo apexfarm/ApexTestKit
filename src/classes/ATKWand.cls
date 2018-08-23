@@ -5,6 +5,7 @@ public with sharing class ATKWand {
     private static Map<String, Schema.SObjectType> gd { get; set; }
     private static final FieldEvaluator fieldEvaluator = new FieldEvaluator();
     private static final ObjectDistributor objectDistributor = new ObjectDistributor();
+    private static ATKSpellBook.EntityNode workingEntity { get; set; }
 
     static {
         gd = Schema.getGlobalDescribe();
@@ -13,7 +14,23 @@ public with sharing class ATKWand {
 
     class ParamEvaluator implements ATKCommon.ParamEvaluator {
         public Object evaluate(ATKCommon.Param param) {
-            return null;
+            if (workingEntity == null) {
+                return null;
+            }
+
+            Integer size = workingEntity.repository.size();
+            if (param.xrefLevel <= size) {
+                SObject xref = workingEntity.repository[size - param.xrefLevel];
+                return xref.get(param.xrefField);
+            } else {
+                Object initValue = workingEntity.fieldInitMap.get(param.xrefField);
+                if (initValue instanceof List<Object>) {
+                    List<Object> initValueList = (List<Object>)initValue;
+                    return initValueList[param.xrefLevel - 1];
+                } else {
+                    return initValue;
+                }
+            }
         }
     }
 
@@ -133,13 +150,18 @@ public with sharing class ATKWand {
         Schema.SObjectType objectType = gd.get(entityNode.name);
         Schema.DescribeSObjectResult dsr = objectType.getDescribe();
         Set<String> fieldNameSet = entityNode.fieldRuleMap.keySet();
+        Set<String> xrefsNameSet = entityNode.fieldInitMap.keySet();
 
-        List<SObject> repository = new List<SObject>();
+        workingEntity = entityNode;
+        List<SObject> repository = entityNode.repository;
         for (Integer i = 0; i < entityNode.total; i++) {
             SObject obj = objectType.newSObject();
             for (SObjectField field : dsr.fields.getMap().values()) {
                 Schema.DescribeFieldResult dfr = field.getDescribe();
                 String fieldName = dfr.getName().toUpperCase();
+                if (xrefsNameSet.contains(fieldName)) {
+                    break;
+                }
                 Object rule = entityNode.fieldRuleMap.get(fieldName);
                 Boolean hasRule = fieldNameSet.contains(fieldName);
                 Object value = fieldEvaluator.randomFieldValue(dsr, dfr, rule, hasRule, 10);
@@ -147,9 +169,19 @@ public with sharing class ATKWand {
                     obj.put(fieldName, value);
                 }
             }
+
+            for (String fieldName : xrefsNameSet) {
+                SObjectField field = dsr.fields.getMap().get(fieldName);
+                Schema.DescribeFieldResult dfr = field.getDescribe();
+                Object rule = entityNode.fieldRuleMap.get(fieldName);
+                Object value = fieldEvaluator.randomFieldValue(dsr, dfr, rule, true, 10);
+                if (value != null) {
+                    obj.put(fieldName, value);
+                }
+            }
+
             repository.add(obj);
         }
-        entityNode.repository.addAll(repository);
         return repository;
     }
 
@@ -159,6 +191,8 @@ public with sharing class ATKWand {
         Set<String> fieldNameSet = entityNode.fieldRuleMap.keySet();
 
         List<SObject> repository = entityNode.repository;
+        entityNode.repository = new List<SObject> ();
+        workingEntity = entityNode;
         for (Integer i = 0; i < repository.size(); i++) {
             SObject obj = repository[i];
             for (String fieldName : fieldNameSet) {
@@ -170,6 +204,7 @@ public with sharing class ATKWand {
                     obj.put(fieldName, value);
                 }
             }
+            entityNode.repository.add(obj);
         }
         return repository;
     }
