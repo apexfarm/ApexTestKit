@@ -89,8 +89,12 @@ global with sharing class ATKWizard {
             this.spellBook = spellBook;
         }
 
-        global List<SObject> query(String entityName) {
+        global List<SObject> get(String entityName) {
             return this.spellBook.query(entityName);
+        }
+
+        global List<SObject> query(string entityName) {
+            throw new ATKCommon.NotFoundException('Deprecating ATKWizard.Bag.query method.');
         }
     }
 }

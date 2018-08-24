@@ -91,7 +91,7 @@ me.wantMany('Pricebook2')
         .total(25)
         .belongsTo('Product2')
             .referenceBy('Product2Id')
-            .fromList(bag.query('Product2'))
+            .fromList(bag.get('Product2'))
     .generate();
 ```
 
