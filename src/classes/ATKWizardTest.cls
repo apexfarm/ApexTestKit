@@ -114,7 +114,7 @@ private with sharing class ATKWizardTest {
         }
 
         me.wantMany('Account')
-            .fromList(bag.query('Account'))
+            .fromList(bag.get('Account'))
             .fields(new Map<String, Object> {
                 'Name' => new List<String> {
                     'Google-{{###}}'
@@ -155,8 +155,8 @@ private with sharing class ATKWizardTest {
                 })
             .generate();
 
-        System.debug(bag.query('Account'));
-        System.debug(bag.query('Contact'));
+        System.debug(bag.get('Account'));
+        System.debug(bag.get('Contact'));
 
         List<Account> accountList = [SELECT Id, (SELECT Id FROM Contacts) FROM Account];
         List<Contact> contactList = [SELECT Id FROM Contact];
@@ -294,7 +294,7 @@ private with sharing class ATKWizardTest {
                 .total(25)
                 .belongsTo('Product2')
                     .referenceBy('Product2Id')
-                    .fromList(bag.query('Product2'))
+                    .fromList(bag.get('Product2'))
             .generate();
 
         List<AggregateResult> results = [
@@ -377,7 +377,7 @@ private with sharing class ATKWizardTest {
                 .generate();
 
         me.wantMany('Account')
-            .fromList(bag.query('Account'))
+            .fromList(bag.get('Account'))
             .hasMany('Opportunity')
                 .fields(new Map<String, Object> {
                     'CloseDate' => '{!dates.between(2018-7-1, 2018-8-1)}'
@@ -389,7 +389,7 @@ private with sharing class ATKWizardTest {
                     .total(36)
                     .belongsTo('Contact')
                         .referenceBy('ContactId')
-                        .fromList(bag.query('Contact'))
+                        .fromList(bag.get('Contact'))
             .generate();
 
         List<OpportunityContactRole> ocrList = [SELECT Id FROM OpportunityContactRole];
