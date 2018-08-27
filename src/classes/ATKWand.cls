@@ -6,27 +6,28 @@ public with sharing class ATKWand {
     private static final FieldEvaluator fieldEvaluator = new FieldEvaluator();
     private static final ObjectDistributor objectDistributor = new ObjectDistributor();
     private static ATKSpellBook.EntityNode workingEntity { get; set; }
+    public static ATKCommon.ParamEvaluator paramEvaluator;
 
     static {
         gd = Schema.getGlobalDescribe();
-        ATKFaker.paramEvaluator = new ParamEvaluator();
+        paramEvaluator = new ParamEvaluator();
     }
 
     class ParamEvaluator implements ATKCommon.ParamEvaluator {
-        public Object evaluate(ATKCommon.Param param) {
+        public Object evaluate(Integer prevIndex, String fieldName) {
             if (workingEntity == null) {
                 return null;
             }
 
             Integer size = workingEntity.repository.size();
-            if (param.xrefLevel <= size) {
-                SObject xref = workingEntity.repository[size - param.xrefLevel];
-                return xref.get(param.xrefField);
+            if (prevIndex <= size) {
+                SObject xref = workingEntity.repository[size - prevIndex];
+                return xref.get(fieldName);
             } else {
-                Object initValue = workingEntity.fieldInitMap.get(param.xrefField);
+                Object initValue = workingEntity.fieldInitMap.get(fieldName);
                 if (initValue instanceof List<Object>) {
                     List<Object> initValueList = (List<Object>)initValue;
-                    return initValueList[param.xrefLevel - 1];
+                    return initValueList[prevIndex - 1];
                 } else {
                     return initValue;
                 }
@@ -118,10 +119,13 @@ public with sharing class ATKWand {
     public static Boolean validateXrefFieldsInit(ATKCommon.MethodGroup methodGroup, Map<String, Object> fieldInitMap) {
         if (methodGroup.level < ATKCommon.METHOD_GROUP_MAX_LEVEL) {
             for (ATKCommon.Method method : methodGroup.methodList) {
-                if (0 < method.level && method.level < ATKCommon.METHOD_GROUP_MAX_LEVEL) {
-                    for (ATKCommon.Param param : method.xrefParams) {
-                        if (!fieldInitMap.containsKey(param.xrefField)) {
-                            return false;
+                if (method instanceof ATKCommon.XrefMethod) {
+                    ATKCommon.XrefMethod xrefMethod = (ATKCommon.XrefMethod)method;
+                    if (0 < xrefMethod.level && xrefMethod.level < ATKCommon.METHOD_GROUP_MAX_LEVEL) {
+                        for (ATKCommon.XrefParam param : xrefMethod.xrefParams) {
+                            if (!fieldInitMap.containsKey(param.fieldName)) {
+                                return false;
+                            }
                         }
                     }
                 }

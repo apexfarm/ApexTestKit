@@ -16,7 +16,6 @@ global with sharing class ATKFaker {
     private static ATKFakerDefinition definition = new ATKFakerDefinition();
     public static final ATKCommon.MethodParser parser = ATKCommon.parser;
     private static final ATKCommon.MethodEvaluator evaluator = new MethodEvaluator();
-    public static ATKCommon.ParamEvaluator paramEvaluator;
 
     static {
         internet = new Internet();
@@ -47,14 +46,9 @@ global with sharing class ATKFaker {
     class MethodEvaluator implements ATKCommon.MethodEvaluator {
         public Object evaluate(ATKCommon.Method method) {
             Object value;
-            if (method.format != null) {
-                value = helper.replaceSymbols(method.format);
-            } else {
-                IProvider helper = helperMap.get(method.helperName);
-                if (helper != null) {
-                    method.loadParams(paramEvaluator);
-                    value = helper.call(method.name, method.params);
-                }
+            IProvider helper = helperMap.get(method.helperName);
+            if (helper != null) {
+                value = helper.call(method.name, method.params);
             }
             return value;
         }
