@@ -29,11 +29,11 @@ global with sharing class ATKCommon {
      * Interpolation Method Parser
      */
     public interface MethodEvaluator {
-        Object evaluate(ATKCommon.Method method);
+        Object evaluateMethod(ATKCommon.Method method);
     }
 
     public interface ParamEvaluator {
-        Object evaluate(Integer prevIndex, String fieldName);
+        Object evaluateParam(Integer prevIndex, String fieldName);
     }
 
     public class MethodParser {
@@ -78,7 +78,7 @@ global with sharing class ATKCommon {
             Integer prevEnd = 0;
             while(matcher.find()) {
                 addSplit(expression.substring(prevEnd, matcher.start()));
-                addMethod(buidMethod(matcher));
+                addMethod(buildMethod(matcher));
                 prevEnd = matcher.end();
             }
             if (this.hasMethod) {
@@ -114,7 +114,7 @@ global with sharing class ATKCommon {
 
             List<Object> evals = new List<Object>();
             for (Method method : this.methodList) {
-                evals.add(methodEvaluator.evaluate(method));
+                evals.add(methodEvaluator.evaluateMethod(method));
             }
 
             List<String> splits = this.splits;
@@ -135,7 +135,7 @@ global with sharing class ATKCommon {
         }
     }
 
-    static Method buidMethod(System.Matcher matcher) {
+    static Method buildMethod(System.Matcher matcher) {
         Method method;
         if (matcher.group(4) != null) {
             method = new SymbolMethod(matcher.group(4));
@@ -189,9 +189,6 @@ global with sharing class ATKCommon {
         public String helperName { get; set; }
         public String name { get; set; }
         public List<Object> params { get; set; }
-
-        virtual void loadParams(ParamEvaluator paramEvaluator) {
-        }
     }
 
     public class SymbolMethod extends Method {
@@ -220,10 +217,10 @@ global with sharing class ATKCommon {
             }
         }
 
-        override void loadParams(ParamEvaluator paramEvaluator) {
+        public void loadParams(ParamEvaluator paramEvaluator) {
             if (xrefParams != null && paramEvaluator != null) {
                 for (XrefParam param : xrefParams) {
-                    params.set(param.index, paramEvaluator.evaluate(param.level, param.fieldName));
+                    params.set(param.index, paramEvaluator.evaluateParam(param.level, param.fieldName));
                 }
             }
         }

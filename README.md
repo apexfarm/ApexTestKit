@@ -4,7 +4,6 @@ Notes when use beta version:
 
 > * ATKFaker is not yet fully ported from [faker.js](https://github.com/marak/Faker.js/), still needs some minor works.
 > * Global APIs are fairly stable, but are also subject to change during beta period.
-> * The relationship assignment for many to many will change to a better algorithm.
 
 Apex Test Kit (Salesforce) is a library to help generate testing data for Apex test classes automatically. It is trying to solve the following frustrations when creating testing data:
 

@@ -72,22 +72,6 @@ public with sharing class ATKSpellBook implements Iterable<EntityNode> {
 		public Map<String, EntityNode> referenceToMap { get; set; }
 		public List<SObject> repository { get; set; }
 
-        // public List<EntityNode> convertAncestorsToList() {
-        //     List<EntityNode> ancestorList = new List<EntityNode>();
-        //     travelAncestorTree(this, ancestorList);
-        //     return ancestorList;
-        // }
-
-        // private static void travelAncestorTree(EntityNode entityNode, List<EntityNode> ancestorList) {
-        //     for (String key : entityNode.referenceToMap.keySet()) {
-        //         EntityNode parentNode = entityNode.referenceToMap.get(key);
-        //         parentNode.keyPaths = new List<String>(entityNode.keyPaths);
-        //         parentNode.keyPaths.add(key);
-        //         ancestorList.add(parentNode);
-        //         travelAncestorTree(parentNode, ancestorList);
-        //     }
-        // }
-
 		public EntityNode(String name, EntityNodeType type) {
 			this.name = name.trim().toUpperCase();
 			this.type = type;
