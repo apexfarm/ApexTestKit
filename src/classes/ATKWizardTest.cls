@@ -395,4 +395,25 @@ private with sharing class ATKWizardTest {
         List<OpportunityContactRole> ocrList = [SELECT Id FROM OpportunityContactRole];
         System.assertEquals(36, ocrList.size());
     }
+
+    @isTest
+    static void testArithmetic() {
+        Date current = Date.today();
+        ATKWizard me = new ATKWizard();
+        ATKWizard.Bag bag = me.wantMany('Contact')
+            .total(10)
+            .origin(new Map<String, Object> {
+                'Birthdate' => current
+            })
+            .fields(new Map<String, Object> {
+                'Birthdate' => '{!dates.addDays($1.Birthdate, -1)}'
+            })
+            .generate();
+
+        List<SObject> contacts = bag.get('Contact');
+        for (Integer i = 0; i < contacts.size(); i++) {
+            System.debug(contacts[i].get('Birthdate'));
+            System.assertEquals(current.addDays(-i), contacts[i].get('Birthdate'));
+        }
+    }
 }

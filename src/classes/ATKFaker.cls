@@ -2,7 +2,7 @@
  * Apex Test Kit
  */
 global with sharing class ATKFaker {
-    global static Map<String, IProvider> helperMap { get; set; }
+    public static Map<String, IProvider> helperMap { get; set; }
     global static Internet internet { get; set; }
     global static Phone phone { get; set; }
     global static Name name { get; set; }
@@ -11,12 +11,12 @@ global with sharing class ATKFaker {
     global static Finance finance { get; set; }
     global static Random random { get; set; }
     global static Helper helper { get; set; }
+    global static NumberArithmeticHelper numbers { get; set; }
 
     @TestVisible
     private static ATKFakerDefinition definition = new ATKFakerDefinition();
     public static final ATKCommon.MethodParser parser = ATKCommon.parser;
-    private static final ATKCommon.MethodEvaluator evaluator = new MethodEvaluator();
-    public static ATKCommon.ParamEvaluator paramEvaluator;
+    private static final MethodEvaluator methodEvaluator = new MethodEvaluator();
 
     static {
         internet = new Internet();
@@ -27,6 +27,7 @@ global with sharing class ATKFaker {
         dates = new DateHelper();
         name = new Name();
         helper = new Helper();
+        numbers = new NumberArithmeticHelper();
 
         helperMap = new Map<String, IProvider>();
         helperMap.put('internet', internet);
@@ -37,24 +38,20 @@ global with sharing class ATKFaker {
         helperMap.put('dates', dates);
         helperMap.put('name', name);
         helperMap.put('helper', helper);
+        helperMap.put('numbers', numbers);
     }
 
     global static Object fake(String input) {
         ATKCommon.MethodGroup methodGroup = parser.parse(input);
-        return methodGroup.evaluate(evaluator);
+        return methodGroup.evaluate(methodEvaluator);
     }
 
-    class MethodEvaluator implements ATKCommon.MethodEvaluator {
-        public Object evaluate(ATKCommon.Method method) {
+    public class MethodEvaluator implements ATKCommon.MethodEvaluator {
+        public Object evaluateMethod(ATKCommon.Method method) {
             Object value;
-            if (method.format != null) {
-                value = helper.replaceSymbols(method.format);
-            } else {
-                IProvider helper = helperMap.get(method.helperName);
-                if (helper != null) {
-                    method.loadParams(paramEvaluator);
-                    value = helper.call(method.name, method.params);
-                }
+            IProvider helper = helperMap.get(method.helperName);
+            if (helper != null) {
+                value = helper.call(method.name, method.params);
             }
             return value;
         }
@@ -63,12 +60,12 @@ global with sharing class ATKFaker {
     /**
      * PROVIDERS
      */
-    private interface IProvider {
+    public interface IProvider {
         Object call(String method, List<Object> params);
     }
 
     global class Helper implements IProvider {
-        global Object call(String method, List<Object> params) {
+        public Object call(String method, List<Object> params) {
             Object param0;
             Object param1;
             if (params != null) {
@@ -162,7 +159,7 @@ global with sharing class ATKFaker {
         private List<Double> randomNumberCache = new List<Double>();
         private Integer randomNumberIndex = 0;
 
-        global Object call(String method, List<Object> params) {
+        public Object call(String method, List<Object> params) {
             Object param0;
             Object param1;
             Object param2;
@@ -322,7 +319,7 @@ global with sharing class ATKFaker {
     }
 
     global class Internet implements IProvider {
-        global Object call(String method, List<Object> params) {
+        public Object call(String method, List<Object> params) {
             Object param0;
             Object param1;
             Object param2;
@@ -434,7 +431,7 @@ global with sharing class ATKFaker {
     }
 
     global class Phone implements IProvider {
-        global Object call(String method, List<Object> params) {
+        public Object call(String method, List<Object> params) {
             Object param0;
             if (params != null) {
                 if (params.size() > 0) {
@@ -472,7 +469,7 @@ global with sharing class ATKFaker {
     }
 
     global class Name implements IProvider {
-        global Object call(String method, List<Object> params) {
+        public Object call(String method, List<Object> params) {
             Object param0;
             if (params != null) {
                 if (params.size() > 0) {
@@ -521,7 +518,7 @@ global with sharing class ATKFaker {
     }
 
     global class Finance implements IProvider {
-        global Object call(String method, List<Object> params) {
+        public Object call(String method, List<Object> params) {
             Object param0;
             Object param1;
             if (params != null) {
@@ -557,7 +554,7 @@ global with sharing class ATKFaker {
     }
 
     global class Lorem implements IProvider {
-        global Object call(String method, List<Object> params) {
+        public Object call(String method, List<Object> params) {
             Object param0;
             Object param1;
             Object param2;
@@ -714,8 +711,128 @@ global with sharing class ATKFaker {
         }
     }
 
-    global class DateHelper implements IProvider {
-        global Object call(String method, List<Object> params) {
+    public virtual class NumberArithmeticHelper implements IProvider {
+        public virtual Object call(String method, List<Object> params) {
+            Object param0;
+            Object param1;
+            if (params != null) {
+                if (params.size() > 0) {
+                    param0 = params.get(0);
+                }
+                if (params.size() > 1) {
+                    param1 = params.get(1);
+                }
+            }
+
+            Object output;
+            Decimal a = ATKCommon.converter.toDecimal(param0);
+            Decimal b = ATKCommon.converter.toDecimal(param1);
+            switch on method {
+                when 'add' {
+                    output = add(a, b);
+                }
+                when 'subtract' {
+                    output = subtract(a, b);
+                }
+                when 'divide' {
+                    output = divide(a, b);
+                }
+                when 'multiply' {
+                    output = multiply(a, b);
+                }
+                when else {
+
+                }
+            }
+            return output;
+        }
+
+        private Decimal add(Decimal a, Decimal b) {
+            return a + b;
+        }
+
+        private Decimal subtract(Decimal a, Decimal b) {
+            return a - b;
+        }
+
+        private Decimal divide(Decimal a, Decimal b) {
+            return a.divide(b, a.scale());
+        }
+
+        private Decimal multiply(Decimal a, Decimal b) {
+            return a * b;
+        }
+    }
+
+    public virtual class DateArithmeticHelper implements IProvider {
+        public virtual Object call(String method, List<Object> params) {
+            Object param0;
+            Object param1;
+            if (params != null) {
+                if (params.size() > 0) {
+                    param0 = params.get(0);
+                }
+                if (params.size() > 1) {
+                    param1 = params.get(1);
+                }
+            }
+
+            Object output;
+            Datetime dt = ATKCommon.converter.toDatetime(param0);
+            Integer add = ATKCommon.converter.toInteger(param1);
+            switch on method {
+                when 'addDays' {
+                    output = addDays(dt, add);
+                }
+                when 'addHours' {
+                    output = addHours(dt, add);
+                }
+                when 'addMinutes' {
+                    output = addMinutes(dt, add);
+                }
+                when 'addMonths' {
+                    output = addMonths(dt, add);
+                }
+                when 'addSeconds' {
+                    output = addSeconds(dt, add);
+                }
+                when 'addYears' {
+                    output = addYears(dt, add);
+                }
+                when else {
+
+                }
+            }
+            return output;
+        }
+
+        private Datetime addDays(Datetime dt, Integer additionalDays) {
+            return dt.addDays(additionalDays);
+        }
+
+        private Datetime addHours(Datetime dt, Integer additionalHours) {
+            return dt.addHours(additionalHours);
+        }
+
+        private Datetime addMinutes(Datetime dt, Integer additionalMinutes) {
+            return dt.addMinutes(additionalMinutes);
+        }
+
+        private Datetime addMonths(Datetime dt, Integer additionalMonths) {
+            return dt.addMonths(additionalMonths);
+        }
+
+        private Datetime addSeconds(Datetime dt, Integer additionalSeconds) {
+            return dt.addSeconds(additionalSeconds);
+        }
+
+        private Datetime addYears(Datetime dt, Integer additionalYears) {
+            return dt.addYears(additionalYears);
+        }
+    }
+
+    global class DateHelper extends DateArithmeticHelper {
+        public override Object call(String method, List<Object> params) {
             Object param0;
             Object param1;
             if (params != null) {
@@ -744,65 +861,11 @@ global with sharing class ATKFaker {
                     String dt2 = ATKCommon.converter.toString(param1);
                     output = between(dt1, dt2);
                 }
-                when 'addDays' {
-                    Datetime dt = ATKCommon.converter.toDatetime(param0);
-                    Integer days = ATKCommon.converter.toInteger(param1);
-                    output = addDays(dt, days);
-                }
-                when 'addHours' {
-                    Datetime dt = ATKCommon.converter.toDatetime(param0);
-                    Integer hours = ATKCommon.converter.toInteger(param1);
-                    output = addHours(dt, hours);
-                }
-                when 'addMinutes' {
-                    Datetime dt = ATKCommon.converter.toDatetime(param0);
-                    Integer minutes = ATKCommon.converter.toInteger(param1);
-                    output = addMinutes(dt, minutes);
-                }
-                when 'addMonths' {
-                    Datetime dt = ATKCommon.converter.toDatetime(param0);
-                    Integer months = ATKCommon.converter.toInteger(param1);
-                    output = addMonths(dt, months);
-                }
-                when 'addSeconds' {
-                    Datetime dt = ATKCommon.converter.toDatetime(param0);
-                    Integer seconds = ATKCommon.converter.toInteger(param1);
-                    output = addSeconds(dt, seconds);
-                }
-                when 'addYears' {
-                    Datetime dt = ATKCommon.converter.toDatetime(param0);
-                    Integer years = ATKCommon.converter.toInteger(param1);
-                    output = addYears(dt, years);
-                }
                 when else {
-                    
+                    output = super.call(method, params);
                 }
             }
             return output;
-        }
-
-        private Datetime addDays(Datetime dt, Integer additionalDays) {
-            return dt.addDays(additionalDays);
-        }
-
-        private Datetime addHours(Datetime dt, Integer additionalHours) {
-            return dt.addHours(additionalHours);
-        }
-
-        private Datetime addMinutes(Datetime dt, Integer additionalMinutes) {
-            return dt.addMinutes(additionalMinutes);
-        }
-
-        private Datetime addMonths(Datetime dt, Integer additionalMonths) {
-            return dt.addMonths(additionalMonths);
-        }
-
-        private Datetime addSeconds(Datetime dt, Integer additionalSeconds) {
-            return dt.addSeconds(additionalSeconds);
-        }
-
-        private Datetime addYears(Datetime dt, Integer additionalYears) {
-            return dt.addYears(additionalYears);
         }
 
         global Datetime past() {
@@ -836,7 +899,7 @@ global with sharing class ATKFaker {
     }
 
     global class Address implements IProvider {
-        global Object call(String method, List<Object> params) {
+        public Object call(String method, List<Object> params) {
             Object output;
             switch on method {
                 when 'city' {

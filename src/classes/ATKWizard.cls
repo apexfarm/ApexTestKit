@@ -40,7 +40,7 @@ global with sharing class ATKWizard {
         return this;
     }
 
-    global ATKWizard fieldsInit(Map<String, Object> fieldRuleMap) {
+    global ATKWizard origin(Map<String, Object> fieldRuleMap) {
         this.spellBook.apply(new ATKSpellBook.FieldAttribute(fieldRuleMap, IS_INIT));
         return this;
     }

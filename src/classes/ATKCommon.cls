@@ -29,11 +29,11 @@ global with sharing class ATKCommon {
      * Interpolation Method Parser
      */
     public interface MethodEvaluator {
-        Object evaluate(ATKCommon.Method method);
+        Object evaluateMethod(ATKCommon.Method method);
     }
 
     public interface ParamEvaluator {
-        Object evaluate(ATKCommon.Param param);
+        Object evaluateParam(Integer prevIndex, String fieldName);
     }
 
     public class MethodParser {
@@ -44,93 +44,78 @@ global with sharing class ATKCommon {
             '\\{\\{[\\s]*((.*?))[\\s]*\\}\\}'
         );
 
-        public MethodGroup parse(String input) {
+        public MethodGroup parse(String expression) {
             MethodGroup methodGroup;
-            if (methodCache.get(input) != null) {
-                methodGroup = methodCache.get(input);
+            if (methodCache.get(expression) != null) {
+                methodGroup = methodCache.get(expression);
             } else {
-                methodGroup = new MethodGroup();
-                methodGroup.input = input;
-                methodCache.put(input, methodGroup);
-                
-                System.Matcher matcher = methodPattern.matcher(input);
-                String remaining = input;
-                Integer prevEnd = 0;
-                while(matcher.find()) {
-                    Method method = buildMethod(matcher);
-                    methodGroup.addMethod(method);
-                    methodGroup.addSplit(input.substring(prevEnd, matcher.start()));
-                    prevEnd = matcher.end();
-                    remaining = input.substring(prevEnd);
-                }
-                methodGroup.addSplit(remaining);
+                System.Matcher matcher = methodPattern.matcher(expression);
+                methodGroup = new MethodGroup(expression, matcher);
+                methodCache.put(expression, methodGroup);
             }
             return methodGroup;
-        }
-
-        private Method buildMethod(System.Matcher matcher) {
-            Method method = new Method();
-            method.format = matcher.group(4);
-            method.helperName = matcher.group(1);
-            method.name = matcher.group(2);
-            
-            String paramText = matcher.group(3);
-            if (paramText != null) {
-                paramText = paramText.replaceAll('[\\(\\)\\s]', '');
-                if (String.isNotEmpty(paramText)) {
-                    List<String> params = paramText.split(',');
-                    for (Integer i = 0; i < params.size(); i++) {
-                        String param = params[i];
-                        method.addParam(param, i);
-                    }
-                }
-            }
-
-            System.debug('format: ' + method.format);
-            System.debug('helperName: ' + method.helperName);
-            System.debug('methodName: ' + method.name);
-            System.debug('params: ' + method.params);
-            System.debug('xrefParams: ' + method.xrefParams);
-            return method;
         }
     }
 
     public class MethodGroup {
         public Integer level { get; set; }
         public List<Method> methodList { get; set; }
+        
+        String expression { get; set; }
+        @TestVisible
         List<String> splits { get; set; }
-        String input { get; set; }
 
         private Boolean hasMethod {
             get {
-                return methodList.size() > 0;
+                return methodList != null && methodList.size() > 0;
             }
         }
 
-        MethodGroup() {
-            methodList = new List<Method>();
-            splits = new List<String>();
+        MethodGroup(String expression, System.Matcher matcher) {
+            this.level = METHOD_GROUP_MAX_LEVEL;
+            this.expression = expression;
+            
+            String remaining = expression;
+            Integer prevEnd = 0;
+            while(matcher.find()) {
+                addSplit(expression.substring(prevEnd, matcher.start()));
+                addMethod(buildMethod(matcher));
+                prevEnd = matcher.end();
+            }
+            if (this.hasMethod) {
+                addSplit(expression.substring(prevEnd));
+            }
         }
 
         void addSplit(String split) {
-            this.splits.add(split);
+            if (splits == null) {
+                splits = new List<String>();
+            }
+            splits.add(split);
         }
 
         void addMethod(Method method) {
-            this.methodList.add(method);
-            if (method.level < level) {
-                level = method.level;
+            if (methodList == null) {
+                methodList = new List<Method>();
+            }
+            methodList.add(method);
+
+            if (method instanceof XrefMethod) {
+                XrefMethod xrefMethod = (XrefMethod)method;
+                if (xrefMethod.level < level) {
+                    level = xrefMethod.level;
+                }
             }
         }
 
         public Object evaluate(MethodEvaluator methodEvaluator) {
             if (!this.hasMethod) {
-                return this.input;
+                return this.expression;
             }
 
             List<Object> evals = new List<Object>();
             for (Method method : this.methodList) {
-                evals.add(methodEvaluator.evaluate(method));
+                evals.add(methodEvaluator.evaluateMethod(method));
             }
 
             List<String> splits = this.splits;
@@ -147,60 +132,114 @@ global with sharing class ATKCommon {
                 }
                 return output;
             }
-            return this.input;
+            return this.expression;
         }
     }
 
-    public class Method {
-        public Integer level { get; set; }
-        public String format { get; set; }
+    static Method buildMethod(System.Matcher matcher) {
+        Method method;
+        if (matcher.group(4) != null) {
+            method = new SymbolMethod(matcher.group(4));
+            return method;
+        }
+
+        List<XrefParam> xrefParams;
+        List<Object> params;
+        String paramText = matcher.group(3);
+        if (paramText != null) {
+            paramText = paramText.replaceAll('[\\(\\)\\s]', '');
+            if (String.isNotEmpty(paramText)) {
+                params = new List<Object>();
+                List<String> paramSplits = paramText.split(',');
+                for (Integer i = 0; i < paramSplits.size(); i++) {
+                    String input = paramSplits[i];
+                    if (input.startsWith('$')) {
+                        if (xrefParams == null) {
+                            xrefParams = new List<XrefParam>();
+                        }
+                        XrefParam param = new XrefParam();
+                        param.index = i;
+                        param.level = converter.toInteger(input.substring(1, 2));
+                        param.fieldName = input.substring(3).toUpperCase();
+                        xrefParams.add(param);
+                        params.add(null);
+                    } else {
+                        params.add(input);
+                    }
+                }
+            }
+        }
+        
+        if (xrefParams != null) {
+            method = new XrefMethod(xrefParams);
+        } else {
+            method = new Method();
+        }
+
+        method.helperName = matcher.group(1);
+        method.name = matcher.group(2);
+        method.params = params;
+
+        System.debug('helperName: ' + method.helperName);
+        System.debug('methodName: ' + method.name);
+        System.debug('params: ' + method.params);
+        return method;
+    }
+
+    public virtual class Method {
         public String helperName { get; set; }
         public String name { get; set; }
         public List<Object> params { get; set; }
+    }
 
-        public List<Param> xrefParams { get; set; }
-        public Boolean isXref {
-            get {
-                return xrefParams.size() > 0;
+    public class SymbolMethod extends Method {
+        private SymbolMethod(String format) {
+            helperName = 'helper';
+            name = 'replaceSymbols';
+            this.params = new List<Object> { format };
+        }
+    }
+
+    public class XrefMethod extends Method {
+        public List<XrefParam> xrefParams { get; set; }
+        public Integer level {
+            get;
+            set {
+                if (level == null || value < level) {
+                    level = value;
+                }
             }
         }
 
-        public Method() {
-            this.params = new List<Object>();
-            this.xrefParams = new List<Param>();
-            level = METHOD_GROUP_MAX_LEVEL;
+        XrefMethod(List<XrefParam> xrefParams) {
+            this.xrefParams = xrefParams;
+            for (XrefParam param : xrefParams) {
+               this.level = param.level;
+            }
         }
 
         public void loadParams(ParamEvaluator paramEvaluator) {
-            if (isXref && paramEvaluator != null) {
-                for (Param param : xrefParams) {
-                    params.set(param.index, paramEvaluator.evaluate(param));
+            if (xrefParams != null && paramEvaluator != null) {
+                for (XrefParam param : xrefParams) {
+                    params.set(param.index, paramEvaluator.evaluateParam(param.level, param.fieldName));
                 }
-            }
-        }
-
-        void addParam(String input, Integer at) {
-            if (input.startsWith('$')) {
-                Param param = new Param();
-                param.index = at;
-                param.xrefLevel = converter.toInteger(input.substring(1, 2));
-                param.xrefField = input.substring(3).toUpperCase();
-                xrefParams.add(param);
-                params.add(null);
-                if (param.xrefLevel < level) {
-                    level = param.xrefLevel;
-                }
-            } else {
-                params.add(input);
             }
         }
     }
 
-    public class Param {
-        Object value { get; set; }
+    public class XrefParam {
+        @TestVisible
         Integer index { get; set; }
-        public Integer xrefLevel { get; set; }
-        public String xrefField { get; set; }
+        @TestVisible
+        Integer level { 
+            get;
+            set {
+                if (level == null || value < level) {
+                    level = value;
+                }
+            } 
+        }
+        public String fieldName { get; set; }
     }
 
     /**
