@@ -344,4 +344,116 @@ public with sharing class ATKFakerTest {
             
         }
     }
+
+    /*
+     * ATKCommon Test Methods
+     */
+    class TestMethodEvaluator implements ATKCommon.MethodEvaluator {
+        public Object evaluateMethod(ATKCommon.Method method) {
+            return '===';
+        }
+    }
+
+    @isTest
+    static void testATKCommonMethodParser() {
+        TestMethodEvaluator methodEvaluator = new TestMethodEvaluator();
+
+        ATKCommon.MethodParser parser = new ATKCommon.MethodParser();
+        ATKCommon.MethodGroup methodGroup = parser.parse('xxx{!helper.name(param0, param1)}xxx');
+        System.assertEquals(2, methodGroup.splits.size());
+        System.assertEquals('xxx', methodGroup.splits[0]);
+        System.assertEquals('xxx', methodGroup.splits[1]);
+        System.assertEquals(1, methodGroup.methodList.size());
+        ATKCommon.Method method = methodGroup.methodList[0];
+        System.assertEquals('helper', method.helperName);
+        System.assertEquals('name', method.name);
+        System.assertEquals(2, method.params.size());
+        System.assertEquals('param0', method.params[0]);
+        System.assertEquals('param1', method.params[1]);
+        System.assertEquals('xxx===xxx', methodGroup.evaluate(methodEvaluator));
+
+        methodGroup = parser.parse('xxx{!helper.name($1.a, $2.b)}xxx');
+        System.assertEquals(1, methodGroup.level);
+        System.assertEquals(2, methodGroup.splits.size());
+        System.assertEquals('xxx', methodGroup.splits[0]);
+        System.assertEquals('xxx', methodGroup.splits[1]);
+        System.assertEquals(1, methodGroup.methodList.size());
+        method = methodGroup.methodList[0];
+        System.assert(method instanceof ATKCommon.XrefMethod);
+        System.assertEquals('helper', method.helperName);
+        System.assertEquals('name', method.name);
+        System.assertEquals(2, method.params.size());
+        System.assertEquals(null, method.params[0]);
+        System.assertEquals(null, method.params[1]);
+        ATKCommon.XrefMethod xrefMethod = (ATKCommon.XrefMethod)method;
+        System.assertEquals(1, xrefMethod.level);
+        System.assertEquals(2, xrefMethod.xrefParams.size());
+        System.assertEquals(0, xrefMethod.xrefParams[0].index);
+        System.assertEquals(1, xrefMethod.xrefParams[0].level);
+        System.assertEquals('A', xrefMethod.xrefParams[0].fieldName);
+        System.assertEquals(1, xrefMethod.xrefParams[1].index);
+        System.assertEquals(2, xrefMethod.xrefParams[1].level);
+        System.assertEquals('B', xrefMethod.xrefParams[1].fieldName);
+
+        methodGroup = parser.parse('xxx{{###-###-####}}xxx');
+        System.assertEquals(2, methodGroup.splits.size());
+        System.assertEquals('xxx', methodGroup.splits[0]);
+        System.assertEquals('xxx', methodGroup.splits[1]);
+        System.assertEquals(1, methodGroup.methodList.size());
+        method = methodGroup.methodList[0];
+        System.assert(method instanceof ATKCommon.SymbolMethod);
+        System.assertEquals('helper', method.helperName);
+        System.assertEquals('replaceSymbols', method.name);
+        System.assertEquals(1, method.params.size());
+        System.assertEquals('###-###-####', method.params[0]);
+
+        methodGroup = parser.parse('xxx---xxx');
+        System.assertEquals(null, methodGroup.splits);
+        System.assertEquals(null, methodGroup.methodList);
+        System.assertEquals('xxx---xxx', methodGroup.evaluate(methodEvaluator));
+    }
+
+    @isTest
+    static void testATKCommonConverter() {
+        ATKCommon.Converter converter = new ATKCommon.Converter();
+        System.assertEquals(null, converter.toInteger(null));
+        System.assertEquals(null, converter.toInteger('abc'));
+        System.assertEquals(123, converter.toInteger(123));
+        System.assertEquals(123, converter.toInteger(123.00));
+        System.assertEquals(123, converter.toInteger('123'));
+        System.assertEquals(123, converter.toInteger('123.00'));
+
+        System.assertEquals(null, converter.toDecimal(null));
+        System.assertEquals(null, converter.toDecimal('abc'));
+        System.assertEquals(123, converter.toDecimal(123));
+        System.assertEquals(123, converter.toDecimal(123.00));
+        System.assertEquals(123.45, converter.toDecimal(123.45));
+        System.assertEquals(123, converter.toDecimal('123'));
+        System.assertEquals(123, converter.toDecimal('123.00'));
+        System.assertEquals(123.45, converter.toDecimal('123.45'));
+
+        System.assertEquals(null, converter.toString(null));
+        System.assertEquals('abc', converter.toString('abc'));
+        System.assertEquals('123', converter.toString(123));
+
+        System.assertEquals(null, converter.toDate(null));
+        System.assertEquals(Date.today(), converter.toDate(Date.today()));
+        System.assertEquals(Date.today(), converter.toDate(Datetime.now()));
+        System.assertEquals(Date.newInstance(2018, 8, 28), converter.toDate('2018-8-28'));
+        System.assertEquals(null, converter.toDate('2018-08-28T14:24:22Z'));
+        System.assertEquals(null, converter.toDate('abc'));
+
+        System.assertEquals(null, converter.toDatetime(null));
+        Datetime now = Datetime.now();
+        System.assertEquals(now, converter.toDatetime(now));
+        System.assertEquals(Datetime.valueOfGmt('2018-08-28 14:24:22'), converter.toDatetime('2018-08-28T14:24:22Z'));
+        System.assertEquals(Datetime.valueOfGmt('2018-08-28 14:24:22'), converter.toDatetime('2018-08-28T22:24:22+08:00'));
+        System.assertEquals(null, converter.toDatetime('abc'));
+
+        System.assertEquals(null, converter.toTime(null));
+        System.assertEquals(Time.newInstance(8, 28, 36, 0), converter.toTime(Time.newInstance(8, 28, 36, 0)));
+        System.assertEquals(Time.newInstance(8, 28, 36, 0), converter.toTime(Datetime.newInstance(2018, 8, 28, 8, 28, 36)));
+        System.assertEquals(null, converter.toTime('2018-08-28T14:24:22Z'));
+        System.assertEquals(null, converter.toTime('abc'));
+    }
 }

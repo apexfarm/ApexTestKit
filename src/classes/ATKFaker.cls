@@ -11,6 +11,7 @@ global with sharing class ATKFaker {
     global static Finance finance { get; set; }
     global static Random random { get; set; }
     global static Helper helper { get; set; }
+    global static NumberArithmeticHelper numbers { get; set; }
 
     @TestVisible
     private static ATKFakerDefinition definition = new ATKFakerDefinition();
@@ -26,6 +27,7 @@ global with sharing class ATKFaker {
         dates = new DateHelper();
         name = new Name();
         helper = new Helper();
+        numbers = new NumberArithmeticHelper();
 
         helperMap = new Map<String, IProvider>();
         helperMap.put('internet', internet);
@@ -36,6 +38,7 @@ global with sharing class ATKFaker {
         helperMap.put('dates', dates);
         helperMap.put('name', name);
         helperMap.put('helper', helper);
+        helperMap.put('numbers', numbers);
     }
 
     global static Object fake(String input) {
@@ -705,6 +708,59 @@ global with sharing class ATKFaker {
                 'lines'};
             String method = (String)random.arrayElement(methodList);
             return (String)call(method, null);
+        }
+    }
+
+    public virtual class NumberArithmeticHelper implements IProvider {
+        public virtual Object call(String method, List<Object> params) {
+            Object param0;
+            Object param1;
+            if (params != null) {
+                if (params.size() > 0) {
+                    param0 = params.get(0);
+                }
+                if (params.size() > 1) {
+                    param1 = params.get(1);
+                }
+            }
+
+            Object output;
+            Decimal a = ATKCommon.converter.toDecimal(param0);
+            Decimal b = ATKCommon.converter.toDecimal(param1);
+            switch on method {
+                when 'add' {
+                    output = add(a, b);
+                }
+                when 'subtract' {
+                    output = subtract(a, b);
+                }
+                when 'divide' {
+                    output = divide(a, b);
+                }
+                when 'multiply' {
+                    output = multiply(a, b);
+                }
+                when else {
+
+                }
+            }
+            return output;
+        }
+
+        private Decimal add(Decimal a, Decimal b) {
+            return a + b;
+        }
+
+        private Decimal subtract(Decimal a, Decimal b) {
+            return a - b;
+        }
+
+        private Decimal divide(Decimal a, Decimal b) {
+            return a.divide(b, a.scale());
+        }
+
+        private Decimal multiply(Decimal a, Decimal b) {
+            return a * b;
         }
     }
 

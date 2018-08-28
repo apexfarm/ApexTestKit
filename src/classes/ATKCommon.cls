@@ -62,6 +62,7 @@ global with sharing class ATKCommon {
         public List<Method> methodList { get; set; }
         
         String expression { get; set; }
+        @TestVisible
         List<String> splits { get; set; }
 
         private Boolean hasMethod {
@@ -227,7 +228,9 @@ global with sharing class ATKCommon {
     }
 
     public class XrefParam {
+        @TestVisible
         Integer index { get; set; }
+        @TestVisible
         Integer level { 
             get;
             set {
