@@ -348,9 +348,21 @@ public with sharing class ATKFakerTest {
     /*
      * ATKCommon Test Methods
      */
-    class TestMethodEvaluator implements ATKCommon.MethodEvaluator {
+    class TestMethodEvaluator implements ATKCommon.MethodEvaluator, ATKCommon.ParamEvaluator {
         public Object evaluateMethod(ATKCommon.Method method) {
-            return '===';
+            if (method instanceof ATKCommon.XrefMethod) {
+                ATKCommon.XrefMethod xrefMethod = (ATKCommon.XrefMethod)method;
+                xrefMethod.loadParams(this);
+            }
+            List<String> stringParams = new List<String>();
+            for (Object param : method.params) {
+                stringParams.add(String.valueOf(param));
+            }
+            return String.format('+{0}+{1}+', stringParams);
+        }
+
+        public Object evaluateParam(Integer prevIndex, String fieldName) {
+            return fieldName;
         }
     }
 
@@ -370,7 +382,7 @@ public with sharing class ATKFakerTest {
         System.assertEquals(2, method.params.size());
         System.assertEquals('param0', method.params[0]);
         System.assertEquals('param1', method.params[1]);
-        System.assertEquals('xxx===xxx', methodGroup.evaluate(methodEvaluator));
+        System.assertEquals('xxx+param0+param1+xxx', methodGroup.evaluate(methodEvaluator));
 
         methodGroup = parser.parse('xxx{!helper.name($1.a, $2.b)}xxx');
         System.assertEquals(1, methodGroup.level);
@@ -394,6 +406,7 @@ public with sharing class ATKFakerTest {
         System.assertEquals(1, xrefMethod.xrefParams[1].index);
         System.assertEquals(2, xrefMethod.xrefParams[1].level);
         System.assertEquals('B', xrefMethod.xrefParams[1].fieldName);
+        System.assertEquals('xxx+A+B+xxx', methodGroup.evaluate(methodEvaluator));
 
         methodGroup = parser.parse('xxx{{###-###-####}}xxx');
         System.assertEquals(2, methodGroup.splits.size());
@@ -411,6 +424,12 @@ public with sharing class ATKFakerTest {
         System.assertEquals(null, methodGroup.splits);
         System.assertEquals(null, methodGroup.methodList);
         System.assertEquals('xxx---xxx', methodGroup.evaluate(methodEvaluator));
+
+        methodGroup = parser.parse('   {!helper.name($1.a, $2.b)}   ');
+        methodGroup = parser.parse('   {!helper.name($1.a, $2.b)}   ');
+        System.assertEquals(2, methodGroup.splits.size());
+        System.assertEquals(1, methodGroup.methodList.size());
+        System.assertEquals('+A+B+', methodGroup.evaluate(methodEvaluator));
     }
 
     @isTest
@@ -423,6 +442,7 @@ public with sharing class ATKFakerTest {
         System.assertEquals(123, converter.toInteger('123'));
         System.assertEquals(123, converter.toInteger('123.00'));
 
+        System.assertEquals(null, converter.toDecimal(Datetime.now()));
         System.assertEquals(null, converter.toDecimal(null));
         System.assertEquals(null, converter.toDecimal('abc'));
         System.assertEquals(123, converter.toDecimal(123));
