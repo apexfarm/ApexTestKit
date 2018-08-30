@@ -11,7 +11,8 @@ global with sharing class ATKFaker {
     global static Finance finance { get; set; }
     global static Random random { get; set; }
     global static Helper helper { get; set; }
-    global static NumberArithmeticHelper numbers { get; set; }
+    @TestVisible
+    private static NumberArithmeticHelper numbers { get; set; }
 
     @TestVisible
     private static ATKFakerDefinition definition = new ATKFakerDefinition();
@@ -64,7 +65,12 @@ global with sharing class ATKFaker {
         Object call(String method, List<Object> params);
     }
 
-    global class Helper implements IProvider {
+    public interface IDataProvider extends IProvider {
+
+    }
+
+    @TestVisible
+    global class Helper implements IDataProvider {
         public Object call(String method, List<Object> params) {
             Object param0;
             Object param1;
@@ -99,9 +105,7 @@ global with sharing class ATKFaker {
             }
             return input.replaceAll(' ', '-')
                 .replaceAll('[^\\w\\.\\-]+', '')
-                .replaceAll('----', '-')
-                .replaceAll('---', '-')
-                .replaceAll('--', '-');
+                .replaceAll('--+', '-');
         }
 
         global String replaceSymbolsWithNumber(String input) {
@@ -154,7 +158,7 @@ global with sharing class ATKFaker {
         }
     }
 
-    global class Random implements IProvider {
+    global class Random implements IDataProvider {
         private Integer RANDOM_NUMBER_CACHE_SIZE = 569;
         private List<Double> randomNumberCache = new List<Double>();
         private Integer randomNumberIndex = 0;
@@ -318,7 +322,74 @@ global with sharing class ATKFaker {
         }
     }
 
-    global class Internet implements IProvider {
+    global class DateHelper extends DateArithmeticHelper implements IDataProvider {
+        public override Object call(String method, List<Object> params) {
+            Object param0;
+            Object param1;
+            if (params != null) {
+                if (params.size() > 0) {
+                    param0 = params.get(0);
+                }
+                if (params.size() > 1) {
+                    param1 = params.get(1);
+                }
+            }
+
+            Object output;
+            switch on method {
+                when 'past' {
+                    Integer years = ATKCommon.converter.toInteger(param0);
+                    String dt = ATKCommon.converter.toString(param1);
+                    output = past(years, dt);
+                }
+                when 'future' {
+                    Integer years = ATKCommon.converter.toInteger(param0);
+                    String dt = ATKCommon.converter.toString(param1);
+                    output = future(years, dt);
+                }
+                when 'between' {
+                    String dt1 = ATKCommon.converter.toString(param0);
+                    String dt2 = ATKCommon.converter.toString(param1);
+                    output = between(dt1, dt2);
+                }
+                when else {
+                    output = super.call(method, params);
+                }
+            }
+            return output;
+        }
+
+        global Datetime past() {
+            return past(null, null);
+        }
+
+        global Datetime past(Integer years, String refDate) {
+            Datetime d = ATKCommon.converter.toDatetime(refDate);
+            d = d == null ? Datetime.now() : d;
+            years = years == null ? 1 : years;
+            return d.addSeconds(-Integer.valueOf(random.number(1, years * 365 * 24 * 3600, 0)));
+        }
+
+        global Datetime future() {
+            return future(null, null);
+        }
+
+        global Datetime future(Integer years, String refDate) {
+            Datetime d = ATKCommon.converter.toDatetime(refDate);
+            d = d == null ? Datetime.now() : d;
+            years = years == null ? 1 : years;
+            return d.addSeconds(Integer.valueOf(random.number(1, years * 365 * 24 * 3600, 0)));
+        }
+
+        global Datetime between(String fo, String to) {
+            Datetime fromDatetime = ATKCommon.converter.toDatetime(fo);
+            Datetime toDatetime = ATKCommon.converter.toDatetime(to);
+            Integer dateOffset = Integer.valueOf(random.number(toDatetime.getTime() - fromDatetime.getTime())/1000);
+            return fromDatetime.addSeconds(dateOffset);
+        }
+    }
+
+    global class Internet implements IDataProvider {
         public Object call(String method, List<Object> params) {
             Object param0;
             Object param1;
@@ -430,7 +501,7 @@ global with sharing class ATKFaker {
         }
     }
 
-    global class Phone implements IProvider {
+    global class Phone implements IDataProvider {
         public Object call(String method, List<Object> params) {
             Object param0;
             if (params != null) {
@@ -468,7 +539,7 @@ global with sharing class ATKFaker {
         }
     }
 
-    global class Name implements IProvider {
+    global class Name implements IDataProvider {
         public Object call(String method, List<Object> params) {
             Object param0;
             if (params != null) {
@@ -517,7 +588,7 @@ global with sharing class ATKFaker {
         }
     }
 
-    global class Finance implements IProvider {
+    global class Finance implements IDataProvider {
         public Object call(String method, List<Object> params) {
             Object param0;
             Object param1;
@@ -553,20 +624,16 @@ global with sharing class ATKFaker {
         }
     }
 
-    global class Lorem implements IProvider {
+    global class Lorem implements IDataProvider {
         public Object call(String method, List<Object> params) {
             Object param0;
             Object param1;
-            Object param2;
             if (params != null) {
                 if (params.size() > 0) {
                     param0 = params.get(0);
                 }
                 if (params.size() > 1) {
                     param1 = params.get(1);
-                }
-                if (params.size() > 2) {
-                    param2 = params.get(2);
                 }
             }
 
@@ -711,7 +778,29 @@ global with sharing class ATKFaker {
         }
     }
 
-    public virtual class NumberArithmeticHelper implements IProvider {
+    global class Address implements IDataProvider {
+        public Object call(String method, List<Object> params) {
+            Object output;
+            switch on method {
+                when 'city' {
+                }
+                when else {
+                    
+                }
+            }
+            return output;
+        }
+    }
+
+    /*
+     * Arithmetic Provider
+     */
+    public interface IArithmeticProvider extends IProvider {
+
+    }
+
+    @TestVisible
+    private virtual class NumberArithmeticHelper implements IArithmeticProvider {
         public virtual Object call(String method, List<Object> params) {
             Object param0;
             Object param1;
@@ -747,24 +836,40 @@ global with sharing class ATKFaker {
             return output;
         }
 
+        @TestVisible
         private Decimal add(Decimal a, Decimal b) {
+            if (a == null || b == null) {
+                return null;
+            }
             return a + b;
         }
 
+        @TestVisible
         private Decimal subtract(Decimal a, Decimal b) {
+            if (a == null || b == null) {
+                return null;
+            }
             return a - b;
         }
 
+        @TestVisible
         private Decimal divide(Decimal a, Decimal b) {
-            return a.divide(b, a.scale());
+            if (a == null || b == null) {
+                return null;
+            }
+            return a / b;
         }
 
+        @TestVisible
         private Decimal multiply(Decimal a, Decimal b) {
+            if (a == null || b == null) {
+                return null;
+            }
             return a * b;
         }
     }
 
-    public virtual class DateArithmeticHelper implements IProvider {
+    private virtual class DateArithmeticHelper implements IArithmeticProvider {
         public virtual Object call(String method, List<Object> params) {
             Object param0;
             Object param1;
@@ -806,109 +911,52 @@ global with sharing class ATKFaker {
             return output;
         }
 
+        @TestVisible
         private Datetime addDays(Datetime dt, Integer additionalDays) {
+            if (dt == null) {
+                return null;
+            }
             return dt.addDays(additionalDays);
         }
 
+        @TestVisible
         private Datetime addHours(Datetime dt, Integer additionalHours) {
+            if (dt == null) {
+                return null;
+            }
             return dt.addHours(additionalHours);
         }
 
+        @TestVisible
         private Datetime addMinutes(Datetime dt, Integer additionalMinutes) {
+            if (dt == null) {
+                return null;
+            }
             return dt.addMinutes(additionalMinutes);
         }
 
+        @TestVisible
         private Datetime addMonths(Datetime dt, Integer additionalMonths) {
+            if (dt == null) {
+                return null;
+            }
             return dt.addMonths(additionalMonths);
         }
 
+        @TestVisible
         private Datetime addSeconds(Datetime dt, Integer additionalSeconds) {
+            if (dt == null) {
+                return null;
+            }
             return dt.addSeconds(additionalSeconds);
         }
 
+        @TestVisible
         private Datetime addYears(Datetime dt, Integer additionalYears) {
+            if (dt == null) {
+                return null;
+            }
             return dt.addYears(additionalYears);
-        }
-    }
-
-    global class DateHelper extends DateArithmeticHelper {
-        public override Object call(String method, List<Object> params) {
-            Object param0;
-            Object param1;
-            if (params != null) {
-                if (params.size() > 0) {
-                    param0 = params.get(0);
-                }
-                if (params.size() > 1) {
-                    param1 = params.get(1);
-                }
-            }
-
-            Object output;
-            switch on method {
-                when 'past' {
-                    Integer years = ATKCommon.converter.toInteger(param0);
-                    String dt = ATKCommon.converter.toString(param1);
-                    output = past(years, dt);
-                }
-                when 'future' {
-                    Integer years = ATKCommon.converter.toInteger(param0);
-                    String dt = ATKCommon.converter.toString(param1);
-                    output = future(years, dt);
-                }
-                when 'between' {
-                    String dt1 = ATKCommon.converter.toString(param0);
-                    String dt2 = ATKCommon.converter.toString(param1);
-                    output = between(dt1, dt2);
-                }
-                when else {
-                    output = super.call(method, params);
-                }
-            }
-            return output;
-        }
-
-        global Datetime past() {
-            return past(null, null);
-        }
-
-        global Datetime past(Integer years, String refDate) {
-            Datetime d = ATKCommon.converter.toDatetime(refDate);
-            d = d == null ? Datetime.now() : d;
-            years = years == null ? 1 : years;
-            return d.addSeconds(-Integer.valueOf(random.number(1, years * 365 * 24 * 3600, 0)));
-        }
-
-        global Datetime future() {
-            return future(null, null);
-        }
-
-        global Datetime future(Integer years, String refDate) {
-            Datetime d = ATKCommon.converter.toDatetime(refDate);
-            d = d == null ? Datetime.now() : d;
-            years = years == null ? 1 : years;
-            return d.addSeconds(Integer.valueOf(random.number(1, years * 365 * 24 * 3600, 0)));
-        }
-
-        global Datetime between(String fo, String to) {
-            Datetime fromDatetime = ATKCommon.converter.toDatetime(fo);
-            Datetime toDatetime = ATKCommon.converter.toDatetime(to);
-            Integer dateOffset = Integer.valueOf(random.number(toDatetime.getTime() - fromDatetime.getTime())/1000);
-            return fromDatetime.addSeconds(dateOffset);
-        }
-    }
-
-    global class Address implements IProvider {
-        public Object call(String method, List<Object> params) {
-            Object output;
-            switch on method {
-                when 'city' {
-                }
-                when else {
-                    
-                }
-            }
-            return output;
         }
     }
 }
