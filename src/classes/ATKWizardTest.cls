@@ -416,4 +416,34 @@ private with sharing class ATKWizardTest {
             System.assertEquals(current.addDays(-i), contacts[i].get('Birthdate'));
         }
     }
+
+    @isTest
+    static void TestOptionalReference() {
+        ATKWizard me = new ATKWizard();
+        me.wantMany('Account')
+            .total(10)
+            .hasMany('Contact')
+                .total(20)
+                .hasMany('OpportunityContactRole')
+                    .total(20)
+                    .belongsTo('Opportunity')
+                        .total(20)
+                        .fields(new Map<String, Object> {
+                            'CloseDate' => '{!dates.between(2018-7-1, 2018-8-1)}'
+                        })
+            .generate();
+
+        List<Account> accountList = [SELECT Id, (SELECT Id FROM Contacts) FROM Account];
+        List<Contact> contactList = [SELECT Id FROM Contact];
+        List<Opportunity> oppoList = [SELECT Id FROM Opportunity];
+        List<OpportunityContactRole> roleList = [SELECT Id FROM OpportunityContactRole];
+
+        System.assertEquals(10, accountList.size());
+        System.assertEquals(20, contactList.size());
+        System.assertEquals(20, oppoList.size());
+        System.assertEquals(20, roleList.size());
+        for (Account account : accountList) {
+            System.assertEquals(2, account.Contacts.size());
+        }
+    }
 }
