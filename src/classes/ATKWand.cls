@@ -3,54 +3,26 @@
  */
 public with sharing class ATKWand {
     private static Map<String, Schema.SObjectType> gd { get; set; }
-    private static final ItemsDistributor itemsDistributor = new ItemsDistributor();
-    private static final FieldEvaluator fieldEvaluator = new FieldEvaluator();
-    private static final NodesValidator nodesValidator = new NodesValidator();
     public static final ATKCommon.MethodParser parser = ATKCommon.parser;
     private static final MethodEvaluator methodEvaluator = new MethodEvaluator();
+
+    private static final IValidator nodeValidator = new NodeValidator();
+    private static final IGenerator nodeGenerator = new NodeGenerator();
 
     static {
         gd = Schema.getGlobalDescribe();
     }
 
     public static void validate(ATKSpellBook spellBook) {
-        nodesValidator.validate(spellBook);
+        nodeValidator.validate(spellBook);
     }
 
     public static void generate(ATKSpellBook spellBook) {
-        fieldEvaluator.resetRuleIndexCache();
-        Iterator<ATKSpellBook.EntityNode> iterator = spellBook.iterator();
-        while (iterator.hasNext()) {
-            ATKSpellBook.EntityNode entityNode = iterator.next();
-            if (entityNode.repository == null || entityNode.repository.size() == 0) {
-                List<SObject> repository = createObjects(entityNode);
-                assignReferences(entityNode);
-                Database.insert(repository);
-            } else {
-                List<SObject> repository = updateObjects(entityNode);
-                assignReferences(entityNode);
-                Database.update(repository);
-            }
-        }
-    }
-
-    private static Object fake(String input, String fieldName) {
-        ATKCommon.MethodGroup methodGroup = parser.parse(input);
-        Integer size = methodEvaluator.workingEntity.repository.size();
-        if (size < methodGroup.level && methodGroup.level < ATKCommon.METHOD_GROUP_MAX_LEVEL) {
-            Object initValue = methodEvaluator.workingEntity.fieldInitMap.get(fieldName.toUpperCase());
-            if (initValue instanceof List<Object>) {
-                List<Object> initValueList = (List<Object>)initValue;
-                return initValueList[size];
-            } else {
-                return initValue;
-            }
-        }
-        return methodGroup.evaluate(methodEvaluator);
+        nodeGenerator.generate(spellBook);
     }
 
     public class MethodEvaluator implements ATKCommon.MethodEvaluator, ATKCommon.ParamEvaluator {
-        ATKSpellBook.EntityNode workingEntity { get; set; }
+        EntityNode workingEntity { get; set; }
 
         public Object evaluateMethod(ATKCommon.Method method) {
             Object value;
@@ -79,59 +51,94 @@ public with sharing class ATKWand {
         }
     }
 
-    class NodesValidator {
+    interface IValidator {
+        void validate(ATKSpellBook spellBook);
+    }
+
+    class NodeValidator implements IValidator {
+
         public void validate(ATKSpellBook spellBook) {
-            Iterator<ATKSpellBook.EntityNode> iterator = spellBook.iterator();
+            Iterator<EntityNode> iterator = spellBook.iterator();
             while (iterator.hasNext()) {
-                ATKSpellBook.EntityNode entityNode = iterator.next();
+                EntityNode entityNode = iterator.next();
                 validateTotalAndList(entityNode);
                 validateRelationship(entityNode);
                 validateXrefFields(entityNode);
             }
         }
 
-        void validateTotalAndList(ATKSpellBook.EntityNode entityNode) {
+        void validateTotalAndList(EntityNode entityNode) {
             if ((entityNode.total == null || entityNode.total == 0) &&
                 (entityNode.repository == null || entityNode.repository.size() == 0)
             ) {
                 throw new ATKCommon.InsufficientAttributeException(
                     String.format('Please set either a total() or fromList() to entity {0}.',
-                        new List<String> { entityNode.name }));
+                    new List<String> { entityNode.name }));
             }
         }
 
-        void validateRelationship(ATKSpellBook.EntityNode entityNode) {
+        void validateRelationship(EntityNode entityNode) {
             if (entityNode.referenceToMap != null && entityNode.referenceToMap.size() > 0) {
                 Schema.SObjectType objectType = gd.get(entityNode.name);
                 Schema.DescribeSObjectResult dsr = objectType.getDescribe();
                 Map<String, SObjectField> fieldMap = dsr.fields.getMap();
-                for (String fieldName : entityNode.referenceToMap.keySet()) {
-                    SObjectField field = fieldMap.get(fieldName);
-                    if (field == null) {
-                        throw new ATKCommon.NotFoundException(
-                            String.format('The relationship field ({0}.{1}) can not be found.',
-                                new List<String> { entityNode.name, fieldName }));
-                    }
+                
+                Map<String, String> fieldNameMap = new Map<String, String>();
+                for (SObjectField field : fieldMap.values()) {
                     Schema.DescribeFieldResult dfr = field.getDescribe();
-                    List<Schema.SObjectType> referenceToTypeList = dfr.getReferenceTo();
-                    Boolean incorrectType = true;
-                    ATKSpellBook.EntityNode referenceTo = entityNode.referenceToMap.get(fieldName);
-                    for (Schema.SObjectType referenceToType : referenceToTypeList) {
-                        Schema.DescribeSObjectResult refDsr = referenceToType.getDescribe();
-                        if (refDsr.getName().toUpperCase() == referenceTo.Name) {
-                            incorrectType = false;
+                    if (dfr.getType() == Schema.DisplayType.REFERENCE) {
+                        for (Schema.SObjectType rst : dfr.getReferenceTo()) {
+                            fieldNameMap.put(
+                                rst.getDescribe().getName().toUpperCase(), 
+                                dfr.getName().toUpperCase());
                         }
                     }
-                    if (incorrectType) {
-                        throw new ATKCommon.IncorrectTypeException(
-                            String.format('The relationship field ({0}.{1}) is not referenced to entity ({2}).',
+                }
+
+                for (String fieldName : entityNode.referenceToMap.keySet()) {
+                    EntityNode referenceTo = entityNode.referenceToMap.get(fieldName);
+                    if (fieldName == referenceTo.Name) {
+                        String referenceFieldName = fieldNameMap.get(referenceTo.Name);
+                        if (referenceFieldName == null) {
+                            throw new ATKCommon.IncorrectTypeException(
+                                String.format('The relationship field ({0}.{1}) to entity ({2}) doesn\'t exist.',
                                 new List<String> { entityNode.name, fieldName, referenceTo.name }));
+                        } else if (referenceFieldName != fieldName) {
+                            if (entityNode.referenceToMap.get(referenceFieldName) != null) {
+                                throw new ATKCommon.IncorrectTypeException(
+                                    String.format('The relationship field ({0}.{1}) to entity ({2}) should not be used multiple times.',
+                                    new List<String> { entityNode.name, fieldName, referenceTo.name }));
+                            }
+                            entityNode.referenceToMap.remove(fieldName);
+                            entityNode.referenceToMap.put(referenceFieldName, referenceTo);
+                        }
+                    } else {
+                        SObjectField field = fieldMap.get(fieldName);
+                        if (field == null) {
+                            throw new ATKCommon.NotFoundException(
+                                String.format('The relationship field ({0}.{1}) to entity ({2}) doesn\'t exist.',
+                                new List<String> { entityNode.name, fieldName, referenceTo.name }));
+                        }
+
+                        Boolean incorrectType = true;
+                        Schema.DescribeFieldResult dfr = field.getDescribe();
+                        for (Schema.SObjectType referenceToType : dfr.getReferenceTo()) {
+                            Schema.DescribeSObjectResult refDsr = referenceToType.getDescribe();
+                            if (refDsr.getName().toUpperCase() == referenceTo.Name) {
+                                incorrectType = false;
+                            }
+                        }
+                        if (incorrectType) {
+                            throw new ATKCommon.IncorrectTypeException(
+                                String.format('The relationship field ({0}.{1}) doesn\'t reference to entity ({2}).',
+                                new List<String> { entityNode.name, fieldName, referenceTo.name }));
+                        }
                     }
                 }
             }
         }
 
-        void validateXrefFields(ATKSpellBook.EntityNode entityNode) {
+        void validateXrefFields(EntityNode entityNode) {
             if (entityNode.fieldRuleMap != null && entityNode.fieldRuleMap.size() > 0) {
                 Boolean isValid = true;
                 for (String fieldName : entityNode.fieldRuleMap.keySet()) {
@@ -158,7 +165,7 @@ public with sharing class ATKWand {
 
                     if (!isValid) {
                         throw new ATKCommon.NotFoundException(
-                            String.format('The field ({0}.{1}) is used in cross reference fields, and must be initialized with fieldsInit().',
+                            String.format('The cross reference field ({0}.{1}) must be initialized with origin() keyword.',
                                 new List<String> { entityNode.name, fieldName }));
                     }
                 }
@@ -166,7 +173,7 @@ public with sharing class ATKWand {
         }
 
         Boolean validateXrefFieldsInit(String input, Map<String, Object> fieldInitMap) {
-            ATKCommon.MethodGroup methodGroup = ATKFaker.parser.parse(input);
+            ATKCommon.MethodGroup methodGroup = parser.parse(input);
             if (methodGroup.level < ATKCommon.METHOD_GROUP_MAX_LEVEL) {
                 for (ATKCommon.Method method : methodGroup.methodList) {
                     if (method instanceof ATKCommon.XrefMethod) {
@@ -185,98 +192,129 @@ public with sharing class ATKWand {
         }
     }
 
-    private static List<SObject> createObjects(ATKSpellBook.EntityNode entityNode) {
-        methodEvaluator.workingEntity = entityNode;
-        Schema.SObjectType objectType = gd.get(entityNode.name);
-        Schema.DescribeSObjectResult dsr = objectType.getDescribe();
-        Set<String> fieldNameSet = entityNode.fieldRuleMap.keySet();
-        Set<String> xrefsNameSet = entityNode.fieldInitMap.keySet();
-
-        List<SObject> repository = entityNode.repository;
-        for (Integer i = 0; i < entityNode.total; i++) {
-            SObject obj = objectType.newSObject();
-            for (SObjectField field : dsr.fields.getMap().values()) {
-                Schema.DescribeFieldResult dfr = field.getDescribe();
-                String fieldName = dfr.getName().toUpperCase();
-                if (xrefsNameSet.contains(fieldName)) {
-                    break;
-                }
-                Boolean hasRule = fieldNameSet.contains(fieldName);
-                Object rule = entityNode.fieldRuleMap.get(fieldName);
-                Object value = fieldEvaluator.randomFieldValue(dsr, dfr, rule, hasRule, 10);
-                if (value != null) {
-                    obj.put(fieldName, value);
-                }
-            }
-
-            for (String fieldName : xrefsNameSet) {
-                SObjectField field = dsr.fields.getMap().get(fieldName);
-                Schema.DescribeFieldResult dfr = field.getDescribe();
-                Object rule = entityNode.fieldRuleMap.get(fieldName);
-                Object value = fieldEvaluator.randomFieldValue(dsr, dfr, rule, true, 10);
-                if (value != null) {
-                    obj.put(fieldName, value);
-                }
-            }
-
-            repository.add(obj);
-        }
-        return repository;
+    interface IGenerator {
+        void generate(ATKSpellBook spellBook);
     }
 
-    private static List<SObject> updateObjects(ATKSpellBook.EntityNode entityNode) {
-        methodEvaluator.workingEntity = entityNode;
-        Schema.SObjectType objectType = gd.get(entityNode.name);
-        Schema.DescribeSObjectResult dsr = objectType.getDescribe();
-        Set<String> fieldNameSet = entityNode.fieldRuleMap.keySet();
+    class NodeGenerator implements IGenerator {
+        IFieldEvaluator fieldEvaluator { get; set; }
+        ItemsDistributor itemsDistributor { get; set; }
 
-        List<SObject> repository = entityNode.repository;
-        entityNode.repository = new List<SObject> ();
-        for (Integer i = 0; i < repository.size(); i++) {
-            SObject obj = repository[i];
-            for (String fieldName : fieldNameSet) {
-                SObjectField field = dsr.fields.getMap().get(fieldName);
-                Schema.DescribeFieldResult dfr = field.getDescribe();
-                Object rule = entityNode.fieldRuleMap.get(fieldName);
-                Object value = fieldEvaluator.randomFieldValue(dsr, dfr, rule, true, 10);
-                if (value != null) {
-                    obj.put(fieldName, value);
+        NodeGenerator() {
+            fieldEvaluator = new FieldEvaluator();
+            itemsDistributor = new ItemsDistributor();
+        }
+
+        public void generate(ATKSpellBook spellBook) {
+            fieldEvaluator.resetRuleIndexCache();
+            Iterator<EntityNode> iterator = spellBook.iterator();
+            while (iterator.hasNext()) {
+                EntityNode entityNode = iterator.next();
+                if (entityNode.repository == null || entityNode.repository.size() == 0) {
+                    List<SObject> repository = createObjects(entityNode);
+                    assignReferences(entityNode);
+                    Database.insert(repository);
+                } else {
+                    List<SObject> repository = updateObjects(entityNode);
+                    assignReferences(entityNode);
+                    Database.update(repository);
                 }
             }
-            entityNode.repository.add(obj);
         }
-        return repository;
-    }
 
-    private static void assignReferences(ATKSpellBook.EntityNode entityNode) {
-        if (entityNode.referenceToMap != null
-            && entityNode.referenceToMap.size() > 0
-            && entityNode.repository != null) {
+        List<SObject> createObjects(EntityNode entityNode) {
+            methodEvaluator.workingEntity = entityNode;
+            Schema.SObjectType objectType = gd.get(entityNode.name);
+            Schema.DescribeSObjectResult dsr = objectType.getDescribe();
+            Set<String> fieldNameSet = entityNode.fieldRuleMap.keySet();
+            Set<String> xrefsNameSet = entityNode.fieldInitMap.keySet();
 
-            List<String> fieldNames = new List<String>(entityNode.referenceToMap.keySet());
-            List<SObject> childObjectList = entityNode.repository;
-
-            if (fieldNames.size() >= 2) {
-                List<SObject> leftGroup = entityNode.referenceToMap.get(fieldNames[0]).repository;
-                List<SObject> rightGroup = entityNode.referenceToMap.get(fieldNames[1]).repository;
-                List<List<Object>> pairs = itemsDistributor.product2(leftGroup, rightGroup, entityNode.total);
-                Integer childCount = entityNode.total;
-                Integer pairCount = pairs.size();
-                for (Integer i = 0; i < childCount && i < pairCount; i++) {
-                   SObject child = childObjectList[i];
-                   SObject left = (SObject)pairs[i][0];
-                   SObject right = (SObject)pairs[i][1];
-                   child.put(fieldNames[0], left.Id);
-                   child.put(fieldNames[1], right.Id);
+            List<SObject> repository = entityNode.repository;
+            for (Integer i = 0; i < entityNode.total; i++) {
+                SObject obj = objectType.newSObject();
+                for (SObjectField field : dsr.fields.getMap().values()) {
+                    Schema.DescribeFieldResult dfr = field.getDescribe();
+                    String fieldName = dfr.getName().toUpperCase();
+                    if (xrefsNameSet.contains(fieldName)) {
+                        break;
+                    }
+                    Boolean hasRule = fieldNameSet.contains(fieldName);
+                    Object rule = entityNode.fieldRuleMap.get(fieldName);
+                    Object value = fieldEvaluator.getValue(dsr, dfr, rule, hasRule, 10);
+                    if (value != null) {
+                        obj.put(fieldName, value);
+                    }
                 }
-            } else {
-                List<SObject> parentObjectList = entityNode.referenceToMap.get(fieldNames[0]).repository;
-                for (List<Object> pair : itemsDistributor.distribute(childObjectList, parentObjectList)) {
-                    if (pair.size() == 2) {
-                        SObject child = (SObject)pair[0];
-                        SObject parent = (SObject)pair[1];
-                        if (child != null && parent != null) {
-                            child.put(fieldNames[0], parent.Id);
+
+                for (String fieldName : xrefsNameSet) {
+                    SObjectField field = dsr.fields.getMap().get(fieldName);
+                    Schema.DescribeFieldResult dfr = field.getDescribe();
+                    Object rule = entityNode.fieldRuleMap.get(fieldName);
+                    Object value = fieldEvaluator.getValue(dsr, dfr, rule, true, 10);
+                    if (value != null) {
+                        obj.put(fieldName, value);
+                    }
+                }
+
+                repository.add(obj);
+            }
+            return repository;
+        }
+
+        List<SObject> updateObjects(EntityNode entityNode) {
+            methodEvaluator.workingEntity = entityNode;
+            Schema.SObjectType objectType = gd.get(entityNode.name);
+            Schema.DescribeSObjectResult dsr = objectType.getDescribe();
+            Set<String> fieldNameSet = entityNode.fieldRuleMap.keySet();
+
+            List<SObject> repository = entityNode.repository;
+            entityNode.repository = new List<SObject> ();
+            for (Integer i = 0; i < repository.size(); i++) {
+                SObject obj = repository[i];
+                for (String fieldName : fieldNameSet) {
+                    SObjectField field = dsr.fields.getMap().get(fieldName);
+                    Schema.DescribeFieldResult dfr = field.getDescribe();
+                    Object rule = entityNode.fieldRuleMap.get(fieldName);
+                    Object value = fieldEvaluator.getValue(dsr, dfr, rule, true, 10);
+                    if (value != null) {
+                        obj.put(fieldName, value);
+                    }
+                }
+                entityNode.repository.add(obj);
+            }
+            return repository;
+        }
+
+        void assignReferences(EntityNode entityNode) {
+            if (entityNode.referenceToMap != null
+                && entityNode.referenceToMap.size() > 0
+                && entityNode.repository != null) {
+
+                List<String> fieldNames = new List<String>(entityNode.referenceToMap.keySet());
+                List<SObject> childObjectList = entityNode.repository;
+
+                if (fieldNames.size() >= 2) {
+                    List<SObject> leftGroup = entityNode.referenceToMap.get(fieldNames[0]).repository;
+                    List<SObject> rightGroup = entityNode.referenceToMap.get(fieldNames[1]).repository;
+                    List<List<Object>> pairs = itemsDistributor.product2(leftGroup, rightGroup, entityNode.total);
+                    Integer childCount = entityNode.total;
+                    Integer pairCount = pairs.size();
+                    for (Integer i = 0; i < childCount && i < pairCount; i++) {
+                    SObject child = childObjectList[i];
+                    SObject left = (SObject)pairs[i][0];
+                    SObject right = (SObject)pairs[i][1];
+                    child.put(fieldNames[0], left.Id);
+                    child.put(fieldNames[1], right.Id);
+                    }
+                } else {
+                    List<SObject> parentObjectList = entityNode.referenceToMap.get(fieldNames[0]).repository;
+                    for (List<Object> pair : itemsDistributor.distribute(childObjectList, parentObjectList)) {
+                        if (pair.size() == 2) {
+                            SObject child = (SObject)pair[0];
+                            SObject parent = (SObject)pair[1];
+                            if (child != null && parent != null) {
+                                child.put(fieldNames[0], parent.Id);
+                            }
                         }
                     }
                 }
@@ -405,7 +443,13 @@ public with sharing class ATKWand {
         }
     }
 
-    class FieldEvaluator {
+    interface IFieldEvaluator {
+        void resetRuleIndexCache();
+        Object getValue(Schema.DescribeSObjectResult dsr, Schema.DescribeFieldResult dfr,
+            Object rule, Boolean hasRule, Integer depth);
+    }
+
+    class FieldEvaluator implements IFieldEvaluator {
         private Map<String, List<String>> picklistCache { get; set; }
         private Map<String, Set<String>> addressFieldCache { get; set; }
         private Map<String, Set<String>> geolocationFieldCache { get; set; }
@@ -420,11 +464,11 @@ public with sharing class ATKWand {
             ruleIndexCache = new Map<String, Integer>();
         }
 
-        void resetRuleIndexCache() {
+        public void resetRuleIndexCache() {
             ruleIndexCache = new Map<String, Integer>();
         }
 
-        Object randomFieldValue(
+        public Object getValue(
             Schema.DescribeSObjectResult dsr,
             Schema.DescribeFieldResult dfr,
             Object rule,
@@ -439,14 +483,18 @@ public with sharing class ATKWand {
                     }));
             }
 
-            String key = dsr.getName() + '.' + dfr.getName();
-            Object value;
-            if (isGeolocationField(dsr, dfr)) {
-                return value;
+            if (dfr.isNillable() && !hasRule) {
+                return null;
             }
 
+            if (isGeolocationField(dsr, dfr)) {
+                return null;
+            }
+
+            String key = dsr.getName() + '.' + dfr.getName();
+            Object value;
             if (!hasRule) {
-                value = defaultRandomFieldValue(dsr, dfr);
+                value = guessValue(dsr, dfr);
             } else if (rule instanceOf String) {
                 value = fake((String) rule, dfr.getName());
             } else if (rule instanceOf List<String>) {
@@ -467,7 +515,7 @@ public with sharing class ATKWand {
                 }
 
                 if (uniqueValueCache.get(key).contains(value)) {
-                    value = randomFieldValue(dsr, dfr, rule, hasRule, --depth);
+                    value = getValue(dsr, dfr, rule, hasRule, --depth);
                 }
                 uniqueValueCache.get(key).add(value);
             }
@@ -496,7 +544,7 @@ public with sharing class ATKWand {
             return ruleList.get(index);
         }
 
-        Object defaultRandomFieldValue(Schema.DescribeSObjectResult dsr, Schema.DescribeFieldResult dfr) {
+        Object guessValue(Schema.DescribeSObjectResult dsr, Schema.DescribeFieldResult dfr) {
             Object value;
             if (isNotEditableField(dfr) || isAddressField(dsr, dfr)) {
                 return value;
@@ -524,7 +572,7 @@ public with sharing class ATKWand {
                     } else {
                         value = ATKFaker.random.number(dfr.getPrecision(), dfr.getScale());
                     }
-                    System.debug('Double - ' + fieldName + ': ' + value);
+                    // System.debug('Double - ' + fieldName + ': ' + value);
                 }
                 when INTEGER {
                     value = Integer.valueOf(ATKFaker.random.number(dfr.getPrecision(), dfr.getScale()));
@@ -609,8 +657,8 @@ public with sharing class ATKWand {
             String objectName = dsr.getName();
             if (geolocationFieldCache.get(objectName) == null) {
                 Set<String> geolocationFieldSet = new Set<String>();
-                Map<String, SObjectField> fieldMemeberMap = dsr.fields.getMap();
-                for (SObjectField field : fieldMemeberMap.values()) {
+                Map<String, SObjectField> fieldMap = dsr.fields.getMap();
+                for (SObjectField field : fieldMap.values()) {
                     Schema.DescribeFieldResult dfr = field.getDescribe();
                     String fieldName = dfr.getName().toUpperCase();
                     if (fieldName.endsWith('__LATITUDE__S')) {
@@ -621,7 +669,7 @@ public with sharing class ATKWand {
                 }
                 geolocationFieldSet.add('LONGITUDE');
                 geolocationFieldSet.add('LATITUDE');
-                System.debug('geolocation of ' + objectName + ': ' + geolocationFieldSet);
+                // System.debug('geolocation of ' + objectName + ': ' + geolocationFieldSet);
                 geolocationFieldCache.put(objectName, geolocationFieldSet);
             }
             return geolocationFieldCache.get(objectName);
@@ -636,8 +684,8 @@ public with sharing class ATKWand {
             String objectName = dsr.getName();
             if (addressFieldCache.get(objectName) == null) {
                 Set<String> addressFieldSet = new Set<String>();
-                Map<String, SObjectField> fieldMemeberMap = dsr.fields.getMap();
-                for (SObjectField field : fieldMemeberMap.values()) {
+                Map<String, SObjectField> fieldMap = dsr.fields.getMap();
+                for (SObjectField field : fieldMap.values()) {
                     Schema.DescribeFieldResult dfr = field.getDescribe();
                     if (dfr.getType() == Schema.DisplayType.ADDRESS) {
                         String addressPrefix = dfr.getName().toUpperCase().replace('ADDRESS', '');
@@ -673,6 +721,288 @@ public with sharing class ATKWand {
                 picklistCache.put(key, values);
             }
             return picklistCache.get(key);
+        }
+
+        private Object fake(String input, String fieldName) {
+            ATKCommon.MethodGroup methodGroup = parser.parse(input);
+            Integer size = methodEvaluator.workingEntity.repository.size();
+            if (size < methodGroup.level && methodGroup.level < ATKCommon.METHOD_GROUP_MAX_LEVEL) {
+                Object initValue = methodEvaluator.workingEntity.fieldInitMap.get(fieldName.toUpperCase());
+                if (initValue instanceof List<Object>) {
+                    List<Object> initValueList = (List<Object>)initValue;
+                    return initValueList[size];
+                } else {
+                    return initValue;
+                }
+            }
+            return methodGroup.evaluate(methodEvaluator);
+        }
+    }
+
+    public class ATKSpellBook implements Iterable<EntityNode> {
+        private Map<String, List<EntityNode>> entityNodeMap { get; set; }
+        private EntityNodeMatrix matrix { get; private set; }
+
+        {
+            entityNodeMap = new Map<String, List<EntityNode>>();
+            matrix = new EntityNodeMatrix();
+        }
+
+        public Iterator<EntityNode> iterator() {
+            this.matrix.reset();
+            return matrix;
+        }
+        
+        public void attach(EntityNode entityNode) {
+            this.matrix.add(entityNode);
+            addToEntityNodeMap(entityNode);
+        }
+
+        public void apply(IEntityAttribute attribute) {
+            this.matrix.currentEntitNode.apply(attribute);
+        }
+
+        public void pop(Integer depth) {
+            this.matrix.pop(depth);
+        }
+
+        public List<SObject> query(String entityName) {
+            entityName = entityName.toUpperCase();
+            List<EntityNode> entityNodeList = entityNodeMap.get(entityName);
+            List<SObject> repository = new List<SObject>();
+            if (entityNodeList != null) {
+                for (EntityNode entityNode : entityNodeList) {
+                    repository.addAll(entityNode.repository);
+                }
+            }
+            return repository;
+        }
+
+        private void addToEntityNodeMap(EntityNode entityNode) {
+            String entityName = entityNode.name;
+            if (entityNodeMap.get(entityName) == null) {
+                entityNodeMap.put(entityName, new List<EntityNode>());
+            }
+            entityNodeMap.get(entityName).add(entityNode);
+        }
+    }
+
+    private class EntityNodeMatrix implements Iterator<EntityNode> {
+        private Integer rowIndex { get; set; }
+        private Integer colIndex { get; set; }
+        private List<List<EntityNode>> entityNodeMatrix { get; set; }
+        private List<EntityNode> entityNodeStack { get; set; }
+        private EntityNode currentEntitNode { get; set; }
+
+        private EntityNodeMatrix() {
+            entityNodeMatrix = new List<List<EntityNode>>();
+            entityNodeStack = new List<EntityNode>();
+            rowIndex = 0;
+            colIndex = -1;
+        }
+
+        public Boolean hasNext() {
+            return rowIndex + 1 < entityNodeMatrix.size() 
+            || colIndex + 1 < entityNodeMatrix.get(rowIndex).size();
+        }
+
+        public EntityNode next() {
+            if (hasNext()) {
+                colIndex += 1;
+                if (colIndex == entityNodeMatrix.get(rowIndex).size()) {
+                    rowIndex += 1;
+                    colIndex = 0;
+                }
+                return entityNodeMatrix.get(rowIndex).get(colIndex);
+            }
+            return null;
+        }
+
+        private void reset() {
+            rowIndex = 0;
+            colIndex = -1;
+        }
+
+        private void pop(Integer depth) {
+            while (depth > 0) {
+                depth--;
+                Integer size = this.entityNodeStack.size();
+                if (size > 1) {
+                    this.entityNodeStack.remove(size - 1);
+                    this.currentEntitNode = this.entityNodeStack[size - 2];
+                }
+            }
+            rowIndex = this.currentEntitNode.rowIndex;
+            colIndex = this.currentEntitNode.colIndex;
+        }
+
+        private void add(EntityNode entityNode) {
+            switch on entityNode.type {
+                when WantMany {
+                    rowIndex = 0;
+                    colIndex = 0;
+                    entityNodeMatrix.add(new List<EntityNode>());
+                    entityNodeMatrix.get(rowIndex).add(entityNode);
+                }
+                when BelongsTo {
+                    if (rowIndex > 0) {
+                        rowIndex -= 1;
+                        entityNodeMatrix.get(rowIndex).add(entityNode);
+                        colIndex = entityNodeMatrix.get(rowIndex).size() - 1;
+                    } else {
+                        rowIndex = 0;
+                        colIndex = 0;
+                        entityNodeMatrix.add(rowIndex, new List<EntityNode>());
+                        entityNodeMatrix.get(rowIndex).add(entityNode);
+                    }
+                }
+                when HasMany {
+                    rowIndex += 1;
+                    if (rowIndex == entityNodeMatrix.size()) {
+                        colIndex = 0;
+                        entityNodeMatrix.add(new List<EntityNode>());
+                        entityNodeMatrix.get(rowIndex).add(entityNode);
+                    } else {
+                        colIndex += 1;
+                        entityNodeMatrix.get(rowIndex).add(entityNode);
+                    }
+                }
+            }
+            entityNode.rowIndex = rowIndex;
+            entityNode.colIndex = colIndex;
+            entityNodeStack.add(entityNode);
+            entityNode.parentEntityNode = this.currentEntitNode;
+            this.currentEntitNode = entityNode;
+        }
+    }
+
+    /*
+    * ENTITY NODE
+    */
+    public enum EntityNodeType {
+        WantMany,
+        BelongsTo,
+        HasMany
+    }
+
+    public class EntityNode {
+        private Integer rowIndex { get; set; }
+        private Integer colIndex { get; set; }
+        private EntityNodeType type { get; set; }
+        private EntityNode parentEntityNode {
+            get;
+            set {
+                parentEntityNode = value;
+                switch on type {
+                    when BelongsTo {
+                        parentEntityNode.referenceToMap.put(this.name, this);
+                    }
+                    when HasMany {
+                        referenceToMap.put(parentEntityNode.name, parentEntityNode);
+                    }
+                }
+            } 
+        }
+
+        public String name { get; set; }
+        public Integer total { get; set; }
+        public Map<String, Object> fieldInitMap { get; set; }
+        public Map<String, Object> fieldRuleMap { get; set; }
+        public Map<String, EntityNode> referenceToMap { get; set; }
+        public List<SObject> repository { get; set; }
+
+        public EntityNode(String name, EntityNodeType type) {
+            this.name = name.trim().toUpperCase();
+            this.type = type;
+            fieldRuleMap = new Map<String, Object>();
+            fieldInitMap = new Map<String, Object>();
+            referenceToMap = new Map<String, EntityNode>();
+            repository = new List<SObject>();
+        }
+
+        private virtual void apply(IEntityAttribute attribute) {
+            attribute.apply(this);
+        }
+    }
+
+    /*
+    * ENTITY ATTRIBUTE
+    */
+    public Interface IEntityAttribute {
+        void apply(EntityNode entityNode);
+    }
+
+    public Interface IRelatedEntityAttribute extends IEntityAttribute {
+
+    }
+
+    public class TotalAttribute implements IEntityAttribute, IRelatedEntityAttribute {
+        private Integer total { get; set; }
+        public TotalAttribute(Integer total) {
+            this.total = total;
+        }
+
+        public void apply(EntityNode entityNode) {            
+            entityNode.total = total;
+        }
+    }
+
+    public class FromListAttribute implements IEntityAttribute, IRelatedEntityAttribute {
+        private List<SObject> repository { get; set; }
+
+        public FromListAttribute(List<SObject> repository) {
+            this.repository = repository;
+        }
+
+        public void apply(EntityNode entityNode) {
+            entityNode.repository.addAll(repository);
+            IEntityAttribute totalAttribute = new TotalAttribute(repository.size());
+            totalAttribute.apply(entityNode);
+        }
+    }
+
+    public class OriginFieldAttribute extends FieldAttribute {
+        public OriginFieldAttribute(Map<String, Object> fieldRuleMap) {
+            super(fieldRuleMap);
+        }
+
+        public override void apply(EntityNode entityNode) {
+            entityNode.fieldInitMap.putAll(fieldRuleMap);
+        }
+    }
+
+    public virtual class FieldAttribute implements IEntityAttribute, IRelatedEntityAttribute {
+        protected Map<String, Object> fieldRuleMap { get; set; }
+
+        public FieldAttribute(Map<String, Object> fieldRuleMap) {
+            this.fieldRuleMap = new Map<String, Object>();
+            for (String key : fieldRuleMap.keySet()) {
+                this.fieldRuleMap.put(key.trim().toUpperCase(), fieldRuleMap.get(key));
+            }
+        }
+
+        public virtual void apply(EntityNode entityNode) {
+            entityNode.fieldRuleMap.putAll(fieldRuleMap);
+        }
+    }
+
+    public class ReferenceByAttribute implements IRelatedEntityAttribute {
+        private String referenceBy { get; set; }
+        public ReferenceByAttribute(String referenceBy) {
+            this.referenceBy = referenceBy.trim().toUpperCase();
+        }
+
+        public void apply(EntityNode entityNode) {
+            switch on entityNode.type {
+                when BelongsTo {
+                    entityNode.parentEntityNode.referenceToMap.remove(entityNode.name);
+                    entityNode.parentEntityNode.referenceToMap.put(referenceBy, entityNode);
+                }
+                when HasMany {
+                    entityNode.referenceToMap.remove(entityNode.parentEntityNode.name);
+                    entityNode.referenceToMap.put(referenceBy, entityNode.parentEntityNode);
+                }
+            }
         }
     }
 }

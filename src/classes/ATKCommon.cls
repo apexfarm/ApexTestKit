@@ -180,9 +180,9 @@ global with sharing class ATKCommon {
         method.name = matcher.group(2);
         method.params = params;
 
-        System.debug('helperName: ' + method.helperName);
-        System.debug('methodName: ' + method.name);
-        System.debug('params: ' + method.params);
+        // System.debug('helperName: ' + method.helperName);
+        // System.debug('methodName: ' + method.name);
+        // System.debug('params: ' + method.params);
         return method;
     }
 
