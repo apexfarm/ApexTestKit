@@ -19,7 +19,7 @@ static void testAccountCreation() {
     me.wantMany('Account')
         .total(100)
         .hasMany('Contact')
-            .referenceBy('AccountId')
+            .referenceBy('AccountId') // can be omitted
             .total(200)
         .generate();
 
@@ -43,7 +43,7 @@ ATKWizard me = new ATKWizard();
 me.wantMany('Account')
     .total(10)
     .hasMany('Contact')
-        .referenceBy('AccountId')
+        .referenceBy('AccountId') // can be omitted
         .total(40)
     .generate();
 ```
@@ -55,7 +55,7 @@ ATKWizard me = new ATKWizard();
 me.wantMany('Contact')
     .total(40)
     .belongsTo('Account')
-        .referenceBy('AccountId')
+        .referenceBy('AccountId') // can be omitted
         .total(10)
     .generate();
 ```
@@ -70,7 +70,7 @@ ATKWizard.Bag bag = me
     .wantMany('Product2')
         .total(5)
         .hasMany('PricebookEntry')
-            .referenceBy('Product2Id')
+            .referenceBy('Product2Id') // can be omitted
             .fields(new Map<String, Object> {
                 'Pricebook2Id' => pricebook2Id,
                 'UseStandardPrice' => false,
@@ -82,14 +82,14 @@ ATKWizard.Bag bag = me
 me.wantMany('Pricebook2')
     .total(5)
     .hasMany('PricebookEntry')
-        .referenceBy('Pricebook2Id')
+        .referenceBy('Pricebook2Id') // can be omitted
         .fields(new Map<String, Object> {
             'UseStandardPrice' => false,
             'IsActive' => true
         })
         .total(25)
         .belongsTo('Product2')
-            .referenceBy('Product2Id')
+            .referenceBy('Product2Id') // can be omitted
             .fromList(bag.get('Product2'))
     .generate();
 ```
@@ -109,29 +109,31 @@ me.wantMany('A')
     .generate();
 ```
 
-| Keyword   | Param  | Description                                                  |
-| --------- | ------ | ------------------------------------------------------------ |
-| wantMany  | String | Always start chain with wantMany keyword. It is the root sObject to start relationship with. Accept a valid sObejct API name as its parameter. |
-| hasMany   | String | Establish one to many relationship between the previous working on sObject and the current sObject. Accept a valid sObejct API name as its parameter. |
-| belongsTo | String | Establish many to one relationship between the previous working on sObject and the current sObject. Accept a valid sObejct API name as its parameter. |
+| Keyword     | Param  | Description                                                  |
+| ----------- | ------ | ------------------------------------------------------------ |
+| wantMany()  | String | Always start chain with wantMany keyword. It is the root sObject to start relationship with. Accept a valid sObejct API name as its parameter. |
+| hasMany()   | String | Establish one to many relationship between the previous working on sObject and the current sObject. Accept a valid sObejct API name as its parameter. |
+| belongsTo() | String | Establish many to one relationship between the previous working on sObject and the current sObject. Accept a valid sObejct API name as its parameter. |
 
 #### 2.2 Entity Decoration Keywords
 
-There are four entity decoration keywords to decorate the current sObject context. 
+| Keyword       | Param                 | Description                                                  |
+| ------------- | --------------------- | ------------------------------------------------------------ |
+| total()       | Integer               | **Required***, only if `fromList()` is not used. It defines number of records to create for the attached sObject context. |
+| fromList()    | List\<sObject\>       | **Required***, only if `total()` is not used. This tells the wizard to use the predefined sObject list, rather than to create the records from scratch. |
+| fields()      | Map\<String, Object\> | **Optional**. Use this keyword to tailor the field values, either to bypass validation rules, or to fulfill assertion logics. The key of the map is the field API name of the sObject. And the value of the map can be value generation expressions, or the exact values to use. |
+| referenceBy() | String                | **Optional**. Use this keyword if there are multiple fields on the entity referencing the same sObject. It accepts relationship API name to reference parent from child. |
+| origin()      | Map\<String, Object\> | **Optional**. Use this keyword if cross record arithmetic expressions are used in `fields()`, like `'{!dates.addDay($1.startDate__c, 1)}'`. Here `$1` is used to reference a previous record. Hence you can use `$0` to reference values on the current record. |
 
-| Keyword     | Param                 | Description                                                  |
-| ----------- | --------------------- | ------------------------------------------------------------ |
-| referenceBy | String                | **Required**. This is required decoration keyword for every 'hasMany', 'belongsTo' keywords. It accepts relationship API name to reference parent from child. |
-| total       | Integer               | **Required***, only if `fromList` is not used. It defines number of records to create for the attached sObject context. |
-| fromList    | List\<sObject\>       | **Required***, only if `total` is not used. This tells the wizard to use the predefined sObject list, rather than to create the records from scratch. |
-| fields      | Map\<String, Object\> | **Optional**. Use this keyword to tailor the field values, either to bypass validation rules, or to fulfill assertion logics. The key of the map is the field API name of the sObject. And the value of the map can be value generation expressions, or the exact values to use. |
+For `fields()`, there are two ways to assign rule collections:
 
-For `fields`, there are two ways to assign rule collections:
-
-1. Use List to assign values sequentially. This will be used as the most cases, since we have more control over the generated data. 
+1. Use List to assign values sequentially.
 ```java
 fields(new Map<String, Object> {
-    'Name' => new List<String> {
+    'Name' => new List<String> { // always try to parse String as expressions
+        'AP-{{###}}', 'GG-{{###}}', 'MS-{{###}}'
+    },
+    'Alias' => new List<Object> { // object will not be treated as expressions
         'AP-{{###}}', 'GG-{{###}}', 'MS-{{###}}'
     },
     'Price' => new List<Object> {
@@ -140,16 +142,54 @@ fields(new Map<String, Object> {
 });
 ```
 
-2. Use Set to assign values randomly. This should be used less often, since random (less controlled) data is the enemy of testing. And also its performance is a bit lower than the List one.
+2. Use Set to assign values randomly. 
 ```java
 fields(new Map<String, Object> {
-    'Name' => new Set<String> {
+    'Name' => new Set<String> { // always try to parse String as expressions
+        'AP-{{###}}', 'GG-{{###}}', 'MS-{{###}}'
+    },
+    'Alias' => new Set<Object> { // object will not be treated as expressions
         'AP-{{###}}', 'GG-{{###}}', 'MS-{{###}}'
     },
     'Price' => new Set<Object> {
         12.39, 28.76, 22.00
     }
 });
+```
+
+For `fields()`, it can perform arithmetic calculations according to other field values:
+
+```java
+Date current = Date.today();
+ATKWizard me = new ATKWizard();
+me.wantMany('Contact')
+    .total(10)
+    .origin(new Map<String, Object> {
+        'Birthdate' => current // give a default value for $1.Birthdate
+    })
+    .fields(new Map<String, Object> {
+        'Birthdate' => '{!dates.addDays($1.Birthdate, -1)}'
+    })
+    .generate();
+```
+
+* $0 represents current record: `'EndDate__c' => '{!dates.addDays($0.StartDate__c, 1)}'`
+* $1 represents previous record: `'StartDate__c' => '{!dates.addDays($1.EndDate__c, 1)}'`
+
+Here is a list of supported arithmetic expressions:
+
+```java
+'{!numbers.add($1.Price__c, 10)}'
+'{!numbers.substract($1.Price__c, 10)}'
+'{!numbers.divide($1.Price__c, 10)}'
+'{!numbers.multiply($1.Price__c, 10)}'
+ 
+'{!dates.addDays($0.StartDate__c, 1)}'
+'{!dates.addHours($0.StartDate__c, 1)}'
+'{!dates.addMinutes($0.StartDate__c, 1)}'
+'{!dates.addMonths($0.StartDate__c, 1)}'
+'{!dates.addSeconds($0.StartDate__c, 1)}'
+'{!dates.addYears($0.StartDate__c, 1)}'
 ```
 
 #### 2.3 Entity Traversal Keywords
