@@ -21,38 +21,20 @@ public with sharing class ATKWand {
         nodeGenerator.generate(spellBook);
     }
 
-    public class MethodEvaluator implements ATKCommon.MethodEvaluator, ATKCommon.ParamEvaluator {
-        EntityNode workingEntity { get; set; }
-
-        public Object evaluateMethod(ATKCommon.Method method) {
-            Object value;
-            ATKFaker.IProvider helper = ATKFaker.helperMap.get(method.helperName);
-            if (helper != null) {
-                if (method instanceof ATKCommon.XrefMethod) {
-                    ATKCommon.XrefMethod xrefMethod = (ATKCommon.XrefMethod)method;
-                    xrefMethod.loadParams(this);
-                }
-                value = helper.call(method.name, method.params);
-            }
-            return value;
-        }
-
-        public Object evaluateParam(Integer prevIndex, String fieldName) {
-            if (workingEntity == null) {
-                return null;
-            }
-
-            Integer size = workingEntity.repository.size();
-            if (prevIndex <= size) {
-                SObject record = workingEntity.repository[size - prevIndex];
-                return record.get(fieldName);
-            }
-            return null;
-        }
-    }
-
     interface IValidator {
         void validate(ATKSpellBook spellBook);
+    }
+
+    interface IGenerator {
+        void generate(ATKSpellBook spellBook);
+    }
+    
+    interface IFieldEvaluator {
+        void resetRuleIndexCache();
+        Object getValue(
+            Schema.DescribeSObjectResult dsr,
+            Schema.DescribeFieldResult dfr,
+            Object rule, Boolean hasRule, Integer depth);
     }
 
     class NodeValidator implements IValidator {
@@ -192,17 +174,13 @@ public with sharing class ATKWand {
         }
     }
 
-    interface IGenerator {
-        void generate(ATKSpellBook spellBook);
-    }
-
     class NodeGenerator implements IGenerator {
         IFieldEvaluator fieldEvaluator { get; set; }
-        ItemsDistributor itemsDistributor { get; set; }
+        Distributor distributor { get; set; }
 
         NodeGenerator() {
             fieldEvaluator = new FieldEvaluator();
-            itemsDistributor = new ItemsDistributor();
+            distributor = new Distributor();
         }
 
         public void generate(ATKSpellBook spellBook) {
@@ -296,7 +274,7 @@ public with sharing class ATKWand {
                 if (fieldNames.size() >= 2) {
                     List<SObject> leftGroup = entityNode.referenceToMap.get(fieldNames[0]).repository;
                     List<SObject> rightGroup = entityNode.referenceToMap.get(fieldNames[1]).repository;
-                    List<List<Object>> pairs = itemsDistributor.product2(leftGroup, rightGroup, entityNode.total);
+                    List<List<Object>> pairs = distributor.product2(leftGroup, rightGroup, entityNode.total);
                     Integer childCount = entityNode.total;
                     Integer pairCount = pairs.size();
                     for (Integer i = 0; i < childCount && i < pairCount; i++) {
@@ -308,7 +286,7 @@ public with sharing class ATKWand {
                     }
                 } else {
                     List<SObject> parentObjectList = entityNode.referenceToMap.get(fieldNames[0]).repository;
-                    for (List<Object> pair : itemsDistributor.distribute(childObjectList, parentObjectList)) {
+                    for (List<Object> pair : distributor.distribute(childObjectList, parentObjectList)) {
                         if (pair.size() == 2) {
                             SObject child = (SObject)pair[0];
                             SObject parent = (SObject)pair[1];
@@ -323,7 +301,7 @@ public with sharing class ATKWand {
     }
 
     @TestVisible
-    class ItemsDistributor {
+    class Distributor {
         @TestVisible
         List<List<Object>> product(List<Object> leftGroup, List<Object> rightGroup, Integer lmt) {
             List<List<Object>> groups = new List<List<Object>>();
@@ -443,12 +421,6 @@ public with sharing class ATKWand {
         }
     }
 
-    interface IFieldEvaluator {
-        void resetRuleIndexCache();
-        Object getValue(Schema.DescribeSObjectResult dsr, Schema.DescribeFieldResult dfr,
-            Object rule, Boolean hasRule, Integer depth);
-    }
-
     class FieldEvaluator implements IFieldEvaluator {
         private Map<String, List<String>> picklistCache { get; set; }
         private Map<String, Set<String>> addressFieldCache { get; set; }
@@ -483,9 +455,9 @@ public with sharing class ATKWand {
                     }));
             }
 
-            if (dfr.isNillable() && !hasRule) {
-                return null;
-            }
+            // if (dfr.isNillable() && !hasRule) {
+            //    return null;
+            // }
 
             if (isGeolocationField(dsr, dfr)) {
                 return null;
@@ -739,6 +711,36 @@ public with sharing class ATKWand {
         }
     }
 
+    public class MethodEvaluator implements ATKCommon.MethodEvaluator, ATKCommon.ParamEvaluator {
+        EntityNode workingEntity { get; set; }
+
+        public Object evaluateMethod(ATKCommon.Method method) {
+            Object value;
+            ATKFaker.IProvider helper = ATKFaker.helperMap.get(method.helperName);
+            if (helper != null) {
+                if (method instanceof ATKCommon.XrefMethod) {
+                    ATKCommon.XrefMethod xrefMethod = (ATKCommon.XrefMethod)method;
+                    xrefMethod.loadParams(this);
+                }
+                value = helper.call(method.name, method.params);
+            }
+            return value;
+        }
+
+        public Object evaluateParam(Integer prevIndex, String fieldName) {
+            if (workingEntity == null) {
+                return null;
+            }
+
+            Integer size = workingEntity.repository.size();
+            if (prevIndex <= size) {
+                SObject record = workingEntity.repository[size - prevIndex];
+                return record.get(fieldName);
+            }
+            return null;
+        }
+    }
+
     public class ATKSpellBook implements Iterable<EntityNode> {
         private Map<String, List<EntityNode>> entityNodeMap { get; set; }
         private EntityNodeMatrix matrix { get; private set; }
@@ -961,16 +963,6 @@ public with sharing class ATKWand {
         }
     }
 
-    public class OriginFieldAttribute extends FieldAttribute {
-        public OriginFieldAttribute(Map<String, Object> fieldRuleMap) {
-            super(fieldRuleMap);
-        }
-
-        public override void apply(EntityNode entityNode) {
-            entityNode.fieldInitMap.putAll(fieldRuleMap);
-        }
-    }
-
     public virtual class FieldAttribute implements IEntityAttribute, IRelatedEntityAttribute {
         protected Map<String, Object> fieldRuleMap { get; set; }
 
@@ -983,6 +975,16 @@ public with sharing class ATKWand {
 
         public virtual void apply(EntityNode entityNode) {
             entityNode.fieldRuleMap.putAll(fieldRuleMap);
+        }
+    }
+
+    public class OriginFieldAttribute extends FieldAttribute {
+        public OriginFieldAttribute(Map<String, Object> fieldRuleMap) {
+            super(fieldRuleMap);
+        }
+
+        public override void apply(EntityNode entityNode) {
+            entityNode.fieldInitMap.putAll(fieldRuleMap);
         }
     }
 

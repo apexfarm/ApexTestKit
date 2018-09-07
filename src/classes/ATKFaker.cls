@@ -119,17 +119,17 @@ global with sharing class ATKFaker {
             Integer exclamationChar = '!'.charAt(0);
             Integer[] chars = input.getChars();
 
-            String output = '';
+            ATKCommon.StringBuilder builder = new ATKCommon.StringBuilder();
             for (Integer i = 0; i < chars.size(); i++) {
                 if (chars[i] == numberSignChar) {
-                    output += String.valueOf(random.number(0, 9, 0));
+                    builder.append(String.valueOf(random.number(0, 9, 0)));
                 } else if (chars[i] == exclamationChar) {
-                    output += String.valueOf(random.number(2, 9, 0));
+                    builder.append(String.valueOf(random.number(2, 9, 0)));
                 } else {
-                    output += String.fromCharArray(new Integer[]{chars[i]});
+                    builder.append(String.fromCharArray(new Integer[]{chars[i]}));
                 }
             }
-            return output;
+            return builder.toString();
         }
 
         global String replaceSymbols(String input) {
@@ -139,22 +139,22 @@ global with sharing class ATKFaker {
             Integer asteriskChar = '*'.charAt(0);
             
             Integer[] chars = input.getChars();
-            String output = '';
+            ATKCommon.StringBuilder builder = new ATKCommon.StringBuilder();
             List<String> alphaList = definition.get(ATKFakerDefinition.FAKER_SYMBOL_ALPHA);
             for (Integer i = 0; i < chars.size(); i++) {
                 if (chars[i] == numberSignChar) {
-                    output += random.number(0, 9, 0);
+                    builder.append(random.number(0, 9, 0));
                 } else if (chars[i] == questionMarkChar) {
-                    output += (String)random.arrayElement(alphaList);
+                    builder.append((String)random.arrayElement(alphaList));
                 } else if (chars[i] == asteriskChar) {
-                    output += random.boolean() ? 
+                    builder.append(random.boolean() ? 
                         (String)random.arrayElement(alphaList) : 
-                        String.valueOf(random.number(0, 9, 0));
+                        String.valueOf(random.number(0, 9, 0)));
                 } else {
-                    output += String.fromCharArray(new Integer[]{chars[i]});
+                    builder.append(String.fromCharArray(new Integer[]{chars[i]}));
                 }
             }
-            return output;
+            return builder.toString();
         }
     }
 
@@ -682,16 +682,20 @@ global with sharing class ATKFaker {
         }
 
         global String words(Integer count) {
+            return buildWords(count).toString();
+        }
+
+        ATKCommon.StringBuilder buildWords(Integer count) {
             count = count == null ? 3 : count;
-            String output = '';
+            ATKCommon.StringBuilder builder = new ATKCommon.StringBuilder();
             for (Integer i = 0; i < count; ) {
-                output += word();
+                builder.append(word());
                 i++;
                 if (i != count) {
-                    output += ' ';
+                    builder.append(' ');
                 }
             }
-        	return output;
+        	return builder;
         }
 
         global String sentence() {
@@ -699,12 +703,17 @@ global with sharing class ATKFaker {
         }
 
         global String sentence(Integer count) {
+            return buildSentence(count).toString();
+        }
+
+        ATKCommon.StringBuilder buildSentence(Integer count) {
             count = count == null ? Integer.valueOf(random.number(3, 10, 0)) : count;
-            String sentence = words(count);
-            return String.format('{0}{1}.', new List<String>{
-                sentence.substring(0, 1).toUpperCase(),
-                sentence.substring(1)
-            });
+            ATKCommon.StringBuilder builder = buildWords(count);
+            String firstWord = builder.getIndex(0);
+            builder.setIndex(0, firstWord.substring(1));
+            builder.addIndex(0, firstWord.substring(0, 1).toUpperCase());
+            builder.append('.');
+            return builder;
         }
 
         global String sentences() {
@@ -716,18 +725,22 @@ global with sharing class ATKFaker {
         }
 
         global String sentences(Integer count, String separator) {
+            return buildSentences(count, separator).toString();
+        }
+
+        ATKCommon.StringBuilder buildSentences(Integer count, String separator) {
             count = count == null ? Integer.valueOf(random.number(2, 6, 0)) : count;
             separator = separator == null ? ' ' : separator;
 
-            String output = '';
+            ATKCommon.StringBuilder builder = new ATKCommon.StringBuilder();
             for (Integer i = 0; i < count;) {
-                output += sentence();
+                builder.append(buildSentence(null));
                 i++;
                 if (i != count) {
-                    output += separator;
+                    builder.append(separator);
                 }
             }
-            return output;
+            return builder;
         }
 
         global String paragraph() {
@@ -735,8 +748,12 @@ global with sharing class ATKFaker {
         }
 
         global String paragraph(Integer count) {
+            return buildParagraph(count).toString();
+        }
+
+        ATKCommon.StringBuilder buildParagraph(Integer count) {
             count = count == null? 3 : count;
-            return sentences(count + Integer.valueOf(random.number(0, 3, 2)), null);
+            return buildSentences(count + Integer.valueOf(random.number(0, 3, 2)), null);
         }
 
         global String paragraphs() {
@@ -744,18 +761,22 @@ global with sharing class ATKFaker {
         }
 
         global String paragraphs(Integer count, String separator) {
+            return buildParagraphs(count, separator).toString();
+        }
+
+        ATKCommon.StringBuilder buildParagraphs(Integer count, String separator) {
             separator = separator == null ? '\n \r' : separator;
             count = count == null ? 3 : count;
 
-            String output = '';
+            ATKCommon.StringBuilder builder = new ATKCommon.StringBuilder();
             for (Integer i = 0; i < count;) {
-                output += paragraph();
+                builder.append(buildParagraph(null));
                 i++;
                 if (i != count) {
-                    output += separator;
+                    builder.append(separator);
                 }
             }
-            return output;
+            return builder;
         }
 
         global String lines() {
@@ -763,8 +784,12 @@ global with sharing class ATKFaker {
         }
 
         global String lines(Integer count) {
+            return buildLines(count).toString();
+        }
+
+        ATKCommon.StringBuilder buildLines(Integer count) {
             count = count == null ? Integer.valueOf(random.number(1, 5, 0)) : count;
-            return sentences(count, '\n');
+            return buildSentences(count, '\n');
         }
 
         global String text() {

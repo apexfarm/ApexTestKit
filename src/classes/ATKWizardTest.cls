@@ -5,9 +5,9 @@
 private with sharing class ATKWizardTest {
     @isTest
     static void TestTotal() {
-        ATKWizard.I().wantMany('Account').total(10).generate();
+        ATKWizard.I().wantMany('Account').total(100).generate();
         List<Account> accountList = [SELECT Id FROM Account];
-        System.assertEquals(10, accountList.size());
+        System.assertEquals(100, accountList.size());
     }
 
     /*

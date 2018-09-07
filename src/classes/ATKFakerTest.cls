@@ -658,6 +658,43 @@ public with sharing class ATKFakerTest {
     }
 
     /*
+     * ATKCommon String Builder
+     */
+    @isTest
+    static void testATKCommonStringBuilder() {
+        {
+            ATKCommon.StringBuilder builder = new ATKCommon.StringBuilder();
+            for (Integer i = 0; i < 100; i++) {
+                builder.append('a');
+            }
+            String s = builder.toString();
+            System.assertEquals(100, s.length());
+        }
+
+        {
+            ATKCommon.StringBuilder builder = new ATKCommon.StringBuilder();
+            for (Integer i = 0; i < 100; i++) {
+                ATKCommon.StringBuilder builder2 = new ATKCommon.StringBuilder();
+                builder2.append(new List<String> {'a', 'b'});
+                builder.append(builder2);
+            }
+            String s = builder.toString();
+            System.assertEquals(200, s.length());
+        }
+
+        {
+            ATKCommon.StringBuilder builder = new ATKCommon.StringBuilder();
+            builder.append('abc');
+            builder.append('def');
+            String first = builder.getIndex(0);
+            builder.setIndex(0, first.substring(1));
+            builder.addIndex(0, 'A');
+            builder.append('.');
+            System.assertEquals('Abcdef.', builder.toString());
+        }
+    }
+
+    /*
      * ATKCommon Test Methods
      */
     class TestMethodEvaluator implements ATKCommon.MethodEvaluator, ATKCommon.ParamEvaluator {

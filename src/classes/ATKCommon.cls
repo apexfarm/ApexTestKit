@@ -64,18 +64,14 @@ global with sharing class ATKCommon {
         String expression { get; set; }
         @TestVisible
         List<String> splits { get; set; }
-
-        private Boolean hasMethod {
-            get {
-                return methodList != null && methodList.size() > 0;
-            }
-        }
+        Boolean isPure { get; set; }
+        Boolean hasMethod { get; set; }
 
         MethodGroup(String expression, System.Matcher matcher) {
             this.level = METHOD_GROUP_MAX_LEVEL;
             this.expression = expression;
-            
-            String remaining = expression;
+            this.hasMethod = false;
+
             Integer prevEnd = 0;
             while(matcher.find()) {
                 addSplit(expression.substring(prevEnd, matcher.start()));
@@ -85,6 +81,10 @@ global with sharing class ATKCommon {
             if (this.hasMethod) {
                 addSplit(expression.substring(prevEnd));
             }
+            this.isPure = this.splits != null
+                && this.splits.size() == 2
+                && String.isBlank(this.splits[0]) 
+                && String.isBlank(this.splits[1]);
         }
 
         void addSplit(String split) {
@@ -99,6 +99,7 @@ global with sharing class ATKCommon {
                 methodList = new List<Method>();
             }
             methodList.add(method);
+            this.hasMethod = true;
 
             if (method instanceof XrefMethod) {
                 XrefMethod xrefMethod = (XrefMethod)method;
@@ -119,18 +120,19 @@ global with sharing class ATKCommon {
             }
 
             List<String> splits = this.splits;
-            if (splits.size() == 2 && String.isBlank(splits[0]) && String.isBlank(splits[1])) {
+            if (this.isPure) {
                 return evals.get(0);
             }
 
             if (splits.size() == evals.size() + 1) {
-                String output = splits[0];
+                StringBuilder builder = new StringBuilder();
+                builder.append(splits[0]);
                 for (Integer i = 0; i < evals.size(); i++) {
                     String eval = converter.toString(evals[i]);
-                    output += (eval == null ? '' : eval);
-                    output += splits[i+1];
+                    builder.append(eval == null ? '' : eval);
+                    builder.append(splits[i+1]);
                 }
-                return output;
+                return builder.toString();
             }
             return this.expression;
         }
@@ -240,6 +242,49 @@ global with sharing class ATKCommon {
             } 
         }
         public String fieldName { get; set; }
+    }
+
+    /**
+     * String Builder
+     */
+    public class StringBuilder {
+        List<String> values { get; set; }
+        
+        public StringBuilder() {
+            values = new List<String>();
+        }
+
+        public void addIndex(Integer index, String value) {
+            values.add(index, value);
+        }
+
+        public void setIndex(Integer index, String value) {
+            values.set(index, value);
+        }
+
+        public String getIndex(Integer index) {
+            return values.get(index);
+        }
+
+        public void append(Decimal value) {
+            values.add(converter.toString(value));
+        }
+
+        public void append(String value) {
+            values.add(value);
+        }
+
+        public void append(List<String> values) {
+            this.values.addAll(values);
+        }
+
+        public void append(StringBuilder builder) {
+            values.addAll(builder.values);
+        }
+
+        public override String toString() {
+            return String.join(values, '');
+        }
     }
 
     /**
