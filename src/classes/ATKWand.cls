@@ -455,9 +455,9 @@ public with sharing class ATKWand {
                     }));
             }
 
-            // if (dfr.isNillable() && !hasRule) {
-            //    return null;
-            // }
+            if (dfr.isNillable() && !hasRule) {
+               return null;
+            }
 
             if (isGeolocationField(dsr, dfr)) {
                 return null;
