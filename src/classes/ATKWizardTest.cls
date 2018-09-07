@@ -5,8 +5,7 @@
 private with sharing class ATKWizardTest {
     @isTest
     static void TestTotal() {
-        ATKWizard me = new ATKWizard();
-        me.wantMany('Account').total(10).generate();
+        ATKWizard.I().wantMany('Account').total(10).generate();
         List<Account> accountList = [SELECT Id FROM Account];
         System.assertEquals(10, accountList.size());
     }
@@ -17,8 +16,7 @@ private with sharing class ATKWizardTest {
 
     @isTest
     static void TestFieldWithRuleList() {
-        ATKWizard me = new ATKWizard();
-        me.wantMany('Account')
+        ATKWizard.I().wantMany('Account')
             .total(6)
             .fields(new Map<String, Object> {
                 'Name' => new List<String> {
@@ -47,8 +45,7 @@ private with sharing class ATKWizardTest {
 
     @isTest
     static void TestFieldWithRuleSet() {
-        ATKWizard me = new ATKWizard();
-        me.wantMany('Account')
+        ATKWizard.I().wantMany('Account')
             .total(6)
             .fields(new Map<String, Object> {
                 'Name' => new Set<String> {
@@ -71,8 +68,7 @@ private with sharing class ATKWizardTest {
 
     @isTest
     static void TestFieldWithRules() {
-        ATKWizard me = new ATKWizard();
-        me.wantMany('Account')
+        ATKWizard.I().wantMany('Account')
             .total(100)
             .fields(new Map<String, Object> {
                 'Name' => new List<String> {
@@ -97,8 +93,7 @@ private with sharing class ATKWizardTest {
 
     @isTest
     static void TestFieldPostUpdate() {
-        ATKWizard me = new ATKWizard();
-        ATKWizard.Bag bag = me.wantMany('Account')
+        ATKWizard.Bag bag = ATKWizard.I().wantMany('Account')
             .total(10)
             .fields(new Map<String, Object> {
                 'Name' => new List<String> {
@@ -113,7 +108,7 @@ private with sharing class ATKWizardTest {
             System.assert(account.Name.startsWith('Microsoft-'));
         }
 
-        me.wantMany('Account')
+        ATKWizard.I().wantMany('Account')
             .fromList(bag.get('Account'))
             .fields(new Map<String, Object> {
                 'Name' => new List<String> {
@@ -134,9 +129,8 @@ private with sharing class ATKWizardTest {
      */
 
     @isTest
-    static void TestHasMany() {
-        ATKWizard me = new ATKWizard();
-        ATKWizard.Bag bag = me.wantMany('Account')
+    static void TestRelationshipHasMany() {
+        ATKWizard.Bag bag = ATKWizard.I().wantMany('Account')
             .total(10)
             .fields(new Map<String, Object> {
                 'Name' => new List<String> {
@@ -169,9 +163,8 @@ private with sharing class ATKWizardTest {
     }
 
     @isTest
-    static void TestHasManyWithLessChild() {
-        ATKWizard me = new ATKWizard();
-        me.wantMany('Account')
+    static void TestRelationshipHasManyWithLessChild() {
+        ATKWizard.I().wantMany('Account')
             .total(10)
             .hasMany('Contact')
                 .referenceBy('AccountId')
@@ -193,7 +186,7 @@ private with sharing class ATKWizardTest {
     }
 
     @isTest
-    static void TestHasManyList() {
+    static void TestRelationshipHasManyList() {
         List<Account> accountList = new List<Account>();
         List<Contact> contactList = new List<Contact>();
         for (Integer i = 0; i < 10; i++) {
@@ -210,8 +203,7 @@ private with sharing class ATKWizardTest {
         insert accountList;
         insert contactList;
 
-        ATKWizard me = new ATKWizard();
-        me.wantMany('Account')
+        ATKWizard.I().wantMany('Account')
             .fromList(accountList)
             .hasMany('Contact')
                 .fromList(contactList)
@@ -225,9 +217,8 @@ private with sharing class ATKWizardTest {
     }
 
     @isTest
-    static void TestBelongsTo() {
-        ATKWizard me = new ATKWizard();
-        me.wantMany('Contact')
+    static void TestRelationshipBelongsTo() {
+        ATKWizard.I().wantMany('Contact')
             .total(40)
             .belongsTo('Account')
                 .referenceBy('AccountId')
@@ -242,9 +233,8 @@ private with sharing class ATKWizardTest {
     }
 
     @isTest
-    static void TestBelongsToWithLessChild() {
-        ATKWizard me = new ATKWizard();
-        me.wantMany('Contact')
+    static void TestRelationshipBelongsToWithLessChild() {
+        ATKWizard.I().wantMany('Contact')
             .total(4)
             .belongsTo('Account')
                 .referenceBy('AccountId')
@@ -266,24 +256,22 @@ private with sharing class ATKWizardTest {
     }
 
     @isTest
-    static void testHasManyBelongsTo() {
+    static void testRelationshipHasManyBelongsTo() {
         Id pricebook2Id = Test.getStandardPricebookId();
 
-        ATKWizard me = new ATKWizard();
-        ATKWizard.Bag bag =
-            me.wantMany('Product2')
+        ATKWizard.Bag bag = ATKWizard.I().wantMany('Product2')
+            .total(5)
+            .hasMany('PricebookEntry')
+                .referenceBy('Product2Id')
+                .fields(new Map<String, Object> {
+                    'Pricebook2Id' => pricebook2Id,
+                    'UseStandardPrice' => false,
+                    'IsActive' => true
+                })
                 .total(5)
-                .hasMany('PricebookEntry')
-                    .referenceBy('Product2Id')
-                    .fields(new Map<String, Object> {
-                        'Pricebook2Id' => pricebook2Id,
-                        'UseStandardPrice' => false,
-                        'IsActive' => true
-                    })
-                    .total(5)
             .generate();
 
-        me.wantMany('Pricebook2')
+        ATKWizard.I().wantMany('Pricebook2')
             .total(5)
             .hasMany('PricebookEntry')
                 .referenceBy('Pricebook2Id')
@@ -310,9 +298,8 @@ private with sharing class ATKWizardTest {
     }
 
     @isTest
-    static void testAlsoTraverse() {
-        ATKWizard me = new ATKWizard();
-        me.wantMany('Account')
+    static void testRelationshipAlsoTraverse() {
+        ATKWizard.I().wantMany('Account')
             .total(3)
             .hasMany('Contact')
                 .referenceBy('AccountId')
@@ -366,17 +353,15 @@ private with sharing class ATKWizardTest {
     }
 
     @isTest
-    static void testAccountOpportunity() {
-        ATKWizard me = new ATKWizard();
-        ATKWizard.Bag bag = me
-            .wantMany('Account')
+    static void testRelationshipAccountOpportunity() {
+        ATKWizard.Bag bag = ATKWizard.I().wantMany('Account')
                 .total(3)
                 .hasMany('Contact')
                     .referenceBy('AccountId')
                     .total(6)
                 .generate();
 
-        me.wantMany('Account')
+        ATKWizard.I().wantMany('Account')
             .fromList(bag.get('Account'))
             .hasMany('Opportunity')
                 .fields(new Map<String, Object> {
@@ -397,30 +382,8 @@ private with sharing class ATKWizardTest {
     }
 
     @isTest
-    static void testArithmetic() {
-        Date current = Date.today();
-        ATKWizard me = new ATKWizard();
-        ATKWizard.Bag bag = me.wantMany('Contact')
-            .total(10)
-            .origin(new Map<String, Object> {
-                'Birthdate' => current
-            })
-            .fields(new Map<String, Object> {
-                'Birthdate' => '{!dates.addDays($1.Birthdate, -1)}'
-            })
-            .generate();
-
-        List<SObject> contacts = bag.get('Contact');
-        for (Integer i = 0; i < contacts.size(); i++) {
-            System.debug(contacts[i].get('Birthdate'));
-            System.assertEquals(current.addDays(-i), contacts[i].get('Birthdate'));
-        }
-    }
-
-    @isTest
-    static void TestOptionalReference() {
-        ATKWizard me = new ATKWizard();
-        me.wantMany('Account')
+    static void TestRelationshipOptionalReferenceBy() {
+        ATKWizard.I().wantMany('Account')
             .total(10)
             .hasMany('Contact')
                 .total(20)
@@ -444,6 +407,26 @@ private with sharing class ATKWizardTest {
         System.assertEquals(20, roleList.size());
         for (Account account : accountList) {
             System.assertEquals(2, account.Contacts.size());
+        }
+    }
+
+    @isTest
+    static void testCrossFieldReference() {
+        Date current = Date.today();
+        ATKWizard.Bag bag = ATKWizard.I().wantMany('Contact')
+            .total(10)
+            .origin(new Map<String, Object> {
+                'Birthdate' => current
+            })
+            .fields(new Map<String, Object> {
+                'Birthdate' => '{!dates.addDays($1.Birthdate, -1)}'
+            })
+            .generate();
+
+        List<SObject> contacts = bag.get('Contact');
+        for (Integer i = 0; i < contacts.size(); i++) {
+            System.debug(contacts[i].get('Birthdate'));
+            System.assertEquals(current.addDays(-i), contacts[i].get('Birthdate'));
         }
     }
 }

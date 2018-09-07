@@ -2,6 +2,14 @@
  * Apex Test Kit
  */
 global with sharing class ATKWizard {
+    private static ATKWizard instance { get; set; }
+    global static ATKWizard I() {
+        if (instance == null) {
+            instance = new ATKWizard();
+        }
+        return instance;
+    }
+
     private ATKWand.ATKSpellBook spellBook { get; set; }
 
     /*

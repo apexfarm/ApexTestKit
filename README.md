@@ -5,7 +5,7 @@ Notes when use beta version:
 > * ATKFaker is not yet fully ported from [faker.js](https://github.com/marak/Faker.js/), still needs some minor works.
 > * Global APIs are fairly stable, but are also subject to change during beta period.
 
-Apex Test Kit (Salesforce) is a library to help generate testing data for Apex test classes automatically. It is trying to solve the following frustrations when creating testing data:
+Apex Test Kit (Salesforce) is a library to help generate testing data for Apex test classes automatically. It is trying to solve the following frustrations when creating test data:
 
 1. Time wasted to think of good username, email, phone number etc.
 2. Time wasted to resolve data insertion errors due to missing required fields.
@@ -14,9 +14,8 @@ Apex Test Kit (Salesforce) is a library to help generate testing data for Apex t
 ```java
 @isTest
 static void testAccountCreation() {
-    ATKWizard me = new ATKWizard();
     // create 100 accounts, each has 2 contacts
-    me.wantMany('Account')
+    ATKWizard.I().wantMany('Account')
         .total(100)
         .hasMany('Contact')
             .referenceBy('AccountId') // can be omitted
@@ -39,8 +38,7 @@ All examples below can be successfully run from test class ATKWizardTest in a cl
 #### 1.1 One to Many
 
 ```java
-ATKWizard me = new ATKWizard();
-me.wantMany('Account')
+ATKWizard.I().wantMany('Account')
     .total(10)
     .hasMany('Contact')
         .referenceBy('AccountId') // can be omitted
@@ -51,8 +49,7 @@ me.wantMany('Account')
 #### 1.2 Many to One
 
 ```java
-ATKWizard me = new ATKWizard();
-me.wantMany('Contact')
+ATKWizard.I().wantMany('Contact')
     .total(40)
     .belongsTo('Account')
         .referenceBy('AccountId') // can be omitted
@@ -65,8 +62,7 @@ me.wantMany('Contact')
 ```java
 Id pricebook2Id = Test.getStandardPricebookId();
 
-ATKWizard me = new ATKWizard();
-ATKWizard.Bag bag = me
+ATKWizard.Bag bag = ATKWizard.I()
     .wantMany('Product2')
         .total(5)
         .hasMany('PricebookEntry')
@@ -79,7 +75,7 @@ ATKWizard.Bag bag = me
             .total(5)
         .generate();
 
-me.wantMany('Pricebook2')
+ATKWizard.I().wantMany('Pricebook2')
     .total(5)
     .hasMany('PricebookEntry')
         .referenceBy('Pricebook2Id') // can be omitted
@@ -101,8 +97,7 @@ me.wantMany('Pricebook2')
 There are three entity creation keywords, each of them will start a new sObject context. And it is advised to use the following indentation format for clarity.
 
 ```java
-ATKWizard me = new ATKWizard();
-me.wantMany('A')
+ATKWizard.I().wantMany('A')
     .hasMany('B')
         .belongsTo('C')
             .hasMany('D')
@@ -161,8 +156,7 @@ For `fields()`, it can perform arithmetic calculations according to other field 
 
 ```java
 Date current = Date.today();
-ATKWizard me = new ATKWizard();
-me.wantMany('Contact')
+ATKWizard.I().wantMany('Contact')
     .total(10)
     .origin(new Map<String, Object> {
         'Birthdate' => current // give a default value for $1.Birthdate
@@ -199,8 +193,7 @@ Here is a list of supported arithmetic expressions:
 | also    | Integer | Currently this is the only entity traversal keyword. It can be used to switch back to any previous sObject context. |
 
 ```java
-ATKWizard me = new ATKWizard();
-me.wantMany('A')
+ATKWizard.I().wantMany('A')
     .hasMany('B')
     .also() // go back 1 sObject (B) to sObject (A)
     .hasMany('C')
