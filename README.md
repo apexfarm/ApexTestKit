@@ -2,11 +2,11 @@
 
 ![build](https://img.shields.io/badge/build-passing-brightgreen.svg) ![passing](https://img.shields.io/badge/coverage-%3E95%25-brightgreen.svg) 
 
-Apex Test Kit (Salesforce) is a library to help generate testing data for Apex test classes automatically. It is trying to solve the following frustrations when creating test data:
+Apex Test Kit (Salesforce) is a library to help generate testing data for Apex test classes automatically. It has the following features:
 
-1. Time wasted to think of good username, email, phone number etc.
-2. Time wasted to resolve data insertion errors due to missing required fields.
-3. Time wasted to create many to many relationships.
+1. Generate good-looking names for username, email, phone number etc.
+2. Automatically populate required fields and deal with unique values.
+3. Establish arbitrary level many to many relationships.
 
 ```java
 @isTest
