@@ -37,6 +37,7 @@ public with sharing class ATKWand {
             Object rule, Boolean hasRule, Integer depth);
     }
 
+    @TestVisible
     class NodeValidator implements IValidator {
 
         public void validate(ATKSpellBook spellBook) {
@@ -49,6 +50,7 @@ public with sharing class ATKWand {
             }
         }
 
+        @TestVisible
         void validateTotalAndList(EntityNode entityNode) {
             if ((entityNode.total == null || entityNode.total == 0) &&
                 (entityNode.repository == null || entityNode.repository.size() == 0)
@@ -59,6 +61,7 @@ public with sharing class ATKWand {
             }
         }
 
+        @TestVisible
         void validateRelationship(EntityNode entityNode) {
             if (entityNode.referenceToMap != null && entityNode.referenceToMap.size() > 0) {
                 Schema.SObjectType objectType = gd.get(entityNode.name);
@@ -120,6 +123,7 @@ public with sharing class ATKWand {
             }
         }
 
+        @TestVisible
         void validateXrefFields(EntityNode entityNode) {
             if (entityNode.fieldRuleMap != null && entityNode.fieldRuleMap.size() > 0) {
                 Boolean isValid = true;
@@ -154,6 +158,7 @@ public with sharing class ATKWand {
             }
         }
 
+        @TestVisible
         Boolean validateXrefFieldsInit(String input, Map<String, Object> fieldInitMap) {
             ATKCommon.MethodGroup methodGroup = parser.parse(input);
             if (methodGroup.level < ATKCommon.METHOD_GROUP_MAX_LEVEL) {
@@ -421,6 +426,7 @@ public with sharing class ATKWand {
         }
     }
 
+    @TestVisible
     class FieldEvaluator implements IFieldEvaluator {
         private Map<String, List<String>> picklistCache { get; set; }
         private Map<String, Set<String>> addressFieldCache { get; set; }
@@ -428,6 +434,7 @@ public with sharing class ATKWand {
         private Map<String, Set<Object>> uniqueValueCache { get; set; }
         private Map<String, Integer> ruleIndexCache { get; set; }
 
+        @TestVisible
         FieldEvaluator() {
             picklistCache = new Map<String, List<String>>();
             addressFieldCache = new Map<String, Set<String>>();
@@ -743,6 +750,7 @@ public with sharing class ATKWand {
 
     public class ATKSpellBook implements Iterable<EntityNode> {
         private Map<String, List<EntityNode>> entityNodeMap { get; set; }
+        @TestVisible
         private EntityNodeMatrix matrix { get; private set; }
 
         {
@@ -789,9 +797,11 @@ public with sharing class ATKWand {
         }
     }
 
+    @TestVisible
     private class EntityNodeMatrix implements Iterator<EntityNode> {
         private Integer rowIndex { get; set; }
         private Integer colIndex { get; set; }
+        @TestVisible
         private List<List<EntityNode>> entityNodeMatrix { get; set; }
         private List<EntityNode> entityNodeStack { get; set; }
         private EntityNode currentEntitNode { get; set; }

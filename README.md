@@ -1,25 +1,21 @@
-# Apex Test Kit (beta)
+# Apex Test Kit (alpha)
 
-Notes when use beta version:
-
-> * ATKFaker is not yet fully ported from [faker.js](https://github.com/marak/Faker.js/), still needs some minor works.
-> * Global APIs are fairly stable, but are also subject to change during beta period.
+![build](https://img.shields.io/badge/build-passing-brightgreen.svg) ![passing](https://img.shields.io/badge/coverage-%3E95%25-brightgreen.svg) 
 
 Apex Test Kit (Salesforce) is a library to help generate testing data for Apex test classes automatically. It is trying to solve the following frustrations when creating test data:
 
 1. Time wasted to think of good username, email, phone number etc.
 2. Time wasted to resolve data insertion errors due to missing required fields.
-3. Time wasted to create many to many relationships, 100 x 100 records for example. 
+3. Time wasted to create many to many relationships.
 
 ```java
 @isTest
 static void testAccountCreation() {
-    // create 100 accounts, each has 2 contacts
+    // create 10 accounts, each has 2 contacts
     ATKWizard.I().wantMany('Account')
-        .total(100)
+        .total(10)
         .hasMany('Contact')
-            .referenceBy('AccountId') // can be omitted
-            .total(200)
+            .total(20)
         .generate();
 
     List<Account> accountList = [SELECT Id FROM Account];
@@ -33,7 +29,7 @@ Underneath, the data are automatically populated with appropriate values accordi
 
 ### 1. ATKWizard Class
 
-All examples below can be successfully run from test class ATKWizardTest in a clean Salesforce CRM organization. If validation rules are added to certain sObjects, the test class has to be twisted.
+All examples below can be successfully run from SampleTest.cls in a clean Salesforce CRM organization. If validation rules were added to certain CRM standard sObjects, the test class could be failed.
 
 #### 1.1 One to Many
 

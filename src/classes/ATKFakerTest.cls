@@ -661,7 +661,7 @@ public with sharing class ATKFakerTest {
      * ATKCommon String Builder
      */
     @isTest
-    static void testATKCommonStringBuilder() {
+    static void testATKCommon_StringBuilder() {
         {
             ATKCommon.StringBuilder builder = new ATKCommon.StringBuilder();
             for (Integer i = 0; i < 100; i++) {
@@ -716,7 +716,7 @@ public with sharing class ATKFakerTest {
     }
 
     @isTest
-    static void testATKCommonMethodParser() {
+    static void testATKCommon_MethodParser() {
         TestMethodEvaluator methodEvaluator = new TestMethodEvaluator();
 
         ATKCommon.MethodParser parser = new ATKCommon.MethodParser();
@@ -782,7 +782,7 @@ public with sharing class ATKFakerTest {
     }
 
     @isTest
-    static void testATKCommonConverter() {
+    static void testATKCommon_Converter() {
         ATKCommon.Converter converter = new ATKCommon.Converter();
         System.assertEquals(null, converter.toInteger(null));
         System.assertEquals(null, converter.toInteger('abc'));

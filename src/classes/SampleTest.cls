@@ -2,7 +2,7 @@
  * Apex Test Kit
  */
 @isTest
-private with sharing class ATKWizardTest {
+private with sharing class SampleTest {
     @isTest
     static void TestTotal() {
         ATKWizard.I().wantMany('Account').total(100).generate();

@@ -10,6 +10,7 @@ global with sharing class ATKWizard {
         return instance;
     }
 
+    @TestVisible
     private ATKWand.ATKSpellBook spellBook { get; set; }
 
     /*
@@ -92,16 +93,13 @@ global with sharing class ATKWizard {
     global class Bag {
         private ATKWand.ATKSpellBook spellBook { get; set; }
 
+        @TestVisible
         private Bag(ATKWand.ATKSpellBook spellBook) {
             this.spellBook = spellBook;
         }
 
         global List<SObject> get(String entityName) {
             return this.spellBook.query(entityName);
-        }
-
-        global List<SObject> query(string entityName) {
-            throw new ATKCommon.NotFoundException('Deprecating ATKWizard.Bag.query method.');
         }
     }
 }
