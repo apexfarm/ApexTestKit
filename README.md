@@ -1,6 +1,6 @@
 # Apex Test Kit (alpha)
 
-![build](https://img.shields.io/badge/build-passing-brightgreen.svg) ![passing](https://img.shields.io/badge/coverage-%3E95%25-brightgreen.svg) 
+![](https://img.shields.io/badge/build-passing-brightgreen.svg) ![](https://img.shields.io/badge/coverage-%3E95%25-brightgreen.svg) 
 
 Apex Test Kit (Salesforce) is a library to help generate testing data for Apex test classes automatically. It has the following features:
 
