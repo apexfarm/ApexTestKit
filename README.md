@@ -19,17 +19,17 @@ static void testAccountCreation() {
         .generate();
 
     List<Account> accountList = [SELECT Id FROM Account];
-    System.assertEquals(100, accountList.size());
+    System.assertEquals(10, accountList.size());
 }
 ```
 
 Underneath, the data are automatically populated with appropriate values according to field types, including: BOOLEAN, DATE, TIME, DATETIME, DOUBLE, INTEGER, PERCENT, CURRENCY, PICKLIST, MULTIPICKLIST, STRING, TEXTAREA, EMAIL, URL, PHONE, ADDRESS.
 
-## Usage
+## Usage of ATKWizard 
 
-### 1. ATKWizard Class
+### 1. Relationships
 
-All examples below can be successfully run from SampleTest.cls in a clean Salesforce CRM organization. If validation rules were added to certain CRM standard sObjects, the test class could be failed.
+All examples below can be successfully run from `src/classes/SampleTest.cls` in a clean Salesforce CRM organization. If validation rules were added to CRM standard sObjects, `fields()` keyword should be used to tailor the record generation to bypass these validation rules.
 
 #### 1.1 One to Many
 
@@ -108,79 +108,31 @@ ATKWizard.I().wantMany('A')
 
 #### 2.2 Entity Decoration Keywords
 
+Here is an example to demo the use of all the entity decoration keywords.
+
+```java
+List<A> aList = [SELECT Id FROM A Limit 1];
+ATKWizard.I().wantMany('A')
+    .fromList(aList);
+    .hasMany('B')
+        .referenceBy('lookup_field_on_B_to_A')
+        .total(2)
+        .origin(new Map<String, Object>{
+            'counter' => 1
+        })
+        .fields(new Map<String, Object>{
+            'counter' => '{!numbers.add($1.counter, 1)}'
+        })
+    .generate();
+```
+
 | Keyword       | Param                 | Description                                                  |
 | ------------- | --------------------- | ------------------------------------------------------------ |
 | total()       | Integer               | **Required***, only if `fromList()` is not used. It defines number of records to create for the attached sObject context. |
 | fromList()    | List\<sObject\>       | **Required***, only if `total()` is not used. This tells the wizard to use the predefined sObject list, rather than to create the records from scratch. |
-| fields()      | Map\<String, Object\> | **Optional**. Use this keyword to tailor the field values, either to bypass validation rules, or to fulfill assertion logics. The key of the map is the field API name of the sObject. And the value of the map can be value generation expressions, or the exact values to use. |
-| referenceBy() | String                | **Optional**. Use this keyword if there are multiple fields on the entity referencing the same sObject. It accepts relationship API name to reference parent from child. |
+| fields()      | Map\<String, Object\> | **Optional**. Use this keyword to tailor the field values, either to bypass validation rules, or to fulfill assertion logics. The key of the map is the field API name of the sObject. The value of the map can be either `ATKFaker` interpolation expressions, or primitive values. Multiple `fields()` can be chained. |
+| referenceBy() | String                | **Optional**. Only use this keyword if there are multiple fields on the entity referencing the same sObject. It accepts relationship API name to reference parent from child. |
 | origin()      | Map\<String, Object\> | **Optional**. Use this keyword if cross record arithmetic expressions are used in `fields()`, like `'{!dates.addDay($1.startDate__c, 1)}'`. Here `$1` is used to reference a previous record. Hence you can use `$0` to reference values on the current record. |
-
-For `fields()`, there are two ways to assign rule collections:
-
-1. Use List to assign values sequentially.
-```java
-fields(new Map<String, Object> {
-    'Name' => new List<String> { // always try to parse String as expressions
-        'AP-{{###}}', 'GG-{{###}}', 'MS-{{###}}'
-    },
-    'Alias' => new List<Object> { // object will not be treated as expressions
-        'AP-{{###}}', 'GG-{{###}}', 'MS-{{###}}'
-    },
-    'Price' => new List<Object> {
-        12.39, 28.76, 22.00
-    }
-});
-```
-
-2. Use Set to assign values randomly. 
-```java
-fields(new Map<String, Object> {
-    'Name' => new Set<String> { // always try to parse String as expressions
-        'AP-{{###}}', 'GG-{{###}}', 'MS-{{###}}'
-    },
-    'Alias' => new Set<Object> { // object will not be treated as expressions
-        'AP-{{###}}', 'GG-{{###}}', 'MS-{{###}}'
-    },
-    'Price' => new Set<Object> {
-        12.39, 28.76, 22.00
-    }
-});
-```
-
-For `fields()`, it can perform arithmetic calculations according to other field values:
-
-```java
-Date current = Date.today();
-ATKWizard.I().wantMany('Contact')
-    .total(10)
-    .origin(new Map<String, Object> {
-        'Birthdate' => current // give a default value for $1.Birthdate
-    })
-    .fields(new Map<String, Object> {
-        'Birthdate' => '{!dates.addDays($1.Birthdate, -1)}'
-    })
-    .generate();
-```
-
-* $0 represents current record: `'EndDate__c' => '{!dates.addDays($0.StartDate__c, 1)}'`
-* $1 represents previous record: `'StartDate__c' => '{!dates.addDays($1.EndDate__c, 1)}'`
-
-Here is a list of supported arithmetic expressions:
-
-```java
-'{!numbers.add($1.Price__c, 10)}'
-'{!numbers.substract($1.Price__c, 10)}'
-'{!numbers.divide($1.Price__c, 10)}'
-'{!numbers.multiply($1.Price__c, 10)}'
- 
-'{!dates.addDays($0.StartDate__c, 1)}'
-'{!dates.addHours($0.StartDate__c, 1)}'
-'{!dates.addMinutes($0.StartDate__c, 1)}'
-'{!dates.addMonths($0.StartDate__c, 1)}'
-'{!dates.addSeconds($0.StartDate__c, 1)}'
-'{!dates.addYears($0.StartDate__c, 1)}'
-```
 
 #### 2.3 Entity Traversal Keywords
 
@@ -199,23 +151,101 @@ ATKWizard.I().wantMany('A')
     .generate();
 ```
 
-### 3. ATKFaker Class
+### 3. Advanced Usage
+
+#### 3.1 Rule List vs Rule Set
+
+Rule `List<>` can sequentially assign values to records created. Use List<Object> instead of List<String> whenever there is no need of ATKFaker interpolation, because it will consume less CPU limit.
+
+```java
+ATKWizard.I().wantMany('SomeObject__c')
+    .total(3)
+    .fields(new Map<String, Object> {
+        'Name' => new List<String> { // always try to parse String as expressions
+            'AP-{{###}}', 'GG-{{###}}', 'MS-{{###}}'
+        },
+        'Alias' => new List<Object> { // object will not be treated as expressions
+            'AP-123', 'GG-456', 'MS-789'
+        },
+        'Price' => new List<Object> {
+            12.39, 28.76, 22.00
+        }
+    })
+    .generate();
+```
+
+Rule `Set<>` can randomly assign values to records created. Rule set will consume a bit more CPU limit than than rule list. 
+
+```java
+ATKWizard.I().wantMany('SomeObject__c')
+    .total(3)
+    .fields(new Map<String, Object> {
+        'Name' => new Set<String> { // always try to parse String as expressions
+            'AP-{{###}}', 'GG-{{###}}', 'MS-{{###}}'
+        },
+        'Alias' => new Set<Object> { // object will not be treated as expressions
+            'AP-123', 'GG-456', 'MS-789'
+        },
+        'Price' => new Set<Object> {
+            12.39, 28.76, 22.00
+        }
+    })
+    .generate();
+```
+
+#### 3.2 Cross Record Reference
+
+Combining with `origin()`, `fields()` can also perform arithmetic calculations according to fields on previously created records.
+
+```java
+Date currentDate = Date.today();
+ATKWizard.I().wantMany('Contact')
+    .total(10)
+    .origin(new Map<String, Object> {
+        'Birthdate' => currentDate // give a default value for $1.Birthdate
+    })
+    .fields(new Map<String, Object> {
+        'Birthdate' => '{!dates.addDays($1.Birthdate, -1)}'
+    })
+    .generate();
+```
+
+- $0 represents current record: `'EndDate__c' => '{!dates.addDays($0.StartDate__c, 1)}'`
+- $1 represents previous record: `'StartDate__c' => '{!dates.addDays($1.EndDate__c, 1)}'`
+
+Here is a list of supported arithmetic expressions:
+
+```java
+'{!numbers.add($1.Price__c, 10)}'
+'{!numbers.substract($1.Price__c, 10)}'
+'{!numbers.divide($1.Price__c, 10)}'
+'{!numbers.multiply($1.Price__c, 10)}'
+ 
+'{!dates.addDays($0.StartDate__c, 1)}'
+'{!dates.addHours($0.StartDate__c, 1)}'
+'{!dates.addMinutes($0.StartDate__c, 1)}'
+'{!dates.addMonths($0.StartDate__c, 1)}'
+'{!dates.addSeconds($0.StartDate__c, 1)}'
+'{!dates.addYears($0.StartDate__c, 1)}'
+```
+
+## Usage of ATKFaker
 
 ATKWizard is built on top of the ATKFaker, which can also be used standalone. It is ported from [faker.js](https://github.com/marak/Faker.js/).
 
-#### 3.1 Interpolation
+### 1 Interpolation
 
 All of the following helper APIs also support Interpolation from string expressions.
 
-##### Helper Interpolation
+#### 1.1 Helper Interpolation
 
 Use `{!   }` Visualforce expression notation to interpolate helper methods. Empty parenthesis can be omitted. 
 
 ```java
-ATKFaker.fake('Hello {!name.firstName(female)} {!name.lastName}!'); // => 'Hello Jeff Jin!'
+ATKFaker.fake('Hello {!name.firstName(male)} {!name.lastName}!'); // => 'Hello Jeff Jin!'
 ```
 
-##### Symbol Interpolation
+#### 1.2 Symbol Interpolation
 
 Use `{{   }}` Handlebars expression notation to interpolate symbol formats.
 
@@ -229,23 +259,9 @@ Format can use the following symbols:
 * ? - alpha
 * \* - alphanumeric
 
-#### 3.2 Internet 
+### 2 Helper APIs
 
-```java
-ATKFaker.internet.userName();
-ATKFaker.internet.email();
-ATKFaker.internet.url();
-ATKFaker.internet.avatar();
-```
-
-#### 3.3 Phone
-
-```java
-ATKFaker.phone.phoneNumber();
-ATKFaker.phone.phoneNumber('1xx-xxx-xxxx');
-```
-
-#### 3.4 Name 
+#### 2.1 Name
 
 ```java
 ATKFaker.name.firstName();
@@ -254,7 +270,23 @@ ATKFaker.name.firstName('female');
 ATKFaker.name.lastName();
 ```
 
-#### 3.5 Random 
+#### 2.2 Internet
+
+```java
+ATKFaker.internet.userName();
+ATKFaker.internet.email();
+ATKFaker.internet.url();
+ATKFaker.internet.avatar();
+```
+
+#### 2.3 Phone
+
+```java
+ATKFaker.phone.phoneNumber();
+ATKFaker.phone.phoneNumber('1xx-xxx-xxxx');
+```
+
+#### 2.4 Random
 
 ```java
 ATKFaker.random.boolean();
@@ -266,7 +298,7 @@ ATKFaker.random.arrayElements(new List<Integer> { 1, 2, 3, 4, 5 });
 ATKFaker.random.arrayElements(new List<Integer> { 1, 2, 3, 4, 5 }, 3); // => {2, 4, 5}
 ```
 
-#### 3.6 Lorem
+#### 2.5 Lorem
 
 ```java
 ATKFaker.lorem.word();
@@ -279,7 +311,7 @@ ATKFaker.lorem.lines();
 ATKFaker.lorem.text(); // word(s), sentence(s), paragraph(s), lines
 ```
 
-#### 3.7 Dates
+#### 2.6 Dates
 
 ```java
 ATKFaker.dates.past();
