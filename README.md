@@ -27,9 +27,11 @@ Underneath, the data are automatically populated with appropriate values accordi
 
 ## Usage of ATKWizard 
 
-### 1. Relationships
-
 All examples below can be successfully run from `src/classes/SampleTest.cls` in a clean Salesforce CRM organization. If validation rules were added to CRM standard sObjects, `fields()` keyword should be used to tailor the record generation to bypass these validation rules.
+
+### 1. Setup Relationship
+
+When `referenceBy()` is omitted, the relationship field will be looked up implicitly according to the sObject type.
 
 #### 1.1 One to Many
 
@@ -108,7 +110,7 @@ ATKWizard.I().wantMany('A')
 
 #### 2.2 Entity Decoration Keywords
 
-Here is an example to demo the use of all the entity decoration keywords.
+Here is an example to demo the use of all entity decoration keywords.
 
 ```java
 List<A> aList = [SELECT Id FROM A Limit 1];
@@ -121,7 +123,10 @@ ATKWizard.I().wantMany('A')
             'counter' => 1
         })
         .fields(new Map<String, Object>{
-            'counter' => '{!numbers.add($1.counter, 1)}'
+            'counter' => '{!numbers.add($1.counter, 1)}', // must work with origin()
+            'firstName' => '{!name.firstName(male)}',
+            'phoneNumber' => '{{###-###-####}}',
+            'price' => 12.34
         })
     .generate();
 ```
@@ -155,7 +160,7 @@ ATKWizard.I().wantMany('A')
 
 #### 3.1 Rule List vs Rule Set
 
-Rule `List<>` can sequentially assign values to records created. Use List<Object> instead of List<String> whenever there is no need of ATKFaker interpolation, because it will consume less CPU limit.
+With rule `List<>`, `fields()` can sequentially assign values to records created. Use List<Object> instead of List<String> whenever there is no need of ATKFaker interpolation, because it will consume less CPU limit.
 
 ```java
 ATKWizard.I().wantMany('SomeObject__c')
@@ -174,7 +179,7 @@ ATKWizard.I().wantMany('SomeObject__c')
     .generate();
 ```
 
-Rule `Set<>` can randomly assign values to records created. Rule set will consume a bit more CPU limit than than rule list. 
+With rule `Set<>`, `fields()` can randomly assign values to records created. Rule set will consume a bit more CPU limit than than rule list. 
 
 ```java
 ATKWizard.I().wantMany('SomeObject__c')
