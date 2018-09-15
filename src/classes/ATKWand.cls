@@ -196,11 +196,27 @@ public with sharing class ATKWand {
                 if (entityNode.repository == null || entityNode.repository.size() == 0) {
                     List<SObject> repository = createObjects(entityNode);
                     assignReferences(entityNode);
+                    
                     Database.insert(repository);
                 } else {
                     List<SObject> repository = updateObjects(entityNode);
                     assignReferences(entityNode);
-                    Database.update(repository);
+
+                    List<SObject> updateList = new List<SObject>();
+                    List<SObject> insertList = new List<SObject>();
+                    for (SObject obj: repository) {
+                        if (obj.Id == null) {
+                            insertList.add(obj);
+                        } else {
+                            updateList.add(obj);
+                        }
+                    }
+                    if (updateList.size() > 0) {
+                        Database.update(updateList);
+                    }
+                    if (insertList.size() > 0) {
+                        Database.insert(insertList);
+                    }
                 }
             }
         }

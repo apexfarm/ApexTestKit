@@ -201,7 +201,7 @@ private with sharing class SampleTest {
             ));
         }
         insert accountList;
-        insert contactList;
+        // no need to insert contactList, ATKWizard will handle it
 
         ATKWizard.I().wantMany('Account')
             .fromList(accountList)
@@ -211,6 +211,7 @@ private with sharing class SampleTest {
             .generate();
 
         accountList = [SELECT Id, (SELECT Id FROM Contacts) FROM Account];
+        System.assertEquals(10, accountList.size());
         for (Account account : accountList) {
             System.assertEquals(4, account.Contacts.size());
         }
