@@ -44,9 +44,21 @@ public with sharing class ATKWand {
             Iterator<EntityNode> iterator = spellBook.iterator();
             while (iterator.hasNext()) {
                 EntityNode entityNode = iterator.next();
+                validateEntityName(entityNode);
                 validateTotalAndList(entityNode);
                 validateRelationship(entityNode);
                 validateXrefFields(entityNode);
+            }
+        }
+
+        @TestVisible
+        void validateEntityName(EntityNode entityNode) {
+            Schema.SObjectType objectType = gd.get(entityNode.name);
+            if (objectType == null) {
+                throw new ATKCommon.IncorrectTypeException(
+                    String.format('Cannot find entity {0}.', new List<String> {
+                        entityNode.name
+                    }));
             }
         }
 
@@ -449,6 +461,7 @@ public with sharing class ATKWand {
         private Map<String, Set<String>> geolocationFieldCache { get; set; }
         private Map<String, Set<Object>> uniqueValueCache { get; set; }
         private Map<String, Integer> ruleIndexCache { get; set; }
+        private List<String> UNIQUE_VALUE_FORMATS { get; set; }
 
         @TestVisible
         FieldEvaluator() {
@@ -457,6 +470,14 @@ public with sharing class ATKWand {
             geolocationFieldCache = new Map<String, Set<String>>();
             uniqueValueCache = new Map<String, Set<Object>>();
             ruleIndexCache = new Map<String, Integer>();
+            UNIQUE_VALUE_FORMATS = new List<String> {
+                '{{?}}',
+                '{{?*}}',
+                '{{?**}}',
+                '{{?***}}',
+                '{{?****}}',
+                '{{?*****}}'
+            };
         }
 
         public void resetRuleIndexCache() {
@@ -472,14 +493,13 @@ public with sharing class ATKWand {
 
             if (depth == 0) {
                 throw new ATKCommon.DeepRecursionException(String.format(
-                    'Please adjust field ({0}) generation rule to allow uniqueness more likely to happen',
-                    new List<String>{
-                        dfr.getName()
-                    }));
+                    'Please assign ATKFaker interpolation for field ({0}.{1}) to enforce uniqueness.',
+                    new List<String> { dsr.getName(), dfr.getName() }
+                ));
             }
 
             if (dfr.isNillable() && !hasRule) {
-               return null;
+                return null;
             }
 
             if (isGeolocationField(dsr, dfr)) {
@@ -488,6 +508,7 @@ public with sharing class ATKWand {
 
             String key = dsr.getName() + '.' + dfr.getName();
             Object value;
+
             if (!hasRule) {
                 value = guessValue(dsr, dfr);
             } else if (rule instanceOf String) {
@@ -504,7 +525,7 @@ public with sharing class ATKWand {
                 value = rule;
             }
 
-            if (dfr.isUnique()) {
+            if (dfr.isUnique() && value != null) {
                 if (uniqueValueCache.get(key) == null) {
                     uniqueValueCache.put(key, new Set<Object>());
                 }
@@ -567,7 +588,6 @@ public with sharing class ATKWand {
                     } else {
                         value = ATKFaker.random.number(dfr.getPrecision(), dfr.getScale());
                     }
-                    // System.debug('Double - ' + fieldName + ': ' + value);
                 }
                 when INTEGER {
                     value = Integer.valueOf(ATKFaker.random.number(dfr.getPrecision(), dfr.getScale()));
@@ -596,15 +616,18 @@ public with sharing class ATKWand {
                 }
                 when STRING {
                     Integer length = dfr.getLength();
-                    Integer count;
                     if (dfr.isUnique()) {
-                        count = length / 5;
+                        Integer count = length > 6 ? 6 : length;
+                        value = ATKFaker.fake(UNIQUE_VALUE_FORMATS[count - 1]);
+                    } else {
+                        Integer count = length / 5;
+                        count = count > 6 ? 6 : count;
+                        String output = ATKFaker.lorem.words(count);
+                        if (String.isNotEmpty(output) && output.length() > length) {
+                            output = output.left(length);
+                        }
+                        value = output;
                     }
-                    String output = ATKFaker.lorem.words(count);
-                    if (String.isNotEmpty(output) && output.length() > length) {
-                        output = output.left(length);
-                    }
-                    value = output;
                 }
                 when TEXTAREA {
                     String output = ATKFaker.lorem.words();

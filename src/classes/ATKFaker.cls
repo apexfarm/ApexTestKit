@@ -159,7 +159,7 @@ global with sharing class ATKFaker {
     }
 
     global class Random implements IDataProvider {
-        private Integer RANDOM_NUMBER_CACHE_SIZE = 569;
+        private Integer RANDOM_NUMBER_CACHE_SIZE = -1; // disable random number cache
         private List<Double> randomNumberCache = new List<Double>();
         private Integer randomNumberIndex = 0;
 
@@ -219,7 +219,9 @@ global with sharing class ATKFaker {
 
         private Double random() {
             Double randomNumber;
-            if (randomNumberCache.size() == RANDOM_NUMBER_CACHE_SIZE) {
+            if (RANDOM_NUMBER_CACHE_SIZE == -1) {
+                randomNumber = Math.random();
+            } else if (randomNumberCache.size() == RANDOM_NUMBER_CACHE_SIZE) {
                 if (randomNumberIndex == RANDOM_NUMBER_CACHE_SIZE) {
                     randomNumberIndex = 0;
                 }
