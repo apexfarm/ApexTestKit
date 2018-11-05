@@ -1,4 +1,4 @@
-# Apex Test Kit (alpha)
+# Apex Test Kit
 
 ![](https://img.shields.io/badge/build-passing-brightgreen.svg) ![](https://img.shields.io/badge/coverage-%3E95%25-brightgreen.svg) 
 
