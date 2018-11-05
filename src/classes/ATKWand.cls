@@ -6,20 +6,9 @@ public with sharing class ATKWand {
     public static final ATKCommon.MethodParser parser = ATKCommon.parser;
     private static final MethodEvaluator methodEvaluator = new MethodEvaluator();
 
-    private static final IValidator nodeValidator = new NodeValidator();
-    private static final IGenerator nodeGenerator = new NodeGenerator();
-
-    static {
-        gd = Schema.getGlobalDescribe();
-    }
-
-    public static void validate(ATKSpellBook spellBook) {
-        nodeValidator.validate(spellBook);
-    }
-
-    public static void generate(ATKSpellBook spellBook) {
-        nodeGenerator.generate(spellBook);
-    }
+    private static final IValidator validator = new NodeValidator();
+    private static final IGenerator generator = new NodeGenerator();
+    private static final IEvaluator evaluator = new FieldEvaluator();
 
     interface IValidator {
         void validate(ATKSpellBook spellBook);
@@ -29,12 +18,27 @@ public with sharing class ATKWand {
         void generate(ATKSpellBook spellBook);
     }
     
-    interface IFieldEvaluator {
+    interface IEvaluator {
+        void buildFieldCaches(EntityNode entityNode);
+        String getReferenceFieldName(String objectName, String referenceObjectName);
+        String getReferenceFieldType(String objectName, String referenceFieldName);
         void resetRuleIndexCache();
         Object getValue(
             Schema.DescribeSObjectResult dsr,
             Schema.DescribeFieldResult dfr,
             Object rule, Boolean hasRule, Integer depth);
+    }
+
+    static {
+        gd = Schema.getGlobalDescribe();
+    }
+
+    public static void validate(ATKSpellBook spellBook) {
+        validator.validate(spellBook);
+    }
+
+    public static void generate(ATKSpellBook spellBook) {
+        generator.generate(spellBook);
     }
 
     @TestVisible
@@ -44,6 +48,7 @@ public with sharing class ATKWand {
             Iterator<EntityNode> iterator = spellBook.iterator();
             while (iterator.hasNext()) {
                 EntityNode entityNode = iterator.next();
+                evaluator.buildFieldCaches(entityNode);
                 validateEntityName(entityNode);
                 validateTotalAndList(entityNode);
                 validateRelationship(entityNode);
@@ -73,63 +78,35 @@ public with sharing class ATKWand {
             }
         }
 
+        void autoDetectReferenceFieldName(EntityNode entityNode, EntityNode referenceTo) {
+            String fieldName = evaluator.getReferenceFieldName(entityNode.name, referenceTo.name);
+            if (fieldName == null) {
+                throw new ATKCommon.IncorrectTypeException(
+                    String.format('The relationship field {0}.{1} to entity {2} doesn\'t exist.',
+                    new List<String> { entityNode.name, referenceTo.name, referenceTo.name }));
+            } else if (entityNode.referenceToMap.get(fieldName) != null) {
+                throw new ATKCommon.IncorrectTypeException(
+                    String.format('The relationship field {0}.{1} to entity {2} should not be used multiple times.',
+                    new List<String> { entityNode.name, fieldName, referenceTo.name }));
+            }
+            entityNode.referenceToMap.remove(referenceTo.name);
+            entityNode.referenceToMap.put(fieldName, referenceTo);
+        }
+
         @TestVisible
         void validateRelationship(EntityNode entityNode) {
             if (entityNode.referenceToMap != null && entityNode.referenceToMap.size() > 0) {
-                Schema.SObjectType objectType = gd.get(entityNode.name);
-                Schema.DescribeSObjectResult dsr = objectType.getDescribe();
-                Map<String, SObjectField> fieldMap = dsr.fields.getMap();
-                
-                Map<String, String> fieldNameMap = new Map<String, String>();
-                for (SObjectField field : fieldMap.values()) {
-                    Schema.DescribeFieldResult dfr = field.getDescribe();
-                    if (dfr.getType() == Schema.DisplayType.REFERENCE) {
-                        for (Schema.SObjectType rst : dfr.getReferenceTo()) {
-                            fieldNameMap.put(
-                                rst.getDescribe().getName().toUpperCase(), 
-                                dfr.getName().toUpperCase());
-                        }
-                    }
-                }
-
                 for (String fieldName : entityNode.referenceToMap.keySet()) {
                     EntityNode referenceTo = entityNode.referenceToMap.get(fieldName);
-                    if (fieldName == referenceTo.Name) {
-                        String referenceFieldName = fieldNameMap.get(referenceTo.Name);
-                        if (referenceFieldName == null) {
-                            throw new ATKCommon.IncorrectTypeException(
-                                String.format('The relationship field ({0}.{1}) to entity ({2}) doesn\'t exist.',
+                    if (fieldName != referenceTo.Name) {
+                        String type = evaluator.getReferenceFieldType(entityNode.name, fieldName);
+                        if (type == null || type != referenceTo.name) {
+                            throw new ATKCommon.NotFoundException(
+                                String.format('The relationship field {0}.{1} to entity {2} doesn\'t exist.',
                                 new List<String> { entityNode.name, fieldName, referenceTo.name }));
-                        } else if (referenceFieldName != fieldName) {
-                            if (entityNode.referenceToMap.get(referenceFieldName) != null) {
-                                throw new ATKCommon.IncorrectTypeException(
-                                    String.format('The relationship field ({0}.{1}) to entity ({2}) should not be used multiple times.',
-                                    new List<String> { entityNode.name, fieldName, referenceTo.name }));
-                            }
-                            entityNode.referenceToMap.remove(fieldName);
-                            entityNode.referenceToMap.put(referenceFieldName, referenceTo);
                         }
                     } else {
-                        SObjectField field = fieldMap.get(fieldName);
-                        if (field == null) {
-                            throw new ATKCommon.NotFoundException(
-                                String.format('The relationship field ({0}.{1}) to entity ({2}) doesn\'t exist.',
-                                new List<String> { entityNode.name, fieldName, referenceTo.name }));
-                        }
-
-                        Boolean incorrectType = true;
-                        Schema.DescribeFieldResult dfr = field.getDescribe();
-                        for (Schema.SObjectType referenceToType : dfr.getReferenceTo()) {
-                            Schema.DescribeSObjectResult refDsr = referenceToType.getDescribe();
-                            if (refDsr.getName().toUpperCase() == referenceTo.Name) {
-                                incorrectType = false;
-                            }
-                        }
-                        if (incorrectType) {
-                            throw new ATKCommon.IncorrectTypeException(
-                                String.format('The relationship field ({0}.{1}) doesn\'t reference to entity ({2}).',
-                                new List<String> { entityNode.name, fieldName, referenceTo.name }));
-                        }
+                        autoDetectReferenceFieldName(entityNode, referenceTo);
                     }
                 }
             }
@@ -163,7 +140,7 @@ public with sharing class ATKWand {
 
                     if (!isValid) {
                         throw new ATKCommon.NotFoundException(
-                            String.format('The cross reference field ({0}.{1}) must be initialized with origin() keyword.',
+                            String.format('The cross reference field {0}.{1} must be initialized with origin() keyword.',
                                 new List<String> { entityNode.name, fieldName }));
                     }
                 }
@@ -192,16 +169,14 @@ public with sharing class ATKWand {
     }
 
     class NodeGenerator implements IGenerator {
-        IFieldEvaluator fieldEvaluator { get; set; }
         Distributor distributor { get; set; }
 
         NodeGenerator() {
-            fieldEvaluator = new FieldEvaluator();
             distributor = new Distributor();
         }
 
         public void generate(ATKSpellBook spellBook) {
-            fieldEvaluator.resetRuleIndexCache();
+            evaluator.resetRuleIndexCache();
             Iterator<EntityNode> iterator = spellBook.iterator();
             while (iterator.hasNext()) {
                 EntityNode entityNode = iterator.next();
@@ -251,7 +226,7 @@ public with sharing class ATKWand {
                     }
                     Boolean hasRule = fieldNameSet.contains(fieldName);
                     Object rule = entityNode.fieldRuleMap.get(fieldName);
-                    Object value = fieldEvaluator.getValue(dsr, dfr, rule, hasRule, 10);
+                    Object value = evaluator.getValue(dsr, dfr, rule, hasRule, 10);
                     if (value != null) {
                         obj.put(fieldName, value);
                     }
@@ -261,7 +236,7 @@ public with sharing class ATKWand {
                     SObjectField field = dsr.fields.getMap().get(fieldName);
                     Schema.DescribeFieldResult dfr = field.getDescribe();
                     Object rule = entityNode.fieldRuleMap.get(fieldName);
-                    Object value = fieldEvaluator.getValue(dsr, dfr, rule, true, 10);
+                    Object value = evaluator.getValue(dsr, dfr, rule, true, 10);
                     if (value != null) {
                         obj.put(fieldName, value);
                     }
@@ -286,7 +261,7 @@ public with sharing class ATKWand {
                     SObjectField field = dsr.fields.getMap().get(fieldName);
                     Schema.DescribeFieldResult dfr = field.getDescribe();
                     Object rule = entityNode.fieldRuleMap.get(fieldName);
-                    Object value = fieldEvaluator.getValue(dsr, dfr, rule, true, 10);
+                    Object value = evaluator.getValue(dsr, dfr, rule, true, 10);
                     if (value != null) {
                         obj.put(fieldName, value);
                     }
@@ -455,16 +430,21 @@ public with sharing class ATKWand {
     }
 
     @TestVisible
-    class FieldEvaluator implements IFieldEvaluator {
-        private Map<String, List<String>> picklistCache { get; set; }
+    class FieldEvaluator implements IEvaluator {
         private Map<String, Set<String>> addressFieldCache { get; set; }
         private Map<String, Set<String>> geolocationFieldCache { get; set; }
-        private Map<String, Set<Object>> uniqueValueCache { get; set; }
+        private Map<String, Map<String, String>> referenceFieldNameCache { get; set; }
+        private Map<String, Map<String, String>> referenceFieldTypeCache { get; set; }
+
+        private Map<String, List<String>> picklistCache { get; set; }
         private Map<String, Integer> ruleIndexCache { get; set; }
+        private Map<String, Set<Object>> uniqueValueCache { get; set; }
         private List<String> UNIQUE_VALUE_FORMATS { get; set; }
 
         @TestVisible
         FieldEvaluator() {
+            referenceFieldNameCache = new Map<String, Map<String, String>>();
+            referenceFieldTypeCache = new Map<String, Map<String, String>>();
             picklistCache = new Map<String, List<String>>();
             addressFieldCache = new Map<String, Set<String>>();
             geolocationFieldCache = new Map<String, Set<String>>();
@@ -484,6 +464,73 @@ public with sharing class ATKWand {
             ruleIndexCache = new Map<String, Integer>();
         }
 
+        public void buildFieldCaches(EntityNode entityNode) {
+            Schema.SObjectType objectType = gd.get(entityNode.name);
+            Schema.DescribeSObjectResult dsr = objectType.getDescribe();
+            String objectName = dsr.getName();
+
+            Set<String> geolocationFieldSet;
+            if (geolocationFieldCache.get(objectName) == null) {
+                geolocationFieldSet = new Set<String> { 'LONGITUDE', 'LATITUDE' };
+                geolocationFieldCache.put(objectName, geolocationFieldSet);
+            } else {
+                return;
+            }
+
+            Set<String> addressFieldSet;
+            if (addressFieldCache.get(objectName) == null) {
+                addressFieldSet = new Set<String>();
+                addressFieldCache.put(objectName, addressFieldSet);
+            }
+
+            Map<String, String> referenceFieldNameMap;
+            if (referenceFieldNameCache.get(objectName.toUpperCase()) == null) {
+                referenceFieldNameMap = new Map<String, String>();
+                referenceFieldNameCache.put(objectName.toUpperCase(), referenceFieldNameMap);
+            }
+
+            Map<String, String> referenceFieldTypeMap;
+            if (referenceFieldTypeCache.get(objectName.toUpperCase()) == null) {
+                referenceFieldTypeMap = new Map<String, String>();
+                referenceFieldTypeCache.put(objectName.toUpperCase(), referenceFieldTypeMap);
+            }
+
+            for (SObjectField field : dsr.fields.getMap().values()) {
+                Schema.DescribeFieldResult dfr = field.getDescribe();
+                String fieldName = dfr.getName().toUpperCase();
+                if (fieldName.endsWith('__LATITUDE__S')) {
+                    geolocationFieldSet.add(fieldName.replace('__LATITUDE__S', '__C'));
+                } else if (dfr.getType() == Schema.DisplayType.ADDRESS) {
+                    String addressPrefix = dfr.getName().toUpperCase().replace('ADDRESS', '');
+                    addressFieldSet.add(addressPrefix + 'STREET');
+                    addressFieldSet.add(addressPrefix + 'CITY');
+                    addressFieldSet.add(addressPrefix + 'STATE');
+                    addressFieldSet.add(addressPrefix + 'POSTALCODE');
+                    addressFieldSet.add(addressPrefix + 'COUNTRY');
+                    addressFieldSet.add(addressPrefix + 'LATITUDE');
+                    addressFieldSet.add(addressPrefix + 'LONGITUDE');
+                    addressFieldSet.add(addressPrefix + 'GEOCODEACCURACY');
+                } else if (dfr.getType() == Schema.DisplayType.REFERENCE) {
+                    for (Schema.SObjectType rst : dfr.getReferenceTo()) {
+                        referenceFieldNameMap.put(
+                            rst.getDescribe().getName().toUpperCase(), 
+                            dfr.getName().toUpperCase());
+                        referenceFieldTypeMap.put(
+                            dfr.getName().toUpperCase(),
+                            rst.getDescribe().getName().toUpperCase());
+                    }
+                } 
+            }
+        }
+
+        public String getReferenceFieldName(String objectName, String referenceObjectName) {
+            return referenceFieldNameCache.get(objectName).get(referenceObjectName);
+        }
+
+        public String getReferenceFieldType(String objectName, String referenceFieldName) {
+            return referenceFieldTypeCache.get(objectName).get(referenceFieldName);
+        }
+
         public Object getValue(
             Schema.DescribeSObjectResult dsr,
             Schema.DescribeFieldResult dfr,
@@ -493,7 +540,7 @@ public with sharing class ATKWand {
 
             if (depth == 0) {
                 throw new ATKCommon.DeepRecursionException(String.format(
-                    'Please assign ATKFaker interpolation for field ({0}.{1}) to enforce uniqueness.',
+                    'Please assign ATKFaker interpolation for field {0}.{1} to enforce uniqueness.',
                     new List<String> { dsr.getName(), dfr.getName() }
                 ));
             }
@@ -667,59 +714,13 @@ public with sharing class ATKWand {
         }
 
         Boolean isGeolocationField(Schema.DescribeSObjectResult dsr, Schema.DescribeFieldResult dfr) {
-            Set<String> geolocationFieldSet = getGeolocationFields(dsr);
+            Set<String> geolocationFieldSet = geolocationFieldCache.get(dsr.getName());
             return geolocationFieldSet.contains(dfr.getName().toUpperCase());
         }
 
-        Set<String> getGeolocationFields(Schema.DescribeSObjectResult dsr) {
-            String objectName = dsr.getName();
-            if (geolocationFieldCache.get(objectName) == null) {
-                Set<String> geolocationFieldSet = new Set<String>();
-                Map<String, SObjectField> fieldMap = dsr.fields.getMap();
-                for (SObjectField field : fieldMap.values()) {
-                    Schema.DescribeFieldResult dfr = field.getDescribe();
-                    String fieldName = dfr.getName().toUpperCase();
-                    if (fieldName.endsWith('__LATITUDE__S')) {
-                        geolocationFieldSet.add(fieldName.replace('__LATITUDE__S', '__C'));
-                    } else if (fieldName.endsWith('__LONGITUDE__S')) {
-                        geolocationFieldSet.add(fieldName.replace('__LONGITUDE__S', '__C'));
-                    }
-                }
-                geolocationFieldSet.add('LONGITUDE');
-                geolocationFieldSet.add('LATITUDE');
-                // System.debug('geolocation of ' + objectName + ': ' + geolocationFieldSet);
-                geolocationFieldCache.put(objectName, geolocationFieldSet);
-            }
-            return geolocationFieldCache.get(objectName);
-        }
-
         Boolean isAddressField(Schema.DescribeSObjectResult dsr, Schema.DescribeFieldResult dfr) {
-            Set<String> addressFieldSet = getAddressFields(dsr);
+            Set<String> addressFieldSet = addressFieldCache.get(dsr.getName());
             return addressFieldSet.contains(dfr.getName().toUpperCase());
-        }
-
-        Set<String> getAddressFields(Schema.DescribeSObjectResult dsr) {
-            String objectName = dsr.getName();
-            if (addressFieldCache.get(objectName) == null) {
-                Set<String> addressFieldSet = new Set<String>();
-                Map<String, SObjectField> fieldMap = dsr.fields.getMap();
-                for (SObjectField field : fieldMap.values()) {
-                    Schema.DescribeFieldResult dfr = field.getDescribe();
-                    if (dfr.getType() == Schema.DisplayType.ADDRESS) {
-                        String addressPrefix = dfr.getName().toUpperCase().replace('ADDRESS', '');
-                        addressFieldSet.add(addressPrefix + 'STREET');
-                        addressFieldSet.add(addressPrefix + 'CITY');
-                        addressFieldSet.add(addressPrefix + 'STATE');
-                        addressFieldSet.add(addressPrefix + 'POSTALCODE');
-                        addressFieldSet.add(addressPrefix + 'COUNTRY');
-                        addressFieldSet.add(addressPrefix + 'LATITUDE');
-                        addressFieldSet.add(addressPrefix + 'LONGITUDE');
-                        addressFieldSet.add(addressPrefix + 'GEOCODEACCURACY');
-                    }
-                }
-                addressFieldCache.put(objectName, addressFieldSet);
-            }
-            return addressFieldCache.get(objectName);
         }
 
         List<String> getPicklistValues(

@@ -25,6 +25,11 @@ static void testAccountCreation() {
 
 Underneath, the data are automatically populated with appropriate values according to field types, including: BOOLEAN, DATE, TIME, DATETIME, DOUBLE, INTEGER, PERCENT, CURRENCY, PICKLIST, MULTIPICKLIST, STRING, TEXTAREA, EMAIL, URL, PHONE, ADDRESS.
 
+### Caveat
+
+1. Depends on number of required fields and generation expression rules, the size of debug log could exceed the 5MB limit. In such case, please toggle the debug level to hide unnecessary information.
+2. Sometime ramdom values could bring uncertainty to test results. In such case, please specify the genereation expression rule explicitly or to a fixed value.
+
 ## Usage of ATKWizard 
 
 All examples below can be successfully run from `src/classes/SampleTest.cls` in a clean Salesforce CRM organization. If validation rules were added to CRM standard sObjects, `fields()` keyword should be used to tailor the record generation to bypass these validation rules.
@@ -166,10 +171,10 @@ With rule `List<>`, `fields()` can sequentially assign values to records created
 ATKWizard.I().wantMany('SomeObject__c')
     .total(3)
     .fields(new Map<String, Object> {
-        'Name' => new List<String> { // always try to parse String as expressions
+        'Name' => new List<String> { // ATK will always try to parse String as expressions
             'AP-{{###}}', 'GG-{{###}}', 'MS-{{###}}'
         },
-        'Alias' => new List<Object> { // object will not be treated as expressions
+        'Alias' => new List<Object> { // ATK will never try to parse Object as expressions
             'AP-123', 'GG-456', 'MS-789'
         },
         'Price' => new List<Object> {
@@ -185,10 +190,10 @@ With rule `Set<>`, `fields()` can randomly assign values to records created. Rul
 ATKWizard.I().wantMany('SomeObject__c')
     .total(3)
     .fields(new Map<String, Object> {
-        'Name' => new Set<String> { // always try to parse String as expressions
+        'Name' => new Set<String> { // ATK will always try to parse String as expressions
             'AP-{{###}}', 'GG-{{###}}', 'MS-{{###}}'
         },
-        'Alias' => new Set<Object> { // object will not be treated as expressions
+        'Alias' => new Set<Object> { // ATK will never try to parse Object as expressions
             'AP-123', 'GG-456', 'MS-789'
         },
         'Price' => new Set<Object> {
@@ -210,7 +215,7 @@ ATKWizard.I().wantMany('Contact')
         'Birthdate' => currentDate // give a default value for $1.Birthdate
     })
     .fields(new Map<String, Object> {
-        'Birthdate' => '{!dates.addDays($1.Birthdate, -1)}'
+        'Birthdate' => '{!dates.addDays($1.Birthdate, -1)}' // 1 day less
     })
     .generate();
 ```
