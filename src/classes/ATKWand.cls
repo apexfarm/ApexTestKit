@@ -84,11 +84,13 @@ public with sharing class ATKWand {
                 throw new ATKCommon.IncorrectTypeException(
                     String.format('The relationship field {0}.{1} to entity {2} doesn\'t exist.',
                     new List<String> { entityNode.name, referenceTo.name, referenceTo.name }));
-            } else if (entityNode.referenceToMap.get(fieldName) != null) {
-                throw new ATKCommon.IncorrectTypeException(
-                    String.format('The relationship field {0}.{1} to entity {2} should not be used multiple times.',
-                    new List<String> { entityNode.name, fieldName, referenceTo.name }));
             }
+            // Issue: The following code is causing issue when field name is the same as type name.
+            // else if (entityNode.referenceToMap.get(fieldName) != null) {
+            //     throw new ATKCommon.IncorrectTypeException(
+            //         String.format('The relationship field {0}.{1} to entity {2} should not be used multiple times.',
+            //         new List<String> { entityNode.name, fieldName, referenceTo.name }));
+            // }
             entityNode.referenceToMap.remove(referenceTo.name);
             entityNode.referenceToMap.put(fieldName, referenceTo);
         }
