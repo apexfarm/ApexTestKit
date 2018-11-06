@@ -165,7 +165,7 @@ ATKWizard.I().wantMany('A')
 
 #### 3.1 Rule List vs Rule Set
 
-With rule List<>, fields() can sequentially assign values to records created. Use List<Object> instead of List<String> whenever there is no need of ATKFaker interpolation, because it will consume less CPU limit.
+With rule List<>, fields() can sequentially assign values to records created. Use `List<Object>` instead of `List<String>` whenever there is no need of ATKFaker interpolation, because it will consume less CPU limit.
 
 ```java
 ATKWizard.I().wantMany('SomeObject__c')
@@ -184,7 +184,7 @@ ATKWizard.I().wantMany('SomeObject__c')
     .generate();
 ```
 
-With rule `Set<>`, `fields()` can randomly assign values to records created. Rule set will consume a bit more CPU limit than than rule list. 
+With rule `Set<>`, `fields()` can randomly assign values to records created. Please avoid using Set, because ramdon will introduce uncertainty, unless it is intended. 
 
 ```java
 ATKWizard.I().wantMany('SomeObject__c')
