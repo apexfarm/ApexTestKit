@@ -32,7 +32,7 @@ Underneath, the data are automatically populated with appropriate values accordi
 
 ## Usage of ATKWizard 
 
-All examples below can be successfully run from `src/classes/SampleTest.cls` in a clean Salesforce CRM organization. If validation rules were added to CRM standard sObjects, `fields()` keyword should be used to tailor the record generation to bypass these validation rules.
+All examples below can be successfully run from `src/classes/SampleTest.cls` in a clean Salesforce CRM organization. If validation rules were added to CRM standard sObjects, `fields()` keyword should be used to tailor the record generation to bypass them.
 
 ### 1. Setup Relationship
 
@@ -210,12 +210,12 @@ Combining with `origin()`, `fields()` can also perform arithmetic calculations a
 ```java
 Date currentDate = Date.today();
 ATKWizard.I().wantMany('Contact')
-    .total(10)
+    .total(10) // create 10 contact
     .origin(new Map<String, Object> {
-        'Birthdate' => currentDate // give a default value for $1.Birthdate
+        'Birthdate' => currentDate // assign the first contact Birthday to today
     })
     .fields(new Map<String, Object> {
-        'Birthdate' => '{!dates.addDays($1.Birthdate, -1)}' // 1 day less
+        'Birthdate' => '{!dates.addDays($1.Birthdate, -1)}' // one day less than the Birthday of previous record
     })
     .generate();
 ```
