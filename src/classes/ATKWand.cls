@@ -17,16 +17,18 @@ public with sharing class ATKWand {
     interface IGenerator {
         void generate(ATKSpellBook spellBook);
     }
-    
+
     interface IEvaluator {
         void buildFieldCaches(EntityNode entityNode);
-        String getReferenceFieldName(String objectName, String referenceObjectName);
+        String getReferenceFieldName(String objectName, String referenceTypeName);
         String getReferenceFieldType(String objectName, String referenceFieldName);
         void resetRuleIndexCache();
         Object getValue(
             Schema.DescribeSObjectResult dsr,
             Schema.DescribeFieldResult dfr,
-            Object rule, Boolean hasRule, Integer depth);
+            Object rule,
+            Boolean hasRule,
+            Integer depth);
     }
 
     static {
@@ -185,7 +187,7 @@ public with sharing class ATKWand {
                 if (entityNode.repository == null || entityNode.repository.size() == 0) {
                     List<SObject> repository = createObjects(entityNode);
                     assignReferences(entityNode);
-                    
+
                     Database.insert(repository);
                 } else {
                     List<SObject> repository = updateObjects(entityNode);
@@ -223,17 +225,23 @@ public with sharing class ATKWand {
                 for (SObjectField field : dsr.fields.getMap().values()) {
                     Schema.DescribeFieldResult dfr = field.getDescribe();
                     String fieldName = dfr.getName().toUpperCase();
-                    if (xrefsNameSet.contains(fieldName)) {
-                        break;
+                    if (xrefsNameSet.contains(fieldName)) { // skip cross reference fields
+                        continue;
                     }
+
                     Boolean hasRule = fieldNameSet.contains(fieldName);
                     Object rule = entityNode.fieldRuleMap.get(fieldName);
+                    if (!hasRule && (dfr.isNillable() || isNotEditableField(dfr))) {
+                        continue;
+                    }
+
                     Object value = evaluator.getValue(dsr, dfr, rule, hasRule, 10);
                     if (value != null) {
                         obj.put(fieldName, value);
                     }
                 }
 
+                // calculate cross reference fields at last
                 for (String fieldName : xrefsNameSet) {
                     SObjectField field = dsr.fields.getMap().get(fieldName);
                     Schema.DescribeFieldResult dfr = field.getDescribe();
@@ -307,6 +315,16 @@ public with sharing class ATKWand {
                     }
                 }
             }
+        }
+
+        Boolean isNotEditableField(Schema.DescribeFieldResult dfr) {
+            String fieldName = dfr.getName().toUpperCase();
+            return !dfr.isCreateable()
+                || dfr.isCalculated()
+                || dfr.isAutoNumber()
+                || dfr.getType() == Schema.DisplayType.REFERENCE
+                || fieldName == 'CLEANSTATUS' // Used by Database.com
+                || fieldName == 'JIGSAW';     // Used by Database.com
         }
     }
 
@@ -441,6 +459,7 @@ public with sharing class ATKWand {
         private Map<String, List<String>> picklistCache { get; set; }
         private Map<String, Integer> ruleIndexCache { get; set; }
         private Map<String, Set<Object>> uniqueValueCache { get; set; }
+        private Map<String, Object> nonUniqueFieldCache {get; set; }
         private List<String> UNIQUE_VALUE_FORMATS { get; set; }
 
         @TestVisible
@@ -451,6 +470,7 @@ public with sharing class ATKWand {
             addressFieldCache = new Map<String, Set<String>>();
             geolocationFieldCache = new Map<String, Set<String>>();
             uniqueValueCache = new Map<String, Set<Object>>();
+            nonUniqueFieldCache = new Map<String, Object>();
             ruleIndexCache = new Map<String, Integer>();
             UNIQUE_VALUE_FORMATS = new List<String> {
                 '{{?}}',
@@ -473,10 +493,8 @@ public with sharing class ATKWand {
 
             Set<String> geolocationFieldSet;
             if (geolocationFieldCache.get(objectName) == null) {
-                geolocationFieldSet = new Set<String> { 'LONGITUDE', 'LATITUDE' };
+                geolocationFieldSet = new Set<String> {};
                 geolocationFieldCache.put(objectName, geolocationFieldSet);
-            } else {
-                return;
             }
 
             Set<String> addressFieldSet;
@@ -500,8 +518,11 @@ public with sharing class ATKWand {
             for (SObjectField field : dsr.fields.getMap().values()) {
                 Schema.DescribeFieldResult dfr = field.getDescribe();
                 String fieldName = dfr.getName().toUpperCase();
-                if (fieldName.endsWith('__LATITUDE__S')) {
-                    geolocationFieldSet.add(fieldName.replace('__LATITUDE__S', '__C'));
+                Schema.DisplayType fieldType = dfr.getType();
+                if (fieldName == 'LONGITUDE' || fieldName == 'LATITUDE' ) {
+                    geolocationFieldSet.add(fieldName);
+                } else if (fieldName.endsWith('__LATITUDE__S')) {
+                    geolocationFieldSet.add(fieldName.replace('__LATITUDE__S', '__C')); // custom geo location field
                 } else if (dfr.getType() == Schema.DisplayType.ADDRESS) {
                     String addressPrefix = dfr.getName().toUpperCase().replace('ADDRESS', '');
                     addressFieldSet.add(addressPrefix + 'STREET');
@@ -514,19 +535,17 @@ public with sharing class ATKWand {
                     addressFieldSet.add(addressPrefix + 'GEOCODEACCURACY');
                 } else if (dfr.getType() == Schema.DisplayType.REFERENCE) {
                     for (Schema.SObjectType rst : dfr.getReferenceTo()) {
-                        referenceFieldNameMap.put(
-                            rst.getDescribe().getName().toUpperCase(), 
-                            dfr.getName().toUpperCase());
-                        referenceFieldTypeMap.put(
-                            dfr.getName().toUpperCase(),
-                            rst.getDescribe().getName().toUpperCase());
+                        String toRefType = rst.getDescribe().getName().toUpperCase();
+                        String fromRefField = dfr.getName().toUpperCase();
+                        referenceFieldNameMap.put(toRefType, fromRefField);
+                        referenceFieldTypeMap.put(fromRefField, toRefType);
                     }
-                } 
+                }
             }
         }
 
-        public String getReferenceFieldName(String objectName, String referenceObjectName) {
-            return referenceFieldNameCache.get(objectName).get(referenceObjectName);
+        public String getReferenceFieldName(String objectName, String referenceTypeName) {
+            return referenceFieldNameCache.get(objectName).get(referenceTypeName);
         }
 
         public String getReferenceFieldType(String objectName, String referenceFieldName) {
@@ -540,20 +559,36 @@ public with sharing class ATKWand {
             Boolean hasRule,
             Integer depth) {
 
+            String key = dsr.getName() + '.' + dfr.getName();
+            Object value;
+            if (!dfr.isUnique() && nonUniqueFieldCache.get(key) != null) {
+                value = nonUniqueFieldCache.get(key);
+            } else {
+                value = getValueInternal(dsr, dfr, rule, hasRule, depth);
+                if (value != null && !dfr.isUnique()) {
+                    nonUniqueFieldCache.put(key, value);
+                }
+            }
+            return value;
+        }
+
+        Object getValueInternal(
+            Schema.DescribeSObjectResult dsr,
+            Schema.DescribeFieldResult dfr,
+            Object rule,
+            Boolean hasRule,
+            Integer depth) {
+
             if (depth == 0) {
                 throw new ATKCommon.DeepRecursionException(String.format(
-                    'Please assign ATKFaker interpolation for field {0}.{1} to enforce uniqueness.',
+                    'Please assign ATKFaker interpolation expression for field {0}.{1} to enforce uniqueness, i.e. {{******}}',
                     new List<String> { dsr.getName(), dfr.getName() }
                 ));
             }
 
-            if (dfr.isNillable() && !hasRule) {
-                return null;
-            }
-
-            if (isGeolocationField(dsr, dfr)) {
-                return null;
-            }
+            // if (isGeolocationField(dsr, dfr)) {
+            //     return null;
+            // }
 
             String key = dsr.getName() + '.' + dfr.getName();
             Object value;
@@ -610,11 +645,11 @@ public with sharing class ATKWand {
         }
 
         Object guessValue(Schema.DescribeSObjectResult dsr, Schema.DescribeFieldResult dfr) {
-            Object value;
-            if (isNotEditableField(dfr) || isAddressField(dsr, dfr)) {
-                return value;
+            if (isAddressField(dsr, dfr)) {
+                return null;
             }
             // System.debug(dfr.getName() + ': ' + dfr.getType());
+            Object value;
             switch on dfr.getType() {
                 when BOOLEAN {
                     value = ATKFaker.random.boolean();
@@ -703,16 +738,6 @@ public with sharing class ATKWand {
                 }
             }
             return value;
-        }
-
-        Boolean isNotEditableField(Schema.DescribeFieldResult dfr) {
-            String fieldName = dfr.getName().toUpperCase();
-            return dfr.isCalculated()
-                || dfr.isAutoNumber()
-                || !dfr.isCreateable()
-                || dfr.getType() == Schema.DisplayType.REFERENCE
-                || fieldName == 'CLEANSTATUS' // Used by Database.com
-                || fieldName == 'JIGSAW';     // Used by Database.com
         }
 
         Boolean isGeolocationField(Schema.DescribeSObjectResult dsr, Schema.DescribeFieldResult dfr) {
@@ -804,7 +829,7 @@ public with sharing class ATKWand {
             this.matrix.reset();
             return matrix;
         }
-        
+
         public void attach(EntityNode entityNode) {
             this.matrix.add(entityNode);
             addToEntityNodeMap(entityNode);
@@ -856,7 +881,7 @@ public with sharing class ATKWand {
         }
 
         public Boolean hasNext() {
-            return rowIndex + 1 < entityNodeMatrix.size() 
+            return rowIndex + 1 < entityNodeMatrix.size()
             || colIndex + 1 < entityNodeMatrix.get(rowIndex).size();
         }
 
@@ -955,7 +980,7 @@ public with sharing class ATKWand {
                         referenceToMap.put(parentEntityNode.name, parentEntityNode);
                     }
                 }
-            } 
+            }
         }
 
         public String name { get; set; }
@@ -996,7 +1021,7 @@ public with sharing class ATKWand {
             this.total = total;
         }
 
-        public void apply(EntityNode entityNode) {            
+        public void apply(EntityNode entityNode) {
             entityNode.total = total;
         }
     }

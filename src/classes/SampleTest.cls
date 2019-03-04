@@ -5,9 +5,17 @@
 private with sharing class SampleTest {
     @isTest
     static void TestTotal() {
-        ATKWizard.I().wantMany('Account').total(100).generate();
+        Integer accountTotal = 5;
+        Integer contactTotal = 10;
+        ATKWizard.I().wantMany('Account')
+            .total(accountTotal)
+            .hasMany('Contact')
+                .total(contactTotal)
+            .generate();
         List<Account> accountList = [SELECT Id FROM Account];
-        System.assertEquals(100, accountList.size());
+        System.assertEquals(accountTotal, accountList.size());
+        List<Contact> contactList = [SELECT Id FROM Contact];
+        System.assertEquals(contactTotal, contactList.size());
     }
 
     /*
@@ -116,7 +124,7 @@ private with sharing class SampleTest {
                 }
             })
             .generate();
-        
+
         accountList = [SELECT Id, Name FROM Account];
         System.assertEquals(10, accountList.size());
         for (Account account : accountList) {

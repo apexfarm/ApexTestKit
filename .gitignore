@@ -51,4 +51,5 @@ TestCache.xml
 TestsResultsCache.xml
 
 # vscode
-.vim-force.com
+.sfdx
+.vscode
