@@ -18,7 +18,7 @@ global with sharing class ATKWizard {
      */
     global ATKWizard wantMany(String entityName) {
         this.spellBook = new ATKWand.ATKSpellBook();
-        this.spellBook.attach(new ATKWand.EntityNode(entityName, 
+        this.spellBook.attach(new ATKWand.EntityNode(entityName,
             ATKWand.EntityNodeType.WantMany));
         return this;
     }
@@ -79,7 +79,7 @@ global with sharing class ATKWizard {
      * Entity Generation
      */
     global Bag generate() {
-        ATKWand.validate(this.spellBook);
+        ATKWand.analysis(this.spellBook);
         ATKWand.generate(this.spellBook);
 
         Bag bag = new Bag(this.spellBook);

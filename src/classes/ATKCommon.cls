@@ -2,9 +2,9 @@
  * Apex Test Kit
  */
 global with sharing class ATKCommon {
-    public static final Integer METHOD_GROUP_MAX_LEVEL  = 100;
+    public static final Integer METHOD_GROUP_MAX_LEVEL = 100;
     public static final Converter converter = new Converter();
-    public static final MethodParser parser = new MethodParser();
+    public static final MethodParser METHOD_PARSER = new MethodParser();
 
     /*
      * Custom Exceptions
@@ -12,7 +12,7 @@ global with sharing class ATKCommon {
 	global class DeepRecursionException extends Exception {
 
     }
-    
+
     global class NotFoundException extends Exception {
 
     }
@@ -58,14 +58,14 @@ global with sharing class ATKCommon {
     }
 
     public class MethodGroup {
-        public Integer level { get; set; }
-        public List<Method> methodList { get; set; }
-        
+        public Integer level { get; private set; }
+        public List<Method> methodList { get; private set; }
+        public Boolean hasMethod { get; private set; }
+
         String expression { get; set; }
         @TestVisible
         List<String> splits { get; set; }
         Boolean isPure { get; set; }
-        Boolean hasMethod { get; set; }
 
         MethodGroup(String expression, System.Matcher matcher) {
             this.level = METHOD_GROUP_MAX_LEVEL;
@@ -83,7 +83,7 @@ global with sharing class ATKCommon {
             }
             this.isPure = this.splits != null
                 && this.splits.size() == 2
-                && String.isBlank(this.splits[0]) 
+                && String.isBlank(this.splits[0])
                 && String.isBlank(this.splits[1]);
         }
 
@@ -171,7 +171,7 @@ global with sharing class ATKCommon {
                 }
             }
         }
-        
+
         if (xrefParams != null) {
             method = new XrefMethod(xrefParams);
         } else {
@@ -233,13 +233,13 @@ global with sharing class ATKCommon {
         @TestVisible
         Integer index { get; set; }
         @TestVisible
-        Integer level { 
+        Integer level {
             get;
             set {
                 if (level == null || value < level) {
                     level = value;
                 }
-            } 
+            }
         }
         public String fieldName { get; set; }
     }
@@ -249,7 +249,7 @@ global with sharing class ATKCommon {
      */
     public class StringBuilder {
         List<String> values { get; set; }
-        
+
         public StringBuilder() {
             values = new List<String>();
         }

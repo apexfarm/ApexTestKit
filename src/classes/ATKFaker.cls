@@ -16,8 +16,8 @@ global with sharing class ATKFaker {
 
     @TestVisible
     private static ATKFakerDefinition definition = new ATKFakerDefinition();
-    public static final ATKCommon.MethodParser parser = ATKCommon.parser;
-    private static final MethodEvaluator methodEvaluator = new MethodEvaluator();
+    public static final ATKCommon.MethodParser METHOD_PARSER = ATKCommon.METHOD_PARSER;
+    private static final MethodEvaluator METHOD_EVALUATOR = new MethodEvaluator();
 
     static {
         internet = new Internet();
@@ -43,8 +43,8 @@ global with sharing class ATKFaker {
     }
 
     global static Object fake(String input) {
-        ATKCommon.MethodGroup methodGroup = parser.parse(input);
-        return methodGroup.evaluate(methodEvaluator);
+        ATKCommon.MethodGroup methodGroup = METHOD_PARSER.parse(input);
+        return methodGroup.evaluate(METHOD_EVALUATOR);
     }
 
     public class MethodEvaluator implements ATKCommon.MethodEvaluator {
@@ -80,7 +80,7 @@ global with sharing class ATKFaker {
                 }
                 if (params.size() > 1) {
                     param1 = params.get(1);
-                }              
+                }
             }
             Object output;
             switch on method {
@@ -88,7 +88,7 @@ global with sharing class ATKFaker {
                     output = replaceSymbols(ATKCommon.converter.toString(param0));
                 }
                 when else {
-                    
+
                 }
             }
             return output;
@@ -137,7 +137,7 @@ global with sharing class ATKFaker {
             Integer numberSignChar = '#'.charAt(0);
             Integer questionMarkChar = '?'.charAt(0);
             Integer asteriskChar = '*'.charAt(0);
-            
+
             Integer[] chars = input.getChars();
             ATKCommon.StringBuilder builder = new ATKCommon.StringBuilder();
             List<String> alphaList = definition.get(ATKFakerDefinition.FAKER_SYMBOL_ALPHA);
@@ -147,8 +147,8 @@ global with sharing class ATKFaker {
                 } else if (chars[i] == questionMarkChar) {
                     builder.append((String)random.arrayElement(alphaList));
                 } else if (chars[i] == asteriskChar) {
-                    builder.append(random.boolean() ? 
-                        (String)random.arrayElement(alphaList) : 
+                    builder.append(random.boolean() ?
+                        (String)random.arrayElement(alphaList) :
                         String.valueOf(random.number(0, 9, 0)));
                 } else {
                     builder.append(String.fromCharArray(new Integer[]{chars[i]}));
@@ -405,7 +405,7 @@ global with sharing class ATKFaker {
                 }
                 if (params.size() > 2) {
                     param2 = params.get(2);
-                }                
+                }
             }
 
             Object output;
@@ -430,7 +430,7 @@ global with sharing class ATKFaker {
                     output = avatar();
                 }
                 when else {
-                    
+
                 }
             }
             return output;
@@ -450,12 +450,12 @@ global with sharing class ATKFaker {
                     result = firstName + random.number(99, 999, 0);
                 }
                 when 1 {
-                    result = firstName 
+                    result = firstName
                         + (String)random.arrayElement(definition.get(ATKFakerDefinition.FAKER_INTERNET_USERNAME_PUNCTUATION))
                         + lastName;
                 }
                 when 2 {
-                    result = firstName 
+                    result = firstName
                         + (String)random.arrayElement(definition.get(ATKFakerDefinition.FAKER_INTERNET_USERNAME_PUNCTUATION))
                         + lastName
                         + random.number(99, 999, 0);
@@ -520,7 +520,7 @@ global with sharing class ATKFaker {
                     );
                 }
                 when else {
-                    
+
                 }
             }
             return output;
@@ -561,7 +561,7 @@ global with sharing class ATKFaker {
                     output = lastName();
                 }
                 when else {
-                    
+
                 }
             }
             return output;
@@ -578,7 +578,7 @@ global with sharing class ATKFaker {
             } else if (gender == 'male' || gender == 'Male' || gender == 'MALE') {
                 nameList = definition.get(ATKFakerDefinition.FAKER_NAME_MALEFIRSTNAME);
             }
-            
+
             if (nameList == null) {
                 nameList = definition.get(ATKFakerDefinition.FAKER_NAME_FIRSTNAME);
             }
@@ -611,7 +611,7 @@ global with sharing class ATKFaker {
                     output = amount(precision, scale);
                 }
                 when else {
-                    
+
                 }
             }
             return output;
@@ -668,7 +668,7 @@ global with sharing class ATKFaker {
                     output = words(count);
                 }
                 when else {
-                    
+
                 }
             }
             return output;
@@ -796,9 +796,9 @@ global with sharing class ATKFaker {
 
         global String text() {
             List<String> methodList = new List<String> {
-                'word', 'words', 
+                'word', 'words',
                 'sentence', 'sentences',
-                'paragraph', 'paragraphs', 
+                'paragraph', 'paragraphs',
                 'lines'};
             String method = (String)random.arrayElement(methodList);
             return (String)call(method, null);
@@ -812,7 +812,7 @@ global with sharing class ATKFaker {
                 when 'city' {
                 }
                 when else {
-                    
+
                 }
             }
             return output;

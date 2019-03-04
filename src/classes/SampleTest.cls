@@ -4,7 +4,7 @@
 @isTest
 private with sharing class SampleTest {
     @isTest
-    static void TestTotal() {
+    static void TestFieldGuessValue() {
         Integer accountTotal = 5;
         Integer contactTotal = 10;
         ATKWizard.I().wantMany('Account')
@@ -138,22 +138,28 @@ private with sharing class SampleTest {
 
     @isTest
     static void TestRelationshipHasMany() {
+        Integer accountTotal = 500;
+        Integer contactTotal = 1000;
         ATKWizard.Bag bag = ATKWizard.I().wantMany('Account')
-            .total(10)
+            .total(accountTotal)
             .fields(new Map<String, Object> {
                 'Name' => new List<String> {
                     'Microsoft-{{###}}',
                     'Google-{{###}}',
                     'Apple-{{###}}'
                 },
-                'Fax' => '{{1##-###-####}}'
+                'Fax' => '{{1##-###-####}}',
+                'NumberOfEmployees' => '{!random.number(8, 0)}',
+                'Industry' => '{!any.value}'
             })
             .hasMany('Contact')
                 .referenceBy('AccountId')
-                .total(20)
+                .total(contactTotal)
                 .fields(new Map<String, Object> {
                     'FirstName' => '{!name.firstName(female)}',
-                    'LastName' => '{!name.lastName}'
+                    'LastName' => '{!name.lastName}',
+                    'Birthdate' => '{!dates.past}',
+                    'Email' => '{!internet.email}'
                 })
             .generate();
 
@@ -163,8 +169,8 @@ private with sharing class SampleTest {
         List<Account> accountList = [SELECT Id, (SELECT Id FROM Contacts) FROM Account];
         List<Contact> contactList = [SELECT Id FROM Contact];
 
-        System.assertEquals(10, accountList.size());
-        System.assertEquals(20, contactList.size());
+        System.assertEquals(accountTotal, accountList.size());
+        System.assertEquals(contactTotal, contactList.size());
         for (Account account : accountList) {
             System.assertEquals(2, account.Contacts.size());
         }
