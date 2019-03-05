@@ -79,7 +79,6 @@ global with sharing class ATKWizard {
      * Entity Generation
      */
     global Bag generate() {
-        ATKWand.analysis(this.spellBook);
         ATKWand.generate(this.spellBook);
 
         Bag bag = new Bag(this.spellBook);

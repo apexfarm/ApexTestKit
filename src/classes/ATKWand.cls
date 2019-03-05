@@ -2,8 +2,8 @@
  * Apex Test Kit
  */
 public with sharing class ATKWand {
-    public static final ATKCommon.MethodParser METHOD_PARSER = ATKCommon.METHOD_PARSER;
     private static Map<String, Schema.SObjectType> gd { get; set; }
+    private static final ATKCommon.MethodParser METHOD_PARSER = ATKCommon.METHOD_PARSER;
     private static final MethodEvaluator METHOD_EVALUATOR = new MethodEvaluator();
 
     private static final ISchemator SCHEMATOR = new FieldSchemator();
@@ -15,12 +15,9 @@ public with sharing class ATKWand {
         gd = Schema.getGlobalDescribe();
     }
 
-    public static void analysis(ATKSpellBook spellBook) {
+    public static void generate(ATKSpellBook spellBook) {
         SCHEMATOR.build(spellBook);
         VALIDATOR.validate(spellBook);
-    }
-
-    public static void generate(ATKSpellBook spellBook) {
         GENERATOR.generate(spellBook);
     }
 
@@ -42,11 +39,10 @@ public with sharing class ATKWand {
 
     interface IEvaluator {
         void resetRuleIndexCache();
-        Object getValue(
+        List<Object> getValues(
             Schema.DescribeSObjectResult dsr,
-            Schema.DescribeFieldResult dfr,
-            Object rule,
-            Boolean hasRule,
+            EntityField field,
+            Integer total,
             Integer depth);
     }
 
@@ -98,17 +94,18 @@ public with sharing class ATKWand {
             Set<String> xrefsNameSet = entityNode.fieldInitMap.keySet();
             Set<String> fieldNameSet = entityNode.fieldRuleMap.keySet();
 
+            Boolean hasRule = true;
             for (SObjectField field : dsr.fields.getMap().values()) {
                 Schema.DescribeFieldResult dfr = field.getDescribe();
                 String fieldName = dfr.getName().toUpperCase();
 
                 Object rule = entityNode.fieldRuleMap.get(fieldName);
                 if (xrefsNameSet.contains(fieldName)) {
-                    entityNode.tmpXrefFieldCache.add(new EntityField(fieldName, rule, true, dfr));
+                    entityNode.tmpXrefFieldCache.add(new EntityField(fieldName, hasRule, rule, dfr));
                 } else if (fieldNameSet.contains(fieldName)) {
-                    entityNode.tmpRuleFieldCache.add(new EntityField(fieldName, rule, true, dfr));
+                    entityNode.tmpRuleFieldCache.add(new EntityField(fieldName, hasRule, rule, dfr));
                 } else if (!dfr.isNillable() && isEditableField(dfr)) {
-                    entityNode.tmpRuleFieldCache.add(new EntityField(fieldName, rule, false, dfr));
+                    entityNode.tmpRuleFieldCache.add(new EntityField(fieldName, !hasRule, null, dfr));
                 }
 
                 // no need to rebuild static caches
@@ -168,8 +165,11 @@ public with sharing class ATKWand {
                 || dfr.isCalculated()
                 || dfr.isAutoNumber()
                 || dfr.getType() == Schema.DisplayType.REFERENCE
-                || fieldName == 'CLEANSTATUS' // Used by Database.com
-                || fieldName == 'JIGSAW');     // Used by Database.com
+                || fieldName == 'CREATEDDATE'
+                || fieldName == 'LASTMODIFIEDDATE'
+                || fieldName == 'CLEANSTATUS'  // Used by Database.com
+                || fieldName == 'JIGSAW'       // Used by Database.com
+            );
         }
     }
 
@@ -192,7 +192,7 @@ public with sharing class ATKWand {
             Schema.SObjectType objectType = gd.get(entityNode.name);
             if (objectType == null) {
                 throw new ATKCommon.IncorrectTypeException(
-                    String.format('Cannot find entity {0}.', new List<String> {
+                    String.format('Cannot find sObject type {0}.', new List<String> {
                         entityNode.name
                     }));
             }
@@ -204,7 +204,7 @@ public with sharing class ATKWand {
                 (entityNode.repository == null || entityNode.repository.size() == 0)
             ) {
                 throw new ATKCommon.InsufficientAttributeException(
-                    String.format('Please set either a total() or fromList() to entity {0}.',
+                    String.format('Please set either total() or fromList() for sObject type {0}.',
                     new List<String> { entityNode.name }));
             }
         }
@@ -307,17 +307,25 @@ public with sharing class ATKWand {
             Iterator<EntityNode> iterator = spellBook.iterator();
             while (iterator.hasNext()) {
                 EntityNode entityNode = iterator.next();
-                if (entityNode.repository == null || entityNode.repository.size() == 0) {
-                    List<SObject> repository = createObjects(entityNode);
+                if (entityNode.repository.size() == 0) {
+                    Schema.SObjectType objectType = gd.get(entityNode.name);
+                    if (entityNode.repository.size() == 0) {
+                        for (Integer i = 0; i < entityNode.total; i++) {
+                            SObject obj = objectType.newSObject();
+                            entityNode.repository.add(obj);
+                        }
+                    }
+                    updateObjects(entityNode);
                     assignReferences(entityNode);
-                    Database.insert(repository);
+                    Database.insert(entityNode.repository);
                 } else {
-                    List<SObject> repository = updateObjects(entityNode);
+                    updateObjects(entityNode);
                     assignReferences(entityNode);
 
+                    // upsert doesn't work on generic sObject type
                     List<SObject> updateList = new List<SObject>();
                     List<SObject> insertList = new List<SObject>();
-                    for (SObject obj: repository) {
+                    for (SObject obj : entityNode.repository) {
                         if (obj.Id == null) {
                             insertList.add(obj);
                         } else {
@@ -334,73 +342,29 @@ public with sharing class ATKWand {
             }
         }
 
-        List<SObject> createObjects(EntityNode entityNode) {
+        void updateObjects(EntityNode entityNode) {
             METHOD_EVALUATOR.workingEntity = entityNode;
             Schema.SObjectType objectType = gd.get(entityNode.name);
             Schema.DescribeSObjectResult dsr = objectType.getDescribe();
 
-            List<SObject> repository = entityNode.repository;
-            // for (EntityField field : entityNode.tmpRuleFieldCache) {
-            //     List<Object> values = EVALUATOR.getValues(dsr, field.dfr, field.rule, field.hasRule, entityNode.total, 10);
-            //     for (Object value : values) {
-            //         if (value != null) {
-            //             obj.put(field.name, value);
-            //         }
-            //     }
-            // }
-
-            // for (EntityField field : entityNode.tmpXrefFieldCache) {
-            //     List<Object> values = EVALUATOR.getValues(dsr, field.dfr, field.rule, field.hasRule, entityNode.total, 10);
-            //     for (Object value : values) {
-            //         if (value != null) {
-            //             obj.put(field.name, value);
-            //         }
-            //     }
-            // }
-
-            for (Integer i = 0; i < entityNode.total; i++) {
-                SObject obj = objectType.newSObject();
-                repository.add(obj);
-                for (EntityField field : entityNode.tmpRuleFieldCache) {
-                    Object value = EVALUATOR.getValue(dsr, field.dfr, field.rule, field.hasRule, 10);
-                    if (value != null) {
-                        obj.put(field.name, value);
-                    }
-                }
-
-                for (EntityField field : entityNode.tmpXrefFieldCache) {
-                    Object value = EVALUATOR.getValue(dsr, field.dfr, field.rule, field.hasRule, 10);
-                    if (value != null) {
-                        obj.put(field.name, value);
-                    }
-                }
+            for (EntityField field : entityNode.tmpRuleFieldCache) {
+                updateObjectFields(entityNode.repository, dsr, field);
             }
-            return repository;
+
+            for (EntityField field : entityNode.tmpXrefFieldCache) {
+                updateObjectFields(entityNode.repository, dsr, field);
+            }
         }
 
-        List<SObject> updateObjects(EntityNode entityNode) {
-            METHOD_EVALUATOR.workingEntity = entityNode;
-            Schema.SObjectType objectType = gd.get(entityNode.name);
-            Schema.DescribeSObjectResult dsr = objectType.getDescribe();
-
-            List<SObject> repository = entityNode.repository;
+        void updateObjectFields(List<SObject> repository, DescribeSObjectResult dsr, EntityField field) {
+            List<Object> values = EVALUATOR.getValues(dsr, field, repository.size(), 10);
             for (Integer i = 0; i < repository.size(); i++) {
                 SObject obj = repository[i];
-                for (EntityField field : entityNode.tmpRuleFieldCache) {
-                    Object value = EVALUATOR.getValue(dsr, field.dfr, field.rule, field.hasRule, 10);
-                    if (value != null) {
-                        obj.put(field.name, value);
-                    }
-                }
-
-                for (EntityField field : entityNode.tmpXrefFieldCache) {
-                    Object value = EVALUATOR.getValue(dsr, field.dfr, field.rule, field.hasRule, 10);
-                    if (value != null) {
-                        obj.put(field.name, value);
-                    }
+                Object value = values[i];
+                if (value != null) {
+                    obj.put(field.name, value);
                 }
             }
-            return repository;
         }
 
         void assignReferences(EntityNode entityNode) {
@@ -438,16 +402,6 @@ public with sharing class ATKWand {
                 }
             }
         }
-
-        Boolean isNotEditableField(Schema.DescribeFieldResult dfr) {
-            String fieldName = dfr.getName().toUpperCase();
-            return !dfr.isCreateable()
-                || dfr.isCalculated()
-                || dfr.isAutoNumber()
-                || dfr.getType() == Schema.DisplayType.REFERENCE
-                || fieldName == 'CLEANSTATUS' // Used by Database.com
-                || fieldName == 'JIGSAW';     // Used by Database.com
-        }
     }
 
     @TestVisible
@@ -478,71 +432,106 @@ public with sharing class ATKWand {
             ruleIndexCache = new Map<String, Integer>();
         }
 
-        public Object getValue(
+        public List<Object> getValues(
             Schema.DescribeSObjectResult dsr,
-            Schema.DescribeFieldResult dfr,
-            Object rule,
-            Boolean hasRule,
+            EntityField field,
+            Integer total,
             Integer depth) {
 
-            if (depth == 0) {
-                throw new ATKCommon.DeepRecursionException(String.format(
-                    'Please assign ATKFaker interpolation expression for field {0}.{1} to enforce uniqueness, i.e. {{******}}',
-                    new List<String> { dsr.getName(), dfr.getName() }
-                ));
-            }
+            Schema.DescribeFieldResult dfr = field.dfr;
+            Object rule = field.rule;
+            FieldRuleType ruleType = field.ruleType;
 
+            // System.debug(key + ': ' + dfr.getType());
             // if (isGeolocationField(dsr, dfr)) {
             //     return null;
             // }
 
             String key = dsr.getName() + '.' + dfr.getName();
-            Object value;
-
-            // System.debug(key + ': ' + dfr.getType());
-
-            if (!hasRule) {
-                value = nonUniqueFieldCache.get(key);
-                if (dfr.isUnique() || value == null) {
-                    value = guessValue(dsr, dfr);
-                    if (value != null && !dfr.isUnique()) {
-                        nonUniqueFieldCache.put(key, value);
-                    }
-                }
-            } else if (rule instanceOf String) {
-                value = fake((String)rule, dfr.getName());
-            } else if (rule instanceOf List<String>) {
-                value = fake((String)getIndexedRule(key, (List<String>)rule), dfr.getName());
-            } else if (rule instanceOf Set<String>) {
-                value = fake((String)ATKFaker.random.arrayElement(new List<String>((Set<String>)rule)), dfr.getName());
-            } else if (rule instanceOf List<Object>) {
-                value = getIndexedRule(key, (List<Object>)rule);
-            } else if (rule instanceOf Set<Object>) {
-                value = ATKFaker.random.arrayElement(new List<Object>((Set<Object>)rule));
-            } else {
-                value = rule;
+            Boolean isUnique = dfr.isUnique();
+            if (isUnique && uniqueValueCache.get(key) == null) {
+                uniqueValueCache.put(key, new Set<Object>());
             }
+            List<Object> values = new List<Object>();
+            for (Integer i = 0; i < total; i++) {
+                Object value;
+                if (isUnique) {
+                    for (Integer j = 0; j < depth; j++) {
+                        value = getValue(dsr, dfr, ruleType, rule, key);
+                        if (value == null) {
+                            break;
+                        } else if (!uniqueValueCache.get(key).contains(value)) {
+                            uniqueValueCache.get(key).add(value);
+                            break;
+                        }
 
-            if (dfr.isUnique() && value != null) {
-                if (uniqueValueCache.get(key) == null) {
-                    uniqueValueCache.put(key, new Set<Object>());
+                        if (j + 1 == depth) {
+                            throw new ATKCommon.DeepRecursionException(String.format(
+                                'Please assign ATKFaker interpolation expression for field {0}.{1} to enforce uniqueness, i.e. {{******}}',
+                                new List<String> { dsr.getName(), dfr.getName() }
+                            ));
+                        }
+                    }
+                } else {
+                    value = getValue(dsr, dfr, ruleType, rule, key);
                 }
-
-                if (uniqueValueCache.get(key).contains(value)) {
-                    value = getValue(dsr, dfr, rule, hasRule, --depth);
-                }
-                uniqueValueCache.get(key).add(value);
+                values.add(value);
             }
 
             switch on dfr.getType() {
                 when DATE {
-                    value = ATKCommon.converter.toDate(value);
+                    List<Object> newValues = new List<Object>();
+                    for (Object v : values) {
+                       newValues.add(ATKCommon.converter.toDate(v));
+                    }
+                    values = newValues;
                 }
                 when TIME {
-                    value = ATKCommon.converter.toTime(value);
+                    List<Object> newValues = new List<Object>();
+                    for (Object v : values) {
+                       newValues.add(ATKCommon.converter.toTime(v));
+                    }
+                    values = newValues;
                 }
                 when INTEGER {
-                    value = ATKCommon.converter.toInteger(value);
+                    List<Object> newValues = new List<Object>();
+                    for (Object v : values) {
+                       newValues.add(ATKCommon.converter.toInteger(v));
+                    }
+                    values = newValues;
+                }
+            }
+            return values;
+        }
+
+        public Object getValue(
+            Schema.DescribeSObjectResult dsr,
+            Schema.DescribeFieldResult dfr,
+            FieldRuleType ruleType,
+            Object rule,
+            String key) {
+            Object value;
+            switch on ruleType {
+                when StringRule {
+                    value = fake((String)rule, dfr.getName());
+                }
+                when StringList {
+                    value = fake((String)getIndexedRule(key, (List<String>)rule), dfr.getName());
+                }
+                when StringSet {
+                    value = fake((String)ATKFaker.random.arrayElement(new List<String>((Set<String>)rule)), dfr.getName());
+                }
+                when ObjectList {
+                    value = getIndexedRule(key, (List<Object>)rule);
+                }
+                when ObjecSet {
+                    value = ATKFaker.random.arrayElement(new List<Object>((Set<Object>)rule));
+                }
+                when FeelLuck {
+                    value = guessValue(dsr, dfr);
+                }
+                when else {
+                    value = rule;
                 }
             }
             return value;
@@ -989,30 +978,62 @@ public with sharing class ATKWand {
         HasMany
     }
 
+    enum FieldRuleType {
+        StringRule,
+        StringList,
+        StringSet,
+        ObjectList,
+        ObjecSet,
+        ValueRule,
+        FeelLuck
+    }
+
     class EntityField {
         String name { get; set; }
         Object rule { get; set; }
+        FieldRuleType ruleType { get; set; }
         Boolean hasRule { get; set; }
         Schema.DescribeFieldResult dfr { get; set; }
 
-        EntityField(String name, Object rule, Boolean hasRule, Schema.DescribeFieldResult dfr) {
+        EntityField(String name, Boolean hasRule, Object rule, Schema.DescribeFieldResult dfr) {
             this.name = name;
-            if (rule instanceOf String && '{!any.value}'.equals(((String)rule))) {
+            if (hasRule && rule instanceOf String && '{!any.value}'.equals(((String)rule))) {
                 this.rule = null;
                 this.hasRule = false;
             } else {
                 this.rule = rule;
                 this.hasRule = hasRule;
             }
+
+            if (this.hasRule) {
+                if (rule == null) {
+                    this.ruleType = FieldRuleType.ValueRule;
+                } if (rule instanceOf String) {
+                    this.ruleType = FieldRuleType.StringRule;
+                } else if (rule instanceOf List<String>) {
+                    this.ruleType = FieldRuleType.StringList;
+                } else if (rule instanceOf Set<String>) {
+                    this.ruleType = FieldRuleType.StringSet;
+                } else if (rule instanceOf List<Object>) {
+                    this.ruleType = FieldRuleType.ObjectList;
+                } else if (rule instanceOf Set<Object>) {
+                    this.ruleType = FieldRuleType.ObjecSet;
+                } else {
+                    this.ruleType = FieldRuleType.ValueRule;
+                }
+            } else {
+                this.ruleType = FieldRuleType.FeelLuck;
+            }
             this.dfr = dfr;
         }
     }
 
     public class EntityNode {
-        private Integer rowIndex { get; set; }
-        private Integer colIndex { get; set; }
-        private EntityNodeType type { get; set; }
-        private EntityNode parentEntityNode {
+        // Graph Properties
+        Integer rowIndex { get; set; }
+        Integer colIndex { get; set; }
+        EntityNodeType type { get; set; }
+        EntityNode parentEntityNode {
             get;
             set {
                 parentEntityNode = value;
@@ -1026,15 +1047,17 @@ public with sharing class ATKWand {
                 }
             }
         }
-        private List<EntityField> tmpRuleFieldCache { get; set; }
-        private List<EntityField> tmpXrefFieldCache { get; set; }
 
+        // Entity Attributes
         public String name { get; set; }
         public Integer total { get; set; }
         public Map<String, EntityNode> referenceToMap { get; set; }
         public Map<String, Object> fieldInitMap { get; set; }
         public Map<String, Object> fieldRuleMap { get; set; }
+
         public List<SObject> repository { get; set; }
+        List<EntityField> tmpRuleFieldCache { get; set; }
+        List<EntityField> tmpXrefFieldCache { get; set; }
 
         public EntityNode(String name, EntityNodeType type) {
             this.name = name.trim().toUpperCase();
@@ -1047,7 +1070,7 @@ public with sharing class ATKWand {
             repository = new List<SObject>();
         }
 
-        private virtual void apply(IEntityAttribute attribute) {
+        void apply(IEntityAttribute attribute) {
             attribute.apply(this);
         }
     }
@@ -1070,7 +1093,11 @@ public with sharing class ATKWand {
         }
 
         public void apply(EntityNode entityNode) {
-            entityNode.total = total;
+            if (entityNode.repository.size() == 0) {
+                entityNode.total = total;
+            } else {
+                entityNode.total = entityNode.repository.size();
+            }
         }
     }
 

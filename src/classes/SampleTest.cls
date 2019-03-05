@@ -140,6 +140,7 @@ private with sharing class SampleTest {
     static void TestRelationshipHasMany() {
         Integer accountTotal = 500;
         Integer contactTotal = 1000;
+        Long startTime = System.currentTimeMillis();
         ATKWizard.Bag bag = ATKWizard.I().wantMany('Account')
             .total(accountTotal)
             .fields(new Map<String, Object> {
@@ -163,9 +164,11 @@ private with sharing class SampleTest {
                 })
             .generate();
 
-        System.debug(bag.get('Account'));
-        System.debug(bag.get('Contact'));
+        Long endTime = System.currentTimeMillis();
+        System.debug('ATK generate takes ' + ((endTime - startTime)/1000) + ' seconds.');
+        System.debug('CPU Limit: ' + Limits.getCpuTime() + '/' + Limits.getLimitCpuTime());
 
+        Test.startTest();
         List<Account> accountList = [SELECT Id, (SELECT Id FROM Contacts) FROM Account];
         List<Contact> contactList = [SELECT Id FROM Contact];
 
@@ -174,6 +177,8 @@ private with sharing class SampleTest {
         for (Account account : accountList) {
             System.assertEquals(2, account.Contacts.size());
         }
+        System.debug('CPU Limit: ' + Limits.getCpuTime() + '/' + Limits.getLimitCpuTime());
+        Test.stopTest();
     }
 
     @isTest
