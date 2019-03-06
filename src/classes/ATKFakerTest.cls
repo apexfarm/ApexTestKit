@@ -639,12 +639,12 @@ public with sharing class ATKFakerTest {
     static void testJapanese() {
         Profile p = [SELECT Id FROM Profile WHERE Name='Standard User'];
         User u = new User(
-            Alias = 'standt', 
+            Alias = 'standt',
             Email = 'standarduser@testorg.com',
-            EmailEncodingKey = 'UTF-8', 
-            LastName = 'Testing', 
+            EmailEncodingKey = 'UTF-8',
+            LastName = 'Testing',
             LanguageLocaleKey = 'ja',
-            LocaleSidKey = 'ja_JP', 
+            LocaleSidKey = 'ja_JP',
             ProfileId = p.Id,
             TimeZoneSidKey = 'America/Los_Angeles',
             UserName = 'standarduser' + DateTime.now().getTime() + '@testorg.com'
@@ -697,7 +697,7 @@ public with sharing class ATKFakerTest {
     /*
      * ATKCommon Test Methods
      */
-    class TestMethodEvaluator implements ATKCommon.MethodEvaluator, ATKCommon.ParamEvaluator {
+    class TestMethodEvaluator implements ATKCommon.IMethodEvaluator, ATKCommon.IParamEvaluator {
         public Object evaluateMethod(ATKCommon.Method method) {
             if (method instanceof ATKCommon.XrefMethod) {
                 ATKCommon.XrefMethod xrefMethod = (ATKCommon.XrefMethod)method;
@@ -770,8 +770,8 @@ public with sharing class ATKFakerTest {
         System.assertEquals('###-###-####', method.params[0]);
 
         methodGroup = parser.parse('xxx---xxx');
-        System.assertEquals(null, methodGroup.splits);
-        System.assertEquals(null, methodGroup.methodList);
+        System.assertEquals(0, methodGroup.splits.size());
+        System.assertEquals(0, methodGroup.methodList.size());
         System.assertEquals('xxx---xxx', methodGroup.evaluate(methodEvaluator));
 
         methodGroup = parser.parse('   {!helper.name($1.a, $2.b)}   ');

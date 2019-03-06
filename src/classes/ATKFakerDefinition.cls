@@ -21,7 +21,6 @@ public with sharing class ATKFakerDefinition {
     public ATKFakerDefinition() {
         definitionMap = new Map<String, List<String>>();
         String lang = UserInfo.getLanguage();
-        System.debug(lang);
         translate(getTranslation(lang));
     }
 

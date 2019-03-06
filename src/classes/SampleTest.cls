@@ -4,17 +4,28 @@
 @isTest
 private with sharing class SampleTest {
     @isTest
-    static void TestFieldGuessValue() {
+    static void testFieldGuessValue() {
         Integer accountTotal = 5;
         Integer contactTotal = 10;
         ATKWizard.I().wantMany('Account')
+            .guess(new List<String> { 'NumberOfEmployees', 'Fax', 'Industry' })
             .total(accountTotal)
             .hasMany('Contact')
                 .total(contactTotal)
             .generate();
-        List<Account> accountList = [SELECT Id FROM Account];
+        List<Account> accountList = [SELECT Id, Name, NumberOfEmployees, Fax, Industry FROM Account];
+        System.debug(accountList);
         System.assertEquals(accountTotal, accountList.size());
-        List<Contact> contactList = [SELECT Id FROM Contact];
+        for (Account account : accountList) {
+            System.assert(account.Fax != null);
+            System.assert(account.Name != null);
+            System.assert(account.Industry != null);
+            System.assert(account.NumberOfEmployees != null);
+        }
+        List<Contact> contactList = [SELECT Id, LastName FROM Contact];
+        for (Contact contact : contactList) {
+            System.assert(contact.LastName != null);
+        }
         System.assertEquals(contactTotal, contactList.size());
     }
 
@@ -23,7 +34,7 @@ private with sharing class SampleTest {
      */
 
     @isTest
-    static void TestFieldWithRuleList() {
+    static void testFieldWithRuleList() {
         ATKWizard.I().wantMany('Account')
             .total(6)
             .fields(new Map<String, Object> {
@@ -52,7 +63,7 @@ private with sharing class SampleTest {
     }
 
     @isTest
-    static void TestFieldWithRuleSet() {
+    static void testFieldWithRuleSet() {
         ATKWizard.I().wantMany('Account')
             .total(6)
             .fields(new Map<String, Object> {
@@ -75,7 +86,7 @@ private with sharing class SampleTest {
     }
 
     @isTest
-    static void TestFieldWithRules() {
+    static void testFieldWithRules() {
         ATKWizard.I().wantMany('Account')
             .total(100)
             .fields(new Map<String, Object> {
@@ -100,7 +111,7 @@ private with sharing class SampleTest {
     }
 
     @isTest
-    static void TestFieldPostUpdate() {
+    static void testFieldPostUpdate() {
         ATKWizard.Bag bag = ATKWizard.I().wantMany('Account')
             .total(10)
             .fields(new Map<String, Object> {
@@ -132,12 +143,48 @@ private with sharing class SampleTest {
         }
     }
 
+    @isTest
+    static void testFieldPostUpdateWithSecondFromList() {
+        ATKWizard.Bag bag = ATKWizard.I().wantMany('Account')
+            .total(10)
+            .fields(new Map<String, Object> {
+                'Name' => new List<String> {
+                    'Microsoft-{{###}}'
+                }
+            })
+            .generate();
+
+        List<Account> accountList = [SELECT Id, Name FROM Account];
+        System.assertEquals(10, accountList.size());
+        for (Account account : accountList) {
+            System.assert(account.Name.startsWith('Microsoft-'));
+        }
+
+        ATKWizard.I().wantMany('Account')
+            .fromList(bag.get('Account'))
+            .fromList(new List<Account> {
+                new Account(), new Account(), new Account(), new Account(), new Account()
+            })
+            .fields(new Map<String, Object> {
+                'Name' => new List<String> {
+                    'Google-{{###}}'
+                }
+            })
+            .generate();
+
+        accountList = [SELECT Id, Name FROM Account];
+        System.assertEquals(15, accountList.size());
+        for (Account account : accountList) {
+            System.assert(account.Name.startsWith('Google-'));
+        }
+    }
+
     /*
      * CREATION KEYWORD TESTS
      */
 
     @isTest
-    static void TestRelationshipHasMany() {
+    static void testRelationshipHasMany() {
         Integer accountTotal = 500;
         Integer contactTotal = 1000;
         Long startTime = System.currentTimeMillis();
@@ -150,9 +197,9 @@ private with sharing class SampleTest {
                     'Apple-{{###}}'
                 },
                 'Fax' => '{{1##-###-####}}',
-                'NumberOfEmployees' => '{!random.number(8, 0)}',
-                'Industry' => '{!any.value}'
+                'NumberOfEmployees' => '{!random.number(8, 0)}'
             })
+            .guess(new List<String> {'Industry'})
             .hasMany('Contact')
                 .referenceBy('AccountId')
                 .total(contactTotal)
@@ -182,11 +229,17 @@ private with sharing class SampleTest {
     }
 
     @isTest
-    static void TestRelationshipHasManyWithLessChild() {
+    static void testRelationshipHasManyWithLessChild() {
         ATKWizard.I().wantMany('Account')
+            .fields(new Map<String, Object> {
+                'Name' => 'Google-{{###}}'
+            })
             .total(10)
             .hasMany('Contact')
                 .referenceBy('AccountId')
+                .fields(new Map<String, Object> {
+                    'LastName' => '{!name.lastName}'
+                })
                 .total(4)
             .generate();
 
@@ -205,7 +258,7 @@ private with sharing class SampleTest {
     }
 
     @isTest
-    static void TestRelationshipHasManyList() {
+    static void testRelationshipHasManyList() {
         List<Account> accountList = new List<Account>();
         List<Contact> contactList = new List<Contact>();
         for (Integer i = 0; i < 10; i++) {
@@ -237,11 +290,17 @@ private with sharing class SampleTest {
     }
 
     @isTest
-    static void TestRelationshipBelongsTo() {
+    static void testRelationshipBelongsTo() {
         ATKWizard.I().wantMany('Contact')
+            .fields(new Map<String, Object> {
+                    'LastName' => '{!name.lastName}'
+                })
             .total(40)
             .belongsTo('Account')
                 .referenceBy('AccountId')
+                .fields(new Map<String, Object> {
+                    'Name' => 'Google-{{###}}'
+                })
                 .total(10)
             .generate();
 
@@ -253,11 +312,17 @@ private with sharing class SampleTest {
     }
 
     @isTest
-    static void TestRelationshipBelongsToWithLessChild() {
+    static void testRelationshipBelongsToWithLessChild() {
         ATKWizard.I().wantMany('Contact')
+            .fields(new Map<String, Object> {
+                    'LastName' => '{!name.lastName}'
+                })
             .total(4)
             .belongsTo('Account')
                 .referenceBy('AccountId')
+                .fields(new Map<String, Object> {
+                    'Name' => 'Google-{{###}}'
+                })
                 .total(10)
             .generate();
 
@@ -375,11 +440,11 @@ private with sharing class SampleTest {
     @isTest
     static void testRelationshipAccountOpportunity() {
         ATKWizard.Bag bag = ATKWizard.I().wantMany('Account')
-                .total(3)
-                .hasMany('Contact')
-                    .referenceBy('AccountId')
-                    .total(6)
-                .generate();
+            .total(3)
+            .hasMany('Contact')
+                .referenceBy('AccountId')
+                .total(6)
+            .generate();
 
         ATKWizard.I().wantMany('Account')
             .fromList(bag.get('Account'))
@@ -402,7 +467,7 @@ private with sharing class SampleTest {
     }
 
     @isTest
-    static void TestRelationshipOptionalReferenceBy() {
+    static void testRelationshipOptionalReferenceBy() {
         ATKWizard.I().wantMany('Account')
             .total(10)
             .hasMany('Contact')
@@ -447,6 +512,186 @@ private with sharing class SampleTest {
         for (Integer i = 0; i < contacts.size(); i++) {
             System.debug(contacts[i].get('Birthdate'));
             System.assertEquals(current.addDays(-i), contacts[i].get('Birthdate'));
+        }
+    }
+
+    @isTest
+    static void testCrossFieldReferenceForPostUpdate() {
+        Date current = Date.today();
+        ATKWizard.I().wantMany('Contact')
+            .fields(new Map<String, Object> {
+                'Birthdate' => current
+            })
+            .total(10)
+            .generate();
+
+        List<Contact> contacts = [SELECT Id, Birthdate FROM Contact];
+        System.assertEquals(10, contacts.size());
+        for (Contact contact : contacts) {
+            System.assertEquals(current, contact.Birthdate);
+        }
+
+        ATKWizard.Bag bag = ATKWizard.I().wantMany('Contact')
+            .total(10)
+            .origin(new Map<String, Object> {
+                'Birthdate' => current
+            })
+            .fields(new Map<String, Object> {
+                'Birthdate' => '{!dates.addDays($1.Birthdate, -1)}'
+            })
+            .generate();
+
+        contacts = (List<Contact>)bag.get('Contact');
+        System.assertEquals(10, contacts.size());
+        for (Integer i = 0; i < contacts.size(); i++) {
+            System.debug(contacts[i].Birthdate);
+            System.assertEquals(current.addDays(-i), contacts[i].Birthdate);
+        }
+    }
+
+    @isTest
+    static void testCrossFieldReferenceOnLevelZero() {
+        Long startTime = System.currentTimeMillis();
+        Date current = Date.today();
+        ATKWizard.Bag bag = ATKWizard.I().wantMany('Contact')
+            .total(1500)
+            .origin(new Map<String, Object> {
+                'Birthdate' => current
+            })
+            .fields(new Map<String, Object> {
+                'FirstName' => '{!name.firstName}',
+                'LastName' => 'A {!value.get($0.FirstName)}',
+                'Birthdate' => '{!dates.addDays($1.Birthdate, -1)}'
+            })
+            .guess(new List<String> {'Email'})
+            .generate();
+
+
+        Long endTime = System.currentTimeMillis();
+        System.debug('ATK generate takes ' + ((endTime - startTime)/1000) + ' seconds.');
+        System.debug('CPU Limit: ' + Limits.getCpuTime() + '/' + Limits.getLimitCpuTime());
+
+        Test.startTest();
+        List<Contact> contacts = (List<Contact>)bag.get('Contact');
+        for (Integer i = 0; i < contacts.size(); i++) {
+            System.assertEquals(current.addDays(-i), contacts[i].Birthdate);
+            System.assertEquals(contacts[i].LastName, 'A ' + contacts[i].FirstName);
+        }
+        Test.stopTest();
+    }
+
+    @isTest
+    static void testCrossFieldReferenceValidateException() {
+        Boolean hasException = false;
+        try {
+            ATKWizard.Bag bag = ATKWizard.I().wantMany('Contact')
+            .total(10)
+            .fields(new Map<String, Object> {
+                'FirstName' => '{!name.firstName}',
+                'Birthdate' => '{!dates.addDays($1.Birthdate, -1)}'
+            })
+            .generate();
+        } catch (ATKCommon.NotFoundException ex) {
+            hasException = true;
+        }
+        System.assert(hasException);
+    }
+
+    @isTest
+    static void testCrossFieldReferenceValidateException2() {
+        Boolean hasException = false;
+        try {
+            ATKWizard.Bag bag = ATKWizard.I().wantMany('Contact')
+            .total(10)
+            .fields(new Map<String, Object> {
+                'FirstName' => '{!name.firstName}',
+                'LastName' => 'A {!value.get($0.FirstName)}'
+            })
+            .generate();
+        } catch (ATKCommon.NotFoundException ex) {
+            hasException = true;
+        }
+        System.assert(!hasException);
+    }
+
+    @isTest
+    static void testCrossFieldReferenceValidateException3() {
+        Boolean hasException = false;
+        try {
+            ATKWizard.Bag bag = ATKWizard.I().wantMany('Contact')
+            .total(10)
+            .fields(new Map<String, Object> {
+                'FirstName' => '{!name.firstName}',
+                'LastName' => new List<String> {
+                    'A {!value.get($0.FirstName)}',
+                    'B {!value.get($0.FirstName)}',
+                    'C {!value.get($0.FirstName)}'
+                }
+            })
+            .generate();
+        } catch (ATKCommon.NotFoundException ex) {
+            hasException = true;
+        }
+        System.assert(hasException);
+    }
+
+    @isTest
+    static void testCrossFieldReferenceDependencySort() {
+        Datetime currentDatetime = Datetime.now();
+        ATKWizard.I().wantMany('Event')
+            .origin(new Map<String, Object> {
+                'StartDateTime' => currentDatetime
+            })
+            .guess(false)
+            .fields(new Map<String, Object> {
+                'StartDateTime' => '{!dates.addDays($1.EndDateTime, 1)}',
+                'EndDateTime' => '{!dates.addDays($0.StartDateTime, 1)}',
+                'ActivityDateTime' => '{!value.get($0.StartDateTime)}',
+                'DurationInMinutes' => 24 * 60
+            })
+            .total(10)
+        .generate();
+
+        List<Event> events = [SELECT Id, StartDateTime, EndDateTime, ActivityDateTime FROM Event];
+        System.debug(events);
+        System.assertEquals(10, events.size());
+        Datetime eventDatetime = currentDatetime;
+        for (Event event : events) {
+            System.assertEquals(eventDatetime, event.StartDateTime);
+            System.assertEquals(eventDatetime, event.ActivityDateTime);
+            eventDatetime = eventDatetime.addDays(1);
+            System.assertEquals(eventDatetime, event.EndDateTime);
+            eventDatetime = eventDatetime.addDays(1);
+        }
+    }
+
+    @isTest
+    static void testCrossFieldReferenceDependencySort2() {
+        Datetime currentDatetime = Datetime.now();
+        ATKWizard.I().wantMany('Event')
+            .origin(new Map<String, Object> {
+                'StartDateTime' => new List<Object>{ currentDatetime, currentDatetime.addDays(2) }
+            })
+            .guess(false)
+            .fields(new Map<String, Object> {
+                'StartDateTime' => '{!dates.addDays($2.EndDateTime, 3)}',
+                'EndDateTime' => '{!dates.addDays($0.StartDateTime, 1)}',
+                'ActivityDateTime' => '{!value.get($0.StartDateTime)}',
+                'DurationInMinutes' => 24 * 60
+            })
+            .total(10)
+        .generate();
+
+        List<Event> events = [SELECT Id, StartDateTime, EndDateTime, ActivityDateTime FROM Event];
+        System.debug(events);
+        System.assertEquals(10, events.size());
+        Datetime eventDatetime = currentDatetime;
+        for (Event event : events) {
+            System.assertEquals(eventDatetime, event.StartDateTime);
+            System.assertEquals(eventDatetime, event.ActivityDateTime);
+            eventDatetime = eventDatetime.addDays(1);
+            System.assertEquals(eventDatetime, event.EndDateTime);
+            eventDatetime = eventDatetime.addDays(1);
         }
     }
 }

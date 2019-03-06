@@ -28,12 +28,12 @@ global with sharing class ATKCommon {
     /*
      * Interpolation Method Parser
      */
-    public interface MethodEvaluator {
+    public interface IMethodEvaluator {
         Object evaluateMethod(ATKCommon.Method method);
     }
 
-    public interface ParamEvaluator {
-        Object evaluateParam(Integer prevIndex, String fieldName);
+    public interface IParamEvaluator {
+        Object evaluateParam(Integer level, String fieldName);
     }
 
     public class MethodParser {
@@ -61,16 +61,20 @@ global with sharing class ATKCommon {
         public Integer level { get; private set; }
         public List<Method> methodList { get; private set; }
         public Boolean hasMethod { get; private set; }
+        public Boolean hasXrefMethod { get; private set; }
 
         String expression { get; set; }
         @TestVisible
         List<String> splits { get; set; }
-        Boolean isPure { get; set; }
+        Boolean isPure { get; set; } // a single pure expression without blank characters
 
         MethodGroup(String expression, System.Matcher matcher) {
             this.level = METHOD_GROUP_MAX_LEVEL;
             this.expression = expression;
             this.hasMethod = false;
+            this.hasXrefMethod = false;
+            this.splits = new List<String>();
+            this.methodList = new List<Method>();
 
             Integer prevEnd = 0;
             while(matcher.find()) {
@@ -81,35 +85,29 @@ global with sharing class ATKCommon {
             if (this.hasMethod) {
                 addSplit(expression.substring(prevEnd));
             }
-            this.isPure = this.splits != null
-                && this.splits.size() == 2
+            this.isPure = this.splits.size() == 2
                 && String.isBlank(this.splits[0])
                 && String.isBlank(this.splits[1]);
         }
 
         void addSplit(String split) {
-            if (splits == null) {
-                splits = new List<String>();
-            }
-            splits.add(split);
+            this.splits.add(split);
         }
 
         void addMethod(Method method) {
-            if (methodList == null) {
-                methodList = new List<Method>();
-            }
-            methodList.add(method);
+            this.methodList.add(method);
             this.hasMethod = true;
 
             if (method instanceof XrefMethod) {
                 XrefMethod xrefMethod = (XrefMethod)method;
-                if (xrefMethod.level < level) {
-                    level = xrefMethod.level;
+                this.hasXrefMethod = true;
+                if (xrefMethod.level < this.level) {
+                    this.level = xrefMethod.level;
                 }
             }
         }
 
-        public Object evaluate(MethodEvaluator methodEvaluator) {
+        public Object evaluate(IMethodEvaluator methodEvaluator) {
             if (!this.hasMethod) {
                 return this.expression;
             }
@@ -220,7 +218,7 @@ global with sharing class ATKCommon {
             }
         }
 
-        public void loadParams(ParamEvaluator paramEvaluator) {
+        public void loadParams(IParamEvaluator paramEvaluator) {
             if (xrefParams != null && paramEvaluator != null) {
                 for (XrefParam param : xrefParams) {
                     params.set(param.index, paramEvaluator.evaluateParam(param.level, param.fieldName));
@@ -233,15 +231,15 @@ global with sharing class ATKCommon {
         @TestVisible
         Integer index { get; set; }
         @TestVisible
-        Integer level {
+        public Integer level {
             get;
-            set {
+            private set {
                 if (level == null || value < level) {
                     level = value;
                 }
             }
         }
-        public String fieldName { get; set; }
+        public String fieldName { get; private set; }
     }
 
     /**

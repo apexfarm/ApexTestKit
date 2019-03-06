@@ -13,6 +13,7 @@ global with sharing class ATKFaker {
     global static Helper helper { get; set; }
     @TestVisible
     private static NumberArithmeticHelper numbers { get; set; }
+    private static ValueHelper valueHelper { get; set; }
 
     @TestVisible
     private static ATKFakerDefinition definition = new ATKFakerDefinition();
@@ -29,6 +30,7 @@ global with sharing class ATKFaker {
         name = new Name();
         helper = new Helper();
         numbers = new NumberArithmeticHelper();
+        valueHelper = new ValueHelper();
 
         helperMap = new Map<String, IProvider>();
         helperMap.put('internet', internet);
@@ -40,6 +42,7 @@ global with sharing class ATKFaker {
         helperMap.put('name', name);
         helperMap.put('helper', helper);
         helperMap.put('numbers', numbers);
+        helperMap.put('value', valueHelper);
     }
 
     global static Object fake(String input) {
@@ -47,7 +50,7 @@ global with sharing class ATKFaker {
         return methodGroup.evaluate(METHOD_EVALUATOR);
     }
 
-    public class MethodEvaluator implements ATKCommon.MethodEvaluator {
+    public class MethodEvaluator implements ATKCommon.IMethodEvaluator {
         public Object evaluateMethod(ATKCommon.Method method) {
             Object value;
             IProvider helper = helperMap.get(method.helperName);
@@ -272,7 +275,7 @@ global with sharing class ATKFaker {
             //     + '), random(' + random
             //     + '), integralPart(' + integralPart
             //     + '), decimalPart(' + decimalPart
-            //     + '), Value(' + value
+            //     + '), ValueHelper(' + value
             //     + ')');
             return value;
         }
@@ -824,6 +827,28 @@ global with sharing class ATKFaker {
      */
     public interface IArithmeticProvider extends IProvider {
 
+    }
+
+    private virtual class ValueHelper implements IArithmeticProvider {
+        public virtual Object call(String method, List<Object> params) {
+            Object param0;
+            if (params != null) {
+                if (params.size() > 0) {
+                    param0 = params.get(0);
+                }
+            }
+
+            Object output;
+            switch on method {
+                when 'get' {
+                    output = param0;
+                }
+                when else {
+
+                }
+            }
+            return output;
+        }
     }
 
     @TestVisible

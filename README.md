@@ -1,11 +1,11 @@
 # Apex Test Kit
 
-![](https://img.shields.io/badge/build-passing-brightgreen.svg) ![](https://img.shields.io/badge/coverage-%3E95%25-brightgreen.svg) 
+![](https://img.shields.io/badge/version-1.0.0-brightgreen.svg) ![](https://img.shields.io/badge/build-passing-brightgreen.svg) ![](https://img.shields.io/badge/coverage-%3E95%25-brightgreen.svg) 
 
-Apex Test Kit (Salesforce) is a library to help generate testing data for Apex test classes automatically. It has the following features:
+Apex Test Kit (Salesforce) is a library to help generate testing data for Apex test classes. It has the following features:
 
 1. Generate good-looking names for username, email, phone number etc.
-2. Automatically populate required fields and deal with unique values.
+2. Automatically guess values for required fields and deal with unique values.
 3. Establish arbitrary level many to many relationships.
 
 ```java
@@ -23,22 +23,24 @@ static void testAccountCreation() {
 }
 ```
 
-Underneath, the data are automatically populated with appropriate values according to field types, including: BOOLEAN, DATE, TIME, DATETIME, DOUBLE, INTEGER, PERCENT, CURRENCY, PICKLIST, MULTIPICKLIST, STRING, TEXTAREA, EMAIL, URL, PHONE, ADDRESS.
+Underneath, the data are automatically guessed with appropriate values according to field types, including: BOOLEAN, DATE, TIME, DATETIME, DOUBLE, INTEGER, PERCENT, CURRENCY, PICKLIST, MULTIPICKLIST, STRING, TEXTAREA, EMAIL, URL, PHONE, ADDRESS.
 
 ### Caveat
 
-1. Depends on number of required fields and generation expression rules, the size of debug log could exceed the 5MB limit. In such case, please toggle the debug level to hide unnecessary information.
-2. Sometime ramdom values could bring uncertainty to test results. In such case, please specify the genereation expression rule explicitly or to a fixed value.
+1. Depends on number of fields generated, the size of debug log could exceed the 5MB limit. In such case, please set the ApexCode debug level to `DEBUG`.
+2. Sometime ramdom values could bring uncertainty to test results. In such case, please specify the genereation expression rule explicitly or to a fixed value, i.e. `'RequiredFieldName' => '{!?*****}'`, `'RequiredFieldName' => new List<String> { 'Pacific Coffee', 'Starbucks' }`.
+3. Roughly speaking current max field generation capacity is around 6000, i.e. fields generated with ATKFaker express rather than fixed values. And it will take about 10 seconds. If there are 6 generated fields per record, the max record generation capacity is around 1000. Otherwise it will likely reach the CPU limit. Therefore it is better to use `Test.startTest()` and `Test.stopTest()` to wrap your actual testing logic.
+4. If record type is activated and picklist values are dpending on them, please try to declare the possible picklist values in the `fields()` explicitly for that record type.
 
 ## Usage of ATKWizard 
 
-All examples below can be successfully run from `src/classes/SampleTest.cls` in a clean Salesforce CRM organization. If validation rules were added to CRM standard sObjects, `fields()` keyword should be used to tailor the record generation to bypass them.
+All examples below can be successfully run from `src/classes/SampleTest.cls` in a clean Salesforce CRM organization. If validation rules were added to CRM standard sObjects, `fields()` keyword could be used to tailor the record generation to bypass them.
 
 ### 1. Setup Relationship
 
-When `referenceBy()` is omitted, the relationship field will be looked up implicitly according to the sObject type.
-
 #### 1.1 One to Many
+
+`referenceBy()` can be omitted, if there is only one Contact->Account relationship field on Contact sObject.
 
 ```java
 ATKWizard.I().wantMany('Account')
@@ -115,40 +117,46 @@ ATKWizard.I().wantMany('A')
 
 #### 2.2 Entity Decoration Keywords
 
-Here is an example to demo the use of all entity decoration keywords.
+Here is an example to demo the use of all entity decoration keywords. Although sounds many, for basic usage only `total()` and `fields()` will be used frequently and with occasional use of `referenceBy()`.
 
 ```java
-List<A> aList = [SELECT Id FROM A Limit 1];
+// create 10 A, each has 2 B.
+List<A> aList = [SELECT Id FROM A Limit 10];
 ATKWizard.I().wantMany('A')
     .fromList(aList);
     .hasMany('B')
         .referenceBy('lookup_field_on_B_to_A')
-        .total(2)
+        .total(20)
         .origin(new Map<String, Object>{
             'counter' => 1
         })
         .fields(new Map<String, Object>{
-            'counter' => '{!numbers.add($1.counter, 1)}', // must work with origin()
-            'firstName' => '{!name.firstName(male)}',
-            'phoneNumber' => '{{###-###-####}}',
-            'price' => 12.34
+            'counter' => '{!numbers.add($1.counter, 1)}', // cross record arithmetic, must work with origin()
+            'firstName' => '{!name.firstName(male)}',     // helper interpolation
+            'phoneNumber' => '{{###-###-####}}',          // symbol interpolation
+            'price' => 12.34                              // fixed value
+        })
+        .guess(new List<String>{                          // intentionally guess values
+            'non_required_field1',
+            'non_required_field2'
         })
     .generate();
 ```
 
-| Keyword       | Param                 | Description                                                  |
-| ------------- | --------------------- | ------------------------------------------------------------ |
-| total()       | Integer               | **Required***, only if `fromList()` is not used. It defines number of records to create for the attached sObject context. |
-| fromList()    | List\<sObject\>       | **Required***, only if `total()` is not used. This tells the wizard to use the predefined sObject list, rather than to create the records from scratch. |
-| fields()      | Map\<String, Object\> | **Optional**. Use this keyword to tailor the field values, either to bypass validation rules, or to fulfill assertion logics. The key of the map is the field API name of the sObject. The value of the map can be either `ATKFaker` interpolation expressions, or primitive values. Multiple `fields()` can be chained. |
-| referenceBy() | String                | **Optional**. Only use this keyword if there are multiple fields on the entity referencing the same sObject. It accepts relationship API name to reference parent from child. |
-| origin()      | Map\<String, Object\> | **Optional**. Use this keyword if cross record arithmetic expressions are used in `fields()`, like `'{!dates.addDay($1.startDate__c, 1)}'`. Here `$1` is used to reference a previous record. Hence you can use `$0` to reference values on the current record. |
+| Keyword       | Param                     | Description                                                  |
+| ------------- | ------------------------- | ------------------------------------------------------------ |
+| total()       | Integer                   | **Required***, only if `fromList()` is not used. It defines number of records to create for the attached sObject context. |
+| fromList()    | List\<sObject\>           | **Required***, only if `total()` is not used. This tells the wizard to use the previously created sObject list, rather than to create the records from scratch. |
+| fields()      | Map\<String, Object\>     | **Optional**. Use this keyword to tailor the field values, either to bypass validation rules, or to fulfill assertion logics. The key of the map is the field API name of the sObject. The value of the map can be either `ATKFaker` interpolation expressions, or primitive values. Multiple `fields()` can be chained. |
+| guess()       | List\<String\> \| Boolean | **Optional**. Pass field API names in this method to explicitly tell `ATKWizard` to guess appropriate values for them. Or pass `false` to disable the implicit value guessing for required fields. |
+| origin()      | Map\<String, Object\>     | **Optional**. Use this keyword if cross record arithmetic expressions are used in `fields()`, like `'{!dates.addDay($1.startDate__c, 1)}'`. Here `$1` is used to reference a previous record. Hence you can use `$0` to reference values on the current record. |
+| referenceBy() | String                    | **Optional**. Only use this keyword if there are multiple fields on the entity referencing the same sObject. It accepts relationship API name to reference parent from child. |
 
 #### 2.3 Entity Traversal Keywords
 
 | Keyword | Param   | Description                                                  |
 | ------- | ------- | ------------------------------------------------------------ |
-| also    | Integer | Currently this is the only entity traversal keyword. It can be used to switch back to any previous sObject context. |
+| also    | Integer | It can be used to switch back to any previous sObject context. |
 
 ```java
 ATKWizard.I().wantMany('A')
@@ -165,7 +173,7 @@ ATKWizard.I().wantMany('A')
 
 #### 3.1 Rule List vs Rule Set
 
-With rule `List<>`, `fields()` can sequentially assign values to records created. Use `List<Object>` instead of `List<String>` whenever there is no need of ATKFaker interpolation, because it will consume less CPU limit.
+With rule `List<>`, `fields()` can sequentially assign values to records created. Use `List<Object>` instead of `List<String>` whenever there is no need of ATKFaker interpolation, due to less CPU limit consumed.
 
 ```java
 ATKWizard.I().wantMany('SomeObject__c')
@@ -184,7 +192,7 @@ ATKWizard.I().wantMany('SomeObject__c')
     .generate();
 ```
 
-With rule `Set<>`, `fields()` can randomly assign values to records created. Please avoid using Set, because ramdon will introduce uncertainty, unless it is intended. 
+With rule `Set<>`, `fields()` can randomly assign values to records created. Please avoid using Set, because ramdon will introduce uncertainty, unless it is intended. Use `Set<Object>` instead of `Set<String>` whenever there is no need of ATKFaker interpolation, due to less CPU limit consumed.
 
 ```java
 ATKWizard.I().wantMany('SomeObject__c')
@@ -205,32 +213,43 @@ ATKWizard.I().wantMany('SomeObject__c')
 
 #### 3.2 Cross Record Reference
 
-Combining with `origin()`, `fields()` can also perform arithmetic calculations according to fields on previously created records.
+Combining `fields()` with `origin()`, we can also perform arithmetic calculations according to fields on previously created records. For example, we can create records with consecutive start dates and end dates as below:
 
 ```java
-Date currentDate = Date.today();
-ATKWizard.I().wantMany('Contact')
-    .total(10) // create 10 contact
+Datetime currentDatetime = Datetime.now();
+ATKWizard.I().wantMany('Event')
     .origin(new Map<String, Object> {
-        'Birthdate' => currentDate // assign the first contact Birthday to today
+        'StartDateTime' => currentDatetime 
+        // 1. has to be fixed value
+        // 2. provide a list if cross reference is greater than 1, i.e. $2
+        // 3. no need to declare origin for $0 references
     })
+    .guess(false) // has to disalbe implicit required field generation
     .fields(new Map<String, Object> {
-        'Birthdate' => '{!dates.addDays($1.Birthdate, -1)}' // one day less than the Birthday of previous record
+        'StartDateTime' => '{!dates.addDays($1.EndDateTime, 1)}',
+        'EndDateTime' => '{!dates.addDays($0.StartDateTime, 1)}',
+        'ActivityDateTime' => '{!value.get($0.StartDateTime)}', // directly get value
+        'DurationInMinutes' => 24 * 60
     })
+    .total(10)
     .generate();
 ```
 
-- $0 represents current record: `'EndDate__c' => '{!dates.addDays($0.StartDate__c, 1)}'`
-- $1 represents previous record: `'StartDate__c' => '{!dates.addDays($1.EndDate__c, 1)}'`
+\$0 represents current record, \$1 represents previous one record, and so on. **Caution**: Cross record reference field cannot be declared as rule list or rule set.
 
-Here is a list of supported arithmetic expressions:
+Here is a list of supported arithmetic expressions, negative values could also be used:
 
 ```java
+// directly get value from a record field
+'{!value.get($0.StartDateTime)}'
+
+// numeric arithmetic
 '{!numbers.add($1.Price__c, 10)}'
 '{!numbers.substract($1.Price__c, 10)}'
 '{!numbers.divide($1.Price__c, 10)}'
 '{!numbers.multiply($1.Price__c, 10)}'
- 
+
+// date/datetime arithmetic
 '{!dates.addDays($0.StartDate__c, 1)}'
 '{!dates.addHours($0.StartDate__c, 1)}'
 '{!dates.addMinutes($0.StartDate__c, 1)}'
@@ -270,6 +289,8 @@ Format can use the following symbols:
 * \* - alphanumeric
 
 ### 2 Helper APIs
+
+All APIs can be used in `ATKFaker.fake()` as a string expression. Just remove the `ATKFaker` class, and the single quote for string parameter, the empty parentheses can also be optionally removed.
 
 #### 2.1 Name
 
@@ -334,11 +355,3 @@ ATKFaker.dates.between('2017-08-13', '2018-08-13');
 ## License
 
 MIT License
-
-Copyright (c) 2018 Jianfeng Jin
-
-Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
