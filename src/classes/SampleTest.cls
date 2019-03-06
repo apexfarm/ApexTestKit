@@ -642,7 +642,7 @@ private with sharing class SampleTest {
             .origin(new Map<String, Object> {
                 'StartDateTime' => currentDatetime
             })
-            .guess(false)
+            .guess(false, new List<String> { 'Type' })
             .fields(new Map<String, Object> {
                 'StartDateTime' => '{!dates.addDays($1.EndDateTime, 1)}',
                 'EndDateTime' => '{!dates.addDays($0.StartDateTime, 1)}',
@@ -652,11 +652,12 @@ private with sharing class SampleTest {
             .total(10)
         .generate();
 
-        List<Event> events = [SELECT Id, StartDateTime, EndDateTime, ActivityDateTime FROM Event];
+        List<Event> events = [SELECT Id, StartDateTime, EndDateTime, ActivityDateTime, Type FROM Event];
         System.debug(events);
         System.assertEquals(10, events.size());
         Datetime eventDatetime = currentDatetime;
         for (Event event : events) {
+            System.assertNotEquals(null, event.Type);
             System.assertEquals(eventDatetime, event.StartDateTime);
             System.assertEquals(eventDatetime, event.ActivityDateTime);
             eventDatetime = eventDatetime.addDays(1);

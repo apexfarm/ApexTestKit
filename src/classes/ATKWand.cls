@@ -97,12 +97,12 @@ public with sharing class ATKWand {
                 Schema.DescribeFieldResult dfr = field.getDescribe();
                 String fieldName = dfr.getName().toUpperCase();
 
-                System.debug(objectName + '.' + fieldName
-                    + ' : isNillable(' + dfr.isNillable()
-                    + '), precision(' + dfr.getPrecision()
-                    + '), scale(' + dfr.getScale()
-                    + '), type(' + dfr.getType()
-                    + ')');
+                // System.debug(objectName + '.' + fieldName
+                //     + ' : isNillable(' + dfr.isNillable()
+                //     + '), precision(' + dfr.getPrecision()
+                //     + '), scale(' + dfr.getScale()
+                //     + '), type(' + dfr.getType()
+                //     + ')');
 
                 // rebuild dynamic caches
                 if (entityNode.fieldRuleMap.containsKey(fieldName)) {
@@ -115,10 +115,10 @@ public with sharing class ATKWand {
                         }
                     }
                     entityNode.tmpRuleFieldCache.add(new EntityField(fieldName, hasRule, rule, dfr));
-                } else if (entityNode.guessEnabled) {
-                    if (entityNode.guessFieldNames.contains(fieldName) || (!dfr.isNillable() && isEditableField(dfr))) {
-                        entityNode.tmpRuleFieldCache.add(new EntityField(fieldName, !hasRule, null, dfr));
-                    }
+                } else if (entityNode.guessFieldNames.contains(fieldName)) {
+                    entityNode.tmpRuleFieldCache.add(new EntityField(fieldName, !hasRule, null, dfr));
+                } else if (entityNode.guessEnabled && (!dfr.isNillable() && isEditableField(dfr))) {
+                    entityNode.tmpRuleFieldCache.add(new EntityField(fieldName, !hasRule, null, dfr));
                 }
 
                 // no need to rebuild static caches
