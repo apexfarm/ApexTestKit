@@ -981,7 +981,7 @@ public with sharing class ATKWand {
                     entityNodeMatrix.add(new List<EntityNode>());
                     entityNodeMatrix.get(rowIndex).add(entityNode);
                 }
-                when BelongsTo {
+                when BelongTo {
                     if (rowIndex > 0) {
                         rowIndex -= 1;
                         entityNodeMatrix.get(rowIndex).add(entityNode);
@@ -993,7 +993,7 @@ public with sharing class ATKWand {
                         entityNodeMatrix.get(rowIndex).add(entityNode);
                     }
                 }
-                when HasMany {
+                when HaveMany {
                     rowIndex += 1;
                     if (rowIndex == entityNodeMatrix.size()) {
                         colIndex = 0;
@@ -1018,8 +1018,8 @@ public with sharing class ATKWand {
     */
     public enum EntityNodeType {
         WantMany,
-        BelongsTo,
-        HasMany
+        BelongTo,
+        HaveMany
     }
 
     enum FieldRuleType {
@@ -1098,10 +1098,10 @@ public with sharing class ATKWand {
             set {
                 parentEntityNode = value;
                 switch on type {
-                    when BelongsTo {
+                    when BelongTo {
                         parentEntityNode.referenceToMap.put(this.name, this);
                     }
-                    when HasMany {
+                    when HaveMany {
                         referenceToMap.put(parentEntityNode.name, parentEntityNode);
                     }
                 }
@@ -1240,11 +1240,11 @@ public with sharing class ATKWand {
 
         public void apply(EntityNode entityNode) {
             switch on entityNode.type {
-                when BelongsTo {
+                when BelongTo {
                     entityNode.parentEntityNode.referenceToMap.remove(entityNode.name);
                     entityNode.parentEntityNode.referenceToMap.put(referenceBy, entityNode);
                 }
-                when HasMany {
+                when HaveMany {
                     entityNode.referenceToMap.remove(entityNode.parentEntityNode.name);
                     entityNode.referenceToMap.put(referenceBy, entityNode.parentEntityNode);
                 }

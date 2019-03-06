@@ -23,15 +23,15 @@ global with sharing class ATKWizard {
         return this;
     }
 
-    global ATKWizard belongsTo(String entityName) {
+    global ATKWizard belongTo(String entityName) {
         this.spellBook.attach(new ATKWand.EntityNode(entityName,
-            ATKWand.EntityNodeType.BelongsTo));
+            ATKWand.EntityNodeType.BelongTo));
         return this;
     }
 
-    global ATKWizard hasMany(String entityName) {
+    global ATKWizard haveMany(String entityName) {
         this.spellBook.attach(new ATKWand.EntityNode(entityName,
-            ATKWand.EntityNodeType.HasMany));
+            ATKWand.EntityNodeType.HaveMany));
         return this;
     }
 

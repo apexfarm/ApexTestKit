@@ -10,7 +10,7 @@ private with sharing class SampleTest {
         ATKWizard.I().wantMany('Account')
             .guess(new List<String> { 'NumberOfEmployees', 'Fax', 'Industry' })
             .total(accountTotal)
-            .hasMany('Contact')
+            .haveMany('Contact')
                 .total(contactTotal)
             .generate();
         List<Account> accountList = [SELECT Id, Name, NumberOfEmployees, Fax, Industry FROM Account];
@@ -184,7 +184,7 @@ private with sharing class SampleTest {
      */
 
     @isTest
-    static void testRelationshipHasMany() {
+    static void testRelationshipHaveMany() {
         Integer accountTotal = 500;
         Integer contactTotal = 1000;
         Long startTime = System.currentTimeMillis();
@@ -200,7 +200,7 @@ private with sharing class SampleTest {
                 'NumberOfEmployees' => '{!random.number(8, 0)}'
             })
             .guess(new List<String> {'Industry'})
-            .hasMany('Contact')
+            .haveMany('Contact')
                 .referenceBy('AccountId')
                 .total(contactTotal)
                 .fields(new Map<String, Object> {
@@ -229,13 +229,13 @@ private with sharing class SampleTest {
     }
 
     @isTest
-    static void testRelationshipHasManyWithLessChild() {
+    static void testRelationshipHaveManyWithLessChild() {
         ATKWizard.I().wantMany('Account')
             .fields(new Map<String, Object> {
                 'Name' => 'Google-{{###}}'
             })
             .total(10)
-            .hasMany('Contact')
+            .haveMany('Contact')
                 .referenceBy('AccountId')
                 .fields(new Map<String, Object> {
                     'LastName' => '{!name.lastName}'
@@ -258,7 +258,7 @@ private with sharing class SampleTest {
     }
 
     @isTest
-    static void testRelationshipHasManyList() {
+    static void testRelationshipHaveManyList() {
         List<Account> accountList = new List<Account>();
         List<Contact> contactList = new List<Contact>();
         for (Integer i = 0; i < 10; i++) {
@@ -277,7 +277,7 @@ private with sharing class SampleTest {
 
         ATKWizard.I().wantMany('Account')
             .fromList(accountList)
-            .hasMany('Contact')
+            .haveMany('Contact')
                 .fromList(contactList)
                 .referenceBy('AccountId')
             .generate();
@@ -290,13 +290,13 @@ private with sharing class SampleTest {
     }
 
     @isTest
-    static void testRelationshipBelongsTo() {
+    static void testRelationshipBelongTo() {
         ATKWizard.I().wantMany('Contact')
             .fields(new Map<String, Object> {
                     'LastName' => '{!name.lastName}'
                 })
             .total(40)
-            .belongsTo('Account')
+            .belongTo('Account')
                 .referenceBy('AccountId')
                 .fields(new Map<String, Object> {
                     'Name' => 'Google-{{###}}'
@@ -312,13 +312,13 @@ private with sharing class SampleTest {
     }
 
     @isTest
-    static void testRelationshipBelongsToWithLessChild() {
+    static void testRelationshipBelongToWithLessChild() {
         ATKWizard.I().wantMany('Contact')
             .fields(new Map<String, Object> {
                     'LastName' => '{!name.lastName}'
                 })
             .total(4)
-            .belongsTo('Account')
+            .belongTo('Account')
                 .referenceBy('AccountId')
                 .fields(new Map<String, Object> {
                     'Name' => 'Google-{{###}}'
@@ -341,12 +341,12 @@ private with sharing class SampleTest {
     }
 
     @isTest
-    static void testRelationshipHasManyBelongsTo() {
+    static void testRelationshipHaveManyBelongTo() {
         Id pricebook2Id = Test.getStandardPricebookId();
 
         ATKWizard.Bag bag = ATKWizard.I().wantMany('Product2')
             .total(5)
-            .hasMany('PricebookEntry')
+            .haveMany('PricebookEntry')
                 .referenceBy('Product2Id')
                 .fields(new Map<String, Object> {
                     'Pricebook2Id' => pricebook2Id,
@@ -358,14 +358,14 @@ private with sharing class SampleTest {
 
         ATKWizard.I().wantMany('Pricebook2')
             .total(5)
-            .hasMany('PricebookEntry')
+            .haveMany('PricebookEntry')
                 .referenceBy('Pricebook2Id')
                 .fields(new Map<String, Object> {
                     'UseStandardPrice' => false,
                     'IsActive' => true
                 })
                 .total(25)
-                .belongsTo('Product2')
+                .belongTo('Product2')
                     .referenceBy('Product2Id')
                     .fromList(bag.get('Product2'))
             .generate();
@@ -386,11 +386,11 @@ private with sharing class SampleTest {
     static void testRelationshipAlsoTraverse() {
         ATKWizard.I().wantMany('Account')
             .total(3)
-            .hasMany('Contact')
+            .haveMany('Contact')
                 .referenceBy('AccountId')
                 .total(6)
             .also()
-            .hasMany('Contract')
+            .haveMany('Contract')
                 .referenceBy('AccountId')
                 .fields(new Map<String, Object> {
                     'StartDate' => '{!dates.between(2018-7-1, 2018-7-31)}',
@@ -398,7 +398,7 @@ private with sharing class SampleTest {
                     'Status' => 'Draft'
                 })
                 .total(6)
-                .hasMany('Order')
+                .haveMany('Order')
                     .referenceBy('ContractId')
                     .fields(new Map<String, Object> {
                         'EffectiveDate' => '{!dates.between(2018-8-1, 2018-8-31)}',
@@ -408,7 +408,7 @@ private with sharing class SampleTest {
                     })
                     .total(12)
             .also(2)
-            .hasMany('Opportunity')
+            .haveMany('Opportunity')
                 .referenceBy('AccountId')
                 .total(6)
             .generate();
@@ -441,23 +441,23 @@ private with sharing class SampleTest {
     static void testRelationshipAccountOpportunity() {
         ATKWizard.Bag bag = ATKWizard.I().wantMany('Account')
             .total(3)
-            .hasMany('Contact')
+            .haveMany('Contact')
                 .referenceBy('AccountId')
                 .total(6)
             .generate();
 
         ATKWizard.I().wantMany('Account')
             .fromList(bag.get('Account'))
-            .hasMany('Opportunity')
+            .haveMany('Opportunity')
                 .fields(new Map<String, Object> {
                     'CloseDate' => '{!dates.between(2018-7-1, 2018-8-1)}'
                 })
                 .referenceBy('AccountId')
                 .total(6)
-                .hasMany('OpportunityContactRole')
+                .haveMany('OpportunityContactRole')
                     .referenceBy('OpportunityId')
                     .total(36)
-                    .belongsTo('Contact')
+                    .belongTo('Contact')
                         .referenceBy('ContactId')
                         .fromList(bag.get('Contact'))
             .generate();
@@ -470,11 +470,11 @@ private with sharing class SampleTest {
     static void testRelationshipOptionalReferenceBy() {
         ATKWizard.I().wantMany('Account')
             .total(10)
-            .hasMany('Contact')
+            .haveMany('Contact')
                 .total(20)
-                .hasMany('OpportunityContactRole')
+                .haveMany('OpportunityContactRole')
                     .total(20)
-                    .belongsTo('Opportunity')
+                    .belongTo('Opportunity')
                         .total(20)
                         .fields(new Map<String, Object> {
                             'CloseDate' => '{!dates.between(2018-7-1, 2018-8-1)}'

@@ -1,6 +1,6 @@
 # Apex Test Kit
 
-![](https://img.shields.io/badge/version-1.0.0-brightgreen.svg) ![](https://img.shields.io/badge/build-passing-brightgreen.svg) ![](https://img.shields.io/badge/coverage-%3E95%25-brightgreen.svg) 
+![](https://img.shields.io/badge/version-1.0.0-brightgreen.svg) ![](https://img.shields.io/badge/build-passing-brightgreen.svg) ![](https://img.shields.io/badge/coverage-%3E95%25-brightgreen.svg)
 
 Apex Test Kit (Salesforce) is a library to help generate testing data for Apex test classes. It has the following features:
 
@@ -14,7 +14,7 @@ static void testAccountCreation() {
     // create 10 accounts, each has 2 contacts
     ATKWizard.I().wantMany('Account')
         .total(10)
-        .hasMany('Contact')
+        .haveMany('Contact')
             .total(20)
         .generate();
 
@@ -32,7 +32,7 @@ Underneath, the data are automatically guessed with appropriate values according
 3. The current field generation capacity is around 6000 in 10 seconds. If there are 20 generated fields (not fixed values) per record, the max record generation capacity is around 300. If more are created, it is likely to reach the CPU limit. So It is also better to use `Test.startTest()` and `Test.stopTest()` to wrap your testing logic.
 4. If record type is activated and there are picklist values depending on them, please try to declare the picklist values in the `fields()` explicitly for that record type.
 
-## Usage of ATKWizard 
+## Usage of ATKWizard
 
 All examples below can be successfully run from `src/classes/SampleTest.cls` in a clean Salesforce CRM organization. If validation rules were added to CRM standard sObjects, `fields()` keyword could be used to tailor the record generation to bypass them.
 
@@ -40,12 +40,12 @@ All examples below can be successfully run from `src/classes/SampleTest.cls` in 
 
 #### 1.1 One to Many
 
-`referenceBy()` can be omitted, if there is only one Contact->Account relationship field on Contact sObject.
+**Note**: the following `referenceBy()` keyword can be omitted, because there is only one Contact->Account relationship field on Contact sObject.
 
 ```java
 ATKWizard.I().wantMany('Account')
     .total(10)
-    .hasMany('Contact')
+    .haveMany('Contact')
         .referenceBy('AccountId') // can be omitted
         .total(40)
     .generate();
@@ -56,7 +56,7 @@ ATKWizard.I().wantMany('Account')
 ```java
 ATKWizard.I().wantMany('Contact')
     .total(40)
-    .belongsTo('Account')
+    .belongTo('Account')
         .referenceBy('AccountId') // can be omitted
         .total(10)
     .generate();
@@ -70,7 +70,7 @@ Id pricebook2Id = Test.getStandardPricebookId();
 ATKWizard.Bag bag = ATKWizard.I()
     .wantMany('Product2')
         .total(5)
-        .hasMany('PricebookEntry')
+        .haveMany('PricebookEntry')
             .referenceBy('Product2Id') // can be omitted
             .fields(new Map<String, Object> {
                 'Pricebook2Id' => pricebook2Id,
@@ -82,14 +82,14 @@ ATKWizard.Bag bag = ATKWizard.I()
 
 ATKWizard.I().wantMany('Pricebook2')
     .total(5)
-    .hasMany('PricebookEntry')
+    .haveMany('PricebookEntry')
         .referenceBy('Pricebook2Id') // can be omitted
         .fields(new Map<String, Object> {
             'UseStandardPrice' => false,
             'IsActive' => true
         })
         .total(25)
-        .belongsTo('Product2')
+        .belongTo('Product2')
             .referenceBy('Product2Id') // can be omitted
             .fromList(bag.get('Product2'))
     .generate();
@@ -103,17 +103,17 @@ There are three entity creation keywords, each of them will start a new sObject 
 
 ```java
 ATKWizard.I().wantMany('A')
-    .hasMany('B')
-        .belongsTo('C')
-            .hasMany('D')
+    .haveMany('B')
+        .belongTo('C')
+            .haveMany('D')
     .generate();
 ```
 
 | Keyword     | Param  | Description                                                  |
 | ----------- | ------ | ------------------------------------------------------------ |
 | wantMany()  | String | Always start chain with wantMany keyword. It is the root sObject to start relationship with. Accept a valid sObejct API name as its parameter. |
-| hasMany()   | String | Establish one to many relationship between the previous working on sObject and the current sObject. Accept a valid sObejct API name as its parameter. |
-| belongsTo() | String | Establish many to one relationship between the previous working on sObject and the current sObject. Accept a valid sObejct API name as its parameter. |
+| haveMany()   | String | Establish one to many relationship between the previous working on sObject and the current sObject. Accept a valid sObejct API name as its parameter. |
+| belongTo() | String | Establish many to one relationship between the previous working on sObject and the current sObject. Accept a valid sObejct API name as its parameter. |
 
 #### 2.2 Entity Decoration Keywords
 
@@ -124,7 +124,7 @@ Here is an example to demo the use of all entity decoration keywords. Although s
 List<A> aList = [SELECT Id FROM A Limit 10];
 ATKWizard.I().wantMany('A')
     .fromList(aList);
-    .hasMany('B')
+    .haveMany('B')
         .referenceBy('lookup_field_on_B_to_A')
         .total(20)
         .origin(new Map<String, Object>{
@@ -160,12 +160,12 @@ ATKWizard.I().wantMany('A')
 
 ```java
 ATKWizard.I().wantMany('A')
-    .hasMany('B')
+    .haveMany('B')
     .also() // go back 1 sObject (B) to sObject (A)
-    .hasMany('C')
-        .belongsTo('D')
+    .haveMany('C')
+        .belongTo('D')
     .also(2) // go back 2 sObject (C, D) to sObject (A)
-    .hasMany('E')
+    .haveMany('E')
     .generate();
 ```
 
@@ -219,7 +219,7 @@ Combining `fields()` with `origin()`, we can also perform arithmetic calculation
 Datetime currentDatetime = Datetime.now();
 ATKWizard.I().wantMany('Event')
     .origin(new Map<String, Object> {
-        'StartDateTime' => currentDatetime 
+        'StartDateTime' => currentDatetime
         // 1. has to be fixed value
         // 2. provide a list if cross reference is greater than 1, i.e. $2
         // 3. no need to declare origin for $0 references
@@ -268,7 +268,7 @@ All of the following helper APIs also support Interpolation from string expressi
 
 #### 1.1 Helper Interpolation
 
-Use `{!   }` Visualforce expression notation to interpolate helper methods. Empty parenthesis can be omitted. 
+Use `{!   }` Visualforce expression notation to interpolate helper methods. Empty parenthesis can be omitted.
 
 ```java
 ATKFaker.fake('Hello {!name.firstName(male)} {!name.lastName}!'); // => 'Hello Jeff Jin!'
