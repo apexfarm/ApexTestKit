@@ -29,8 +29,8 @@ Underneath, the data are automatically guessed with appropriate values according
 
 1. Depends on number of fields generated, the size of debug log could exceed the 5MB limit. In such case, please set the ApexCode debug level to `DEBUG`.
 2. Sometime ramdom values could bring uncertainty to test results. In such case, please specify the genereation expression rule explicitly or to a fixed value, i.e. `'RequiredFieldName' => '{!?*****}'`, `'RequiredFieldName' => new List<String> { 'Pacific Coffee', 'Starbucks' }`.
-3. Roughly speaking current max field generation capacity is around 6000, i.e. fields generated with ATKFaker express rather than fixed values. And it will take about 10 seconds. If there are 6 generated fields per record, the max record generation capacity is around 1000. Otherwise it will likely reach the CPU limit. Therefore it is better to use `Test.startTest()` and `Test.stopTest()` to wrap your actual testing logic.
-4. If record type is activated and picklist values are dpending on them, please try to declare the possible picklist values in the `fields()` explicitly for that record type.
+3. The current field generation capacity is around 6000 in 10 seconds. If there are 20 generated fields (not fixed values) per record, the max record generation capacity is around 300. If more are created, it is likely to reach the CPU limit. So It is also better to use `Test.startTest()` and `Test.stopTest()` to wrap your testing logic.
+4. If record type is activated and there are picklist values depending on them, please try to declare the picklist values in the `fields()` explicitly for that record type.
 
 ## Usage of ATKWizard 
 
