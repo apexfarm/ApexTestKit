@@ -97,11 +97,12 @@ public with sharing class ATKWand {
                 Schema.DescribeFieldResult dfr = field.getDescribe();
                 String fieldName = dfr.getName().toUpperCase();
 
-                // System.debug(objectName + '.' + fieldName
-                //     + ': isNillable(' + dfr.isNillable()
-                //     + '), precision(' + dfr.getPrecision()
-                //     + '), scale(' + dfr.getScale()
-                //     + ')');
+                System.debug(objectName + '.' + fieldName
+                    + ' : isNillable(' + dfr.isNillable()
+                    + '), precision(' + dfr.getPrecision()
+                    + '), scale(' + dfr.getScale()
+                    + '), type(' + dfr.getType()
+                    + ')');
 
                 // rebuild dynamic caches
                 if (entityNode.fieldRuleMap.containsKey(fieldName)) {
@@ -121,33 +122,31 @@ public with sharing class ATKWand {
                 }
 
                 // no need to rebuild static caches
-                if (addressFieldSet == null) {
-                    continue;
-                }
-
-                Schema.DisplayType fieldType = dfr.getType();
-                if (fieldType == Schema.DisplayType.ADDRESS) {
-                    String addressPrefix = dfr.getName().toUpperCase().replace('ADDRESS', '');
-                    addressFieldSet.add(addressPrefix + 'STREET');
-                    addressFieldSet.add(addressPrefix + 'CITY');
-                    addressFieldSet.add(addressPrefix + 'STATE');
-                    addressFieldSet.add(addressPrefix + 'POSTALCODE');
-                    addressFieldSet.add(addressPrefix + 'COUNTRY');
-                    addressFieldSet.add(addressPrefix + 'LATITUDE');
-                    addressFieldSet.add(addressPrefix + 'LONGITUDE');
-                    addressFieldSet.add(addressPrefix + 'GEOCODEACCURACY');
-                } else if (fieldName == 'LONGITUDE' || fieldName == 'LATITUDE' ) {
-                    // add standard geolocation field
-                    geolocationFieldSet.add(fieldName);
-                } else if (fieldName.endsWith('__LATITUDE__S')) {
-                    // add custom geolocation field
-                    geolocationFieldSet.add(fieldName.replace('__LATITUDE__S', '__C'));
-                } else if (fieldType == Schema.DisplayType.REFERENCE) {
-                    for (Schema.SObjectType rst : dfr.getReferenceTo()) {
-                        String toRefType = rst.getDescribe().getName().toUpperCase();
-                        String fromRefField = dfr.getName().toUpperCase();
-                        referenceFieldNameMap.put(toRefType, fromRefField);
-                        referenceFieldTypeMap.put(fromRefField, toRefType);
+                if (addressFieldSet != null) {
+                    Schema.DisplayType fieldType = dfr.getType();
+                    if (fieldType == Schema.DisplayType.ADDRESS) {
+                        String addressPrefix = dfr.getName().toUpperCase().replace('ADDRESS', '');
+                        addressFieldSet.add(addressPrefix + 'STREET');
+                        addressFieldSet.add(addressPrefix + 'CITY');
+                        addressFieldSet.add(addressPrefix + 'STATE');
+                        addressFieldSet.add(addressPrefix + 'POSTALCODE');
+                        addressFieldSet.add(addressPrefix + 'COUNTRY');
+                        addressFieldSet.add(addressPrefix + 'LATITUDE');
+                        addressFieldSet.add(addressPrefix + 'LONGITUDE');
+                        addressFieldSet.add(addressPrefix + 'GEOCODEACCURACY');
+                    } else if (fieldName == 'LONGITUDE' || fieldName == 'LATITUDE' ) {
+                        // add standard geolocation field
+                        geolocationFieldSet.add(fieldName);
+                    } else if (fieldName.endsWith('__LATITUDE__S')) {
+                        // add custom geolocation field
+                        geolocationFieldSet.add(fieldName.replace('__LATITUDE__S', '__C'));
+                    } else if (fieldType == Schema.DisplayType.REFERENCE) {
+                        for (Schema.SObjectType rst : dfr.getReferenceTo()) {
+                            String toRefType = rst.getDescribe().getName().toUpperCase();
+                            String fromRefField = dfr.getName().toUpperCase();
+                            referenceFieldNameMap.put(toRefType, fromRefField);
+                            referenceFieldTypeMap.put(fromRefField, toRefType);
+                        }
                     }
                 }
             }
@@ -499,8 +498,7 @@ public with sharing class ATKWand {
             Schema.DisplayType fieldType = dfr.getType();
             String key = dsr.getName() + '.' + dfr.getName();
 
-            // System.debug(dsr.getName() + '.' + dfr.getName() + ': ' + dfr.getType());
-            // if (isGeolocationField(dsr, dfr)) {
+            // if (SCHEMATOR.isGeolocationField(dsr, dfr)) {
             //     return null;
             // }
 
@@ -597,9 +595,10 @@ public with sharing class ATKWand {
         }
 
         Object guessValue(Schema.DescribeSObjectResult dsr, Schema.DescribeFieldResult dfr) {
-            // if (isAddressField(dsr, dfr)) {
+            // if (SCHEMATOR.isAddressField(dsr, dfr)) {
             //     return null;
             // }
+
             Object value;
             switch on dfr.getType() {
                 when BOOLEAN {
@@ -670,9 +669,6 @@ public with sharing class ATKWand {
                     }
                     value = output;
                 }
-                when ADDRESS {
-
-                }
                 when EMAIL {
                     value = ATKFaker.internet.email();
                 }
@@ -681,6 +677,12 @@ public with sharing class ATKWand {
                 }
                 when PHONE {
                     value = ATKFaker.phone.phoneNumber();
+                }
+                when ADDRESS {
+
+                }
+                when LOCATION {
+
                 }
                 when else {
 
@@ -1183,17 +1185,20 @@ public with sharing class ATKWand {
         private Boolean guessEnabled { get; set; }
         private List<String> guessFieldNames { get; set; }
 
-        public GuessAttribute(List<String> guessFieldNames) {
-            this.guessEnabled = true;
+        public GuessAttribute(Boolean guessEnabled, List<String> guessFieldNames) {
+            this.guessEnabled = guessEnabled;
             this.guessFieldNames = new List<String>();
             for(String fieldName : guessFieldNames) {
                 this.guessFieldNames.add(fieldName.toUpperCase());
             }
         }
 
+        public GuessAttribute(List<String> guessFieldNames) {
+            this(true, guessFieldNames);
+        }
+
         public GuessAttribute(Boolean guessEnabled) {
-            this.guessEnabled = guessEnabled;
-            this.guessFieldNames = new List<String>();
+            this(guessEnabled, new List<String>());
         }
 
         public void apply(EntityNode entityNode) {

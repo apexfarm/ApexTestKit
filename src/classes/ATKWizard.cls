@@ -73,6 +73,11 @@ global with sharing class ATKWizard {
         return this;
     }
 
+    global ATKWizard guess(Boolean enable, List<String> fieldNames) {
+        this.spellBook.apply(new ATKWand.GuessAttribute(enable, fieldNames));
+        return this;
+    }
+
     /*
      * Entity Traverse
      */

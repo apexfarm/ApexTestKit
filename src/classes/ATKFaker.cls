@@ -13,7 +13,8 @@ global with sharing class ATKFaker {
     global static Helper helper { get; set; }
     @TestVisible
     private static NumberArithmeticHelper numbers { get; set; }
-    private static ValueHelper valueHelper { get; set; }
+    @TestVisible
+    private static ValueArithmeticHelper value { get; set; }
 
     @TestVisible
     private static ATKFakerDefinition definition = new ATKFakerDefinition();
@@ -30,7 +31,7 @@ global with sharing class ATKFaker {
         name = new Name();
         helper = new Helper();
         numbers = new NumberArithmeticHelper();
-        valueHelper = new ValueHelper();
+        value = new ValueArithmeticHelper();
 
         helperMap = new Map<String, IProvider>();
         helperMap.put('internet', internet);
@@ -42,7 +43,7 @@ global with sharing class ATKFaker {
         helperMap.put('name', name);
         helperMap.put('helper', helper);
         helperMap.put('numbers', numbers);
-        helperMap.put('value', valueHelper);
+        helperMap.put('value', value);
     }
 
     global static Object fake(String input) {
@@ -76,13 +77,9 @@ global with sharing class ATKFaker {
     global class Helper implements IDataProvider {
         public Object call(String method, List<Object> params) {
             Object param0;
-            Object param1;
             if (params != null) {
                 if (params.size() > 0) {
                     param0 = params.get(0);
-                }
-                if (params.size() > 1) {
-                    param1 = params.get(1);
                 }
             }
             Object output;
@@ -275,7 +272,7 @@ global with sharing class ATKFaker {
             //     + '), random(' + random
             //     + '), integralPart(' + integralPart
             //     + '), decimalPart(' + decimalPart
-            //     + '), ValueHelper(' + value
+            //     + '), ValueArithmeticHelper(' + value
             //     + ')');
             return value;
         }
@@ -829,7 +826,7 @@ global with sharing class ATKFaker {
 
     }
 
-    private virtual class ValueHelper implements IArithmeticProvider {
+    private virtual class ValueArithmeticHelper implements IArithmeticProvider {
         public virtual Object call(String method, List<Object> params) {
             Object param0;
             if (params != null) {

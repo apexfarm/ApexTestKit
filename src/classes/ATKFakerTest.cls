@@ -7,7 +7,7 @@ public with sharing class ATKFakerTest {
      * FAKER.FAKE() TESTS
      */
     @isTest
-    static void testFakerFake() {
+    static void testFake() {
         for (Integer i = 0; i < 100; i++) {
             Object output = ATKFaker.fake('{!random.boolean}');
             System.assert(output instanceOf Boolean);
@@ -97,7 +97,7 @@ public with sharing class ATKFakerTest {
      * RANDOM HELPER TESTS
      */
     @isTest
-    static void testRandomHelper() {
+    static void testHelperRandom() {
         for (Integer i = 0; i < 10; i++) {
             Object value = ATKFaker.fake(' {! random.boolean } ');
             System.assert(value instanceOf Boolean);
@@ -130,7 +130,7 @@ public with sharing class ATKFakerTest {
     }
 
     @isTest
-    static void testRandomHelperMinMax() {
+    static void testHelperRandomMinMax() {
         {
             Decimal value = ATKFaker.random.number(0, 0, 0);
             System.assertEquals(0, value);
@@ -179,7 +179,7 @@ public with sharing class ATKFakerTest {
     }
 
     @isTest
-    static void testRandomHelperMax() {
+    static void testHelperRandomMax() {
         for (Integer i = 0; i < 100; i++) {
             Decimal value = ATKFaker.random.number();
             System.assertEquals(0, value.scale());
@@ -206,7 +206,7 @@ public with sharing class ATKFakerTest {
     }
 
 	@isTest
-    static void testRandomHelperPrecision() {
+    static void testHelperRandomPrecision() {
         {
             Decimal value = ATKFaker.random.number(0, 0);
             System.assertEquals(0, value);
@@ -254,7 +254,7 @@ public with sharing class ATKFakerTest {
     }
 
     @isTest
-    static void testRandomHelperArrayElement() {
+    static void testHelperRandomArrayElement() {
         List<String> stringList = new List<String> {
             'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i'
         };
@@ -290,59 +290,8 @@ public with sharing class ATKFakerTest {
         }
     }
 
-    /*
-     * DATES HELPER TESTS
-     */
     @isTest
-    static void testDatesHelperArithmetic() {
-        Datetime now = Datetime.now();
-        String nowIso = now.formatGMT('yyyy-MM-dd\'T\'HH:mm:ss.SSS\'Z\'');
-
-        {
-            DateTime d = (DateTime) ATKFaker.fake('{!dates.addDays(' + nowIso + ', 1)}');
-            System.assertEquals(now.addDays(1), d);
-            d = (DateTime) ATKFaker.dates.addDays(null, 1);
-            System.assertEquals(null, d);
-        }
-
-        {
-            DateTime d = (DateTime) ATKFaker.fake('{!dates.addHours(' + nowIso + ', 1)}');
-            System.assertEquals(now.addHours(1), d);
-            d = (DateTime) ATKFaker.dates.addHours(null, 1);
-            System.assertEquals(null, d);
-        }
-
-        {
-            DateTime d = (DateTime) ATKFaker.fake('{!dates.addMinutes(' + nowIso + ', 1)}');
-            System.assertEquals(now.addMinutes(1), d);
-            d = (DateTime) ATKFaker.dates.addMinutes(null, 1);
-            System.assertEquals(null, d);
-        }
-
-        {
-            DateTime d = (DateTime) ATKFaker.fake('{!dates.addMonths(' + nowIso + ', 1)}');
-            System.assertEquals(now.addMonths(1), d);
-            d = (DateTime) ATKFaker.dates.addMonths(null, 1);
-            System.assertEquals(null, d);
-        }
-
-        {
-            DateTime d = (DateTime) ATKFaker.fake('{!dates.addSeconds(' + nowIso + ', 1)}');
-            System.assertEquals(now.addSeconds(1), d);
-            d = (DateTime) ATKFaker.dates.addSeconds(null, 1);
-            System.assertEquals(null, d);
-        }
-
-        {
-            DateTime d = (DateTime) ATKFaker.fake('{!dates.addYears(' + nowIso + ', 1)}');
-            System.assertEquals(now.addYears(1), d);
-            d = (DateTime) ATKFaker.dates.addYears(null, 1);
-            System.assertEquals(null, d);
-        }
-    }
-
-    @isTest
-    static void testDatesHelper() {
+    static void testHelperDates() {
         Datetime now = Datetime.now();
         String nowIso = now.formatGMT('yyyy-MM-dd\'T\'HH:mm:ss.SSS\'Z\'');
         Datetime past = ATKFaker.dates.past(1, nowIso);
@@ -397,7 +346,7 @@ public with sharing class ATKFakerTest {
      * INTERNET HELPER TESTS
      */
     @isTest
-    static void testInternetHelper() {
+    static void testHelperInternet() {
         for (Integer i = 0; i < 10; i++) {
             String output = (String)ATKFaker.fake('{!internet.userName(Jeff, Jin)}');
             System.assert(output.startsWith('Jeff'));
@@ -439,7 +388,7 @@ public with sharing class ATKFakerTest {
      * PHONE HELPER TESTS
      */
     @isTest
-    static void testPhoneHelper() {
+    static void testHelperPhone() {
         {
             Object output = ATKFaker.phone.phoneNumber();
             System.assertNotEquals(null, output);
@@ -461,7 +410,7 @@ public with sharing class ATKFakerTest {
      * NAME HELPER TESTS
      */
     @isTest
-    static void testNameHelper() {
+    static void testHelperName() {
         List<String> femaleFirstNameList = ATKFaker.definition.get(ATKFakerDefinition.FAKER_NAME_FEMALEFIRSTNAME);
         List<String> maleFirstNameList = ATKFaker.definition.get(ATKFakerDefinition.FAKER_NAME_MALEFIRSTNAME);
         List<String> firstNameList = ATKFaker.definition.get(ATKFakerDefinition.FAKER_NAME_FIRSTNAME);
@@ -513,7 +462,7 @@ public with sharing class ATKFakerTest {
      * LOREM HELPER TESTS
      */
     @isTest
-    static void testLorem() {
+    static void testHelperLorem() {
         List<String> loremWordList = ATKFaker.definition.get(ATKFakerDefinition.FAKER_LOREM_WORDS);
 
         for (Integer i = 0; i < 10; i++) {
@@ -589,10 +538,51 @@ public with sharing class ATKFakerTest {
     }
 
     /*
-     * NUMBER HELPER TESTS
+     * FINANCE HELPER TESTS
      */
     @isTest
-    static void testNumberHelper() {
+    static void testHelperFinance() {
+        for (Integer i = 0; i < 10; i++) {
+            Object output = ATKFaker.fake('{!finance.amount}');
+            System.assertNotEquals(null, output);
+        }
+
+        for (Integer i = 0; i < 10; i++) {
+            Object output = ATKFaker.finance.amount();
+            System.assertNotEquals(null, output);
+        }
+
+        for (Integer i = 0; i < 10; i++) {
+            Decimal output = (Decimal)ATKFaker.fake('{!finance.amount(2, 0)}');
+            System.assert(0 <= output && output < 100);
+        }
+    }
+
+    /*
+     * FINANCE HELPER TESTS
+     */
+    @isTest
+    static void testHelperAddress() {
+        Object output = ATKFaker.fake('{!address.city}');
+        System.assertEquals(null, output);
+    }
+
+    /*
+     * Arithmetic HELPER TESTS
+     */
+    @isTest
+    static void testHelperArithmeticValue() {
+        Object output1 = ATKFaker.fake('{!value.get(123)}');
+        System.assertEquals('123', output1);
+        Object output2 = ATKFaker.fake('{!value.get(ABC)}');
+        System.assertEquals('ABC', output2);
+        Date currentDate = Date.today();
+        Object output3 = ATKFaker.value.call('get', new List<Object>{ currentDate });
+        System.assertEquals(currentDate, output3);
+    }
+
+    @isTest
+    static void testHelperArithmeticNumber() {
         System.assertEquals(2, ATKFaker.fake('{!numbers.add(1, 1)}'));
         System.assertEquals(2, ATKFaker.numbers.add(1, 1));
         System.assertEquals(2.1, ATKFaker.numbers.add(1.1, 1));
@@ -611,24 +601,54 @@ public with sharing class ATKFakerTest {
         System.assertEquals(null, ATKFaker.numbers.multiply(null, 10));
     }
 
-    /*
-     * FINANCE HELPER TESTS
+        /*
+     * DATES HELPER TESTS
      */
     @isTest
-    static void testFinance() {
-        for (Integer i = 0; i < 10; i++) {
-            Object output = ATKFaker.fake('{!finance.amount}');
-            System.assertNotEquals(null, output);
+    static void testHelperArithmeticDates() {
+        Datetime now = Datetime.now();
+        String nowIso = now.formatGMT('yyyy-MM-dd\'T\'HH:mm:ss.SSS\'Z\'');
+
+        {
+            DateTime d = (DateTime) ATKFaker.fake('{!dates.addDays(' + nowIso + ', 1)}');
+            System.assertEquals(now.addDays(1), d);
+            d = (DateTime) ATKFaker.dates.addDays(null, 1);
+            System.assertEquals(null, d);
         }
 
-        for (Integer i = 0; i < 10; i++) {
-            Object output = ATKFaker.finance.amount();
-            System.assertNotEquals(null, output);
+        {
+            DateTime d = (DateTime) ATKFaker.fake('{!dates.addHours(' + nowIso + ', 1)}');
+            System.assertEquals(now.addHours(1), d);
+            d = (DateTime) ATKFaker.dates.addHours(null, 1);
+            System.assertEquals(null, d);
         }
 
-        for (Integer i = 0; i < 10; i++) {
-            Decimal output = (Decimal)ATKFaker.fake('{!finance.amount(2, 0)}');
-            System.assert(0 <= output && output < 100);
+        {
+            DateTime d = (DateTime) ATKFaker.fake('{!dates.addMinutes(' + nowIso + ', 1)}');
+            System.assertEquals(now.addMinutes(1), d);
+            d = (DateTime) ATKFaker.dates.addMinutes(null, 1);
+            System.assertEquals(null, d);
+        }
+
+        {
+            DateTime d = (DateTime) ATKFaker.fake('{!dates.addMonths(' + nowIso + ', 1)}');
+            System.assertEquals(now.addMonths(1), d);
+            d = (DateTime) ATKFaker.dates.addMonths(null, 1);
+            System.assertEquals(null, d);
+        }
+
+        {
+            DateTime d = (DateTime) ATKFaker.fake('{!dates.addSeconds(' + nowIso + ', 1)}');
+            System.assertEquals(now.addSeconds(1), d);
+            d = (DateTime) ATKFaker.dates.addSeconds(null, 1);
+            System.assertEquals(null, d);
+        }
+
+        {
+            DateTime d = (DateTime) ATKFaker.fake('{!dates.addYears(' + nowIso + ', 1)}');
+            System.assertEquals(now.addYears(1), d);
+            d = (DateTime) ATKFaker.dates.addYears(null, 1);
+            System.assertEquals(null, d);
         }
     }
 
@@ -636,7 +656,7 @@ public with sharing class ATKFakerTest {
      * TEST JAPANESE
      */
     @isTest
-    static void testJapanese() {
+    static void testLanguageJapanese() {
         Profile p = [SELECT Id FROM Profile WHERE Name='Standard User'];
         User u = new User(
             Alias = 'standt',
@@ -661,7 +681,7 @@ public with sharing class ATKFakerTest {
      * ATKCommon String Builder
      */
     @isTest
-    static void testATKCommon_StringBuilder() {
+    static void testATKCommonStringBuilder() {
         {
             ATKCommon.StringBuilder builder = new ATKCommon.StringBuilder();
             for (Integer i = 0; i < 100; i++) {
@@ -716,7 +736,7 @@ public with sharing class ATKFakerTest {
     }
 
     @isTest
-    static void testATKCommon_MethodParser() {
+    static void testATKCommonMethodParser() {
         TestMethodEvaluator methodEvaluator = new TestMethodEvaluator();
 
         ATKCommon.MethodParser parser = new ATKCommon.MethodParser();
@@ -782,7 +802,7 @@ public with sharing class ATKFakerTest {
     }
 
     @isTest
-    static void testATKCommon_Converter() {
+    static void testATKCommonConverter() {
         ATKCommon.Converter converter = new ATKCommon.Converter();
         System.assertEquals(null, converter.toInteger(null));
         System.assertEquals(null, converter.toInteger('abc'));

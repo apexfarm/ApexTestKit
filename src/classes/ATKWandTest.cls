@@ -67,20 +67,23 @@ private class ATKWandTest {
                 '$a1' => '$1.a1 + 1',
                 '$a2' => '$1.a2 + 2'
             })
+            .guess(new List<String>{'a3', 'a4'})
             .total(2)
             .hasMany('B')
                 .referenceBy('A__c')
                 .fromList(new List<SObject> { null, null, null })
+                .guess(false)
                 .belongsTo('D')
                     .hasMany('E')
                     .also()
             .also(2)
             .belongsTo('C')
+                .guess(false, new List<String>{'c1', 'c2'})
                 .referenceBy('C__c');
-        
+
         ATKWand.ATKSpellBook spellBook = ATKWizard.I().spellBook;
         ATKWand.EntityNodeMatrix matrix = spellBook.matrix;
-        
+
         System.assertEquals(3, matrix.entityNodeMatrix.size());
 
         Iterator<ATKWand.EntityNode> entityIterator = spellBook.iterator();
@@ -95,18 +98,24 @@ private class ATKWandTest {
                     System.assert(entity.fieldRuleMap.containsKey('$A1'));
                     System.assertEquals(1, entity.referenceToMap.keySet().size());
                     System.assertEquals('C', entity.referenceToMap.get('C__C').name);
+                    System.assertEquals(true, entity.guessEnabled);
+                    System.assertEquals(2, entity.guessFieldNames.size());
                 }
                 when 'B' {
                     System.assertEquals(3, entity.total);
                     System.assertEquals(2, entity.referenceToMap.keySet().size());
                     System.assertEquals('A', entity.referenceToMap.get('A__C').name);
                     System.assertEquals('D', entity.referenceToMap.get('D').name);
+                    System.assertEquals(false, entity.guessEnabled);
+                    System.assertEquals(0, entity.guessFieldNames.size());
                 }
                 when 'C' {
                     System.assertEquals(null, entity.total);
                     System.assertEquals(0, entity.fieldInitMap.keySet().size());
                     System.assertEquals(0, entity.fieldRuleMap.keySet().size());
                     System.assertEquals(0, entity.referenceToMap.keySet().size());
+                    System.assertEquals(false, entity.guessEnabled);
+                    System.assertEquals(2, entity.guessFieldNames.size());
                 }
                 when else {
                 }
