@@ -1,16 +1,16 @@
 /**
  * Apex Test Kit
  */
-global with sharing class ATKFaker {
+public with sharing class ATKFaker {
     public static Map<String, IProvider> helperMap { get; set; }
-    global static Internet internet { get; set; }
-    global static Phone phone { get; set; }
-    global static Name name { get; set; }
-    global static Lorem lorem { get; set; }
-    global static DateHelper dates { get; set; }
-    global static Finance finance { get; set; }
-    global static Random random { get; set; }
-    global static Helper helper { get; set; }
+    public static Internet internet { get; set; }
+    public static Phone phone { get; set; }
+    public static Name name { get; set; }
+    public static Lorem lorem { get; set; }
+    public static DateHelper dates { get; set; }
+    public static Finance finance { get; set; }
+    public static Random random { get; set; }
+    public static Helper helper { get; set; }
     @TestVisible
     private static NumberArithmeticHelper numbers { get; set; }
     @TestVisible
@@ -46,7 +46,7 @@ global with sharing class ATKFaker {
         helperMap.put('value', value);
     }
 
-    global static Object fake(String input) {
+    public static Object fake(String input) {
         ATKCommon.MethodGroup methodGroup = METHOD_PARSER.parse(input);
         return methodGroup.evaluate(METHOD_EVALUATOR);
     }
@@ -74,7 +74,7 @@ global with sharing class ATKFaker {
     }
 
     @TestVisible
-    global class Helper implements IDataProvider {
+    public class Helper implements IDataProvider {
         public Object call(String method, List<Object> params) {
             Object param0;
             if (params != null) {
@@ -94,12 +94,12 @@ global with sharing class ATKFaker {
             return output;
         }
 
-        global Object randomize(List<Object> elements) {
+        public Object randomize(List<Object> elements) {
             elements = elements == null ? new List<Object> { 'a', 'b', 'c' } : elements;
             return random.arrayElement(elements);
         }
 
-        global String slugify(String input) {
+        public String slugify(String input) {
             if (input == null) {
                 input = '';
             }
@@ -108,11 +108,11 @@ global with sharing class ATKFaker {
                 .replaceAll('--+', '-');
         }
 
-        global String replaceSymbolsWithNumber(String input) {
+        public String replaceSymbolsWithNumber(String input) {
             return replaceSymbolsWithNumber(input, null);
         }
 
-        global String replaceSymbolsWithNumber(String input, String symbol) {
+        public String replaceSymbolsWithNumber(String input, String symbol) {
             input = input == null ? '' : input;
             symbol = symbol == null ? '#' : symbol;
             Integer numberSignChar = symbol.charAt(0);
@@ -132,7 +132,7 @@ global with sharing class ATKFaker {
             return builder.toString();
         }
 
-        global String replaceSymbols(String input) {
+        public String replaceSymbols(String input) {
             input = input == null ? '' : input;
             Integer numberSignChar = '#'.charAt(0);
             Integer questionMarkChar = '?'.charAt(0);
@@ -158,7 +158,7 @@ global with sharing class ATKFaker {
         }
     }
 
-    global class Random implements IDataProvider {
+    public class Random implements IDataProvider {
         private Integer RANDOM_NUMBER_CACHE_SIZE = -1; // disable random number cache
         private List<Double> randomNumberCache = new List<Double>();
         private Integer randomNumberIndex = 0;
@@ -234,19 +234,19 @@ global with sharing class ATKFaker {
             return randomNumber;
         }
 
-        global Boolean boolean() {
+        public Boolean boolean() {
             return random() > 0.5;
         }
 
-        global Decimal number() {
+        public Decimal number() {
             return number(null, null, null);
         }
 
-        global Decimal number(Decimal max) {
+        public Decimal number(Decimal max) {
             return number(null, max, null);
         }
 
-        global Decimal number(Integer precision, Integer scale) {
+        public Decimal number(Integer precision, Integer scale) {
             scale = scale == null ? 0 : scale;
             precision = precision == null ? 3 + scale : precision;
 
@@ -277,7 +277,7 @@ global with sharing class ATKFaker {
             return value;
         }
 
-        global Decimal number(Decimal min, Decimal max, Integer scale) {
+        public Decimal number(Decimal min, Decimal max, Integer scale) {
             min = min == null ? 0 : min;
             max = max == null ? 999 : max;
             scale = scale == null ? max.scale() : scale;
@@ -288,7 +288,7 @@ global with sharing class ATKFaker {
             return min + delta;
         }
 
-        global Object arrayElement(List<Object> elements) {
+        public Object arrayElement(List<Object> elements) {
             if (elements == null || elements.size() == 0) {
                 return null;
             }
@@ -297,11 +297,11 @@ global with sharing class ATKFaker {
             return elements.get(index);
         }
 
-        global List<Object> arrayElements(List<Object> elements) {
+        public List<Object> arrayElements(List<Object> elements) {
             return arrayElements(elements, null);
         }
 
-        global List<Object> arrayElements(List<Object> elements, Integer count) {
+        public List<Object> arrayElements(List<Object> elements, Integer count) {
             if (elements == null || elements.size() == 0) {
                 return new List<Object>();
             }
@@ -324,7 +324,7 @@ global with sharing class ATKFaker {
         }
     }
 
-    global class DateHelper extends DateArithmeticHelper implements IDataProvider {
+    public class DateHelper extends DateArithmeticHelper implements IDataProvider {
         public override Object call(String method, List<Object> params) {
             Object param0;
             Object param1;
@@ -361,29 +361,29 @@ global with sharing class ATKFaker {
             return output;
         }
 
-        global Datetime past() {
+        public Datetime past() {
             return past(null, null);
         }
 
-        global Datetime past(Integer years, String refDate) {
+        public Datetime past(Integer years, String refDate) {
             Datetime d = ATKCommon.converter.toDatetime(refDate);
             d = d == null ? Datetime.now() : d;
             years = years == null ? 1 : years;
             return d.addSeconds(-Integer.valueOf(random.number(1, years * 365 * 24 * 3600, 0)));
         }
 
-        global Datetime future() {
+        public Datetime future() {
             return future(null, null);
         }
 
-        global Datetime future(Integer years, String refDate) {
+        public Datetime future(Integer years, String refDate) {
             Datetime d = ATKCommon.converter.toDatetime(refDate);
             d = d == null ? Datetime.now() : d;
             years = years == null ? 1 : years;
             return d.addSeconds(Integer.valueOf(random.number(1, years * 365 * 24 * 3600, 0)));
         }
 
-        global Datetime between(String fo, String to) {
+        public Datetime between(String fo, String to) {
             Datetime fromDatetime = ATKCommon.converter.toDatetime(fo);
             Datetime toDatetime = ATKCommon.converter.toDatetime(to);
             Integer dateOffset = Integer.valueOf(random.number(toDatetime.getTime() - fromDatetime.getTime())/1000);
@@ -391,7 +391,7 @@ global with sharing class ATKFaker {
         }
     }
 
-    global class Internet implements IDataProvider {
+    public class Internet implements IDataProvider {
         public Object call(String method, List<Object> params) {
             Object param0;
             Object param1;
@@ -436,11 +436,11 @@ global with sharing class ATKFaker {
             return output;
         }
 
-        global String userName() {
+        public String userName() {
             return userName(null, null);
         }
 
-        global String userName(String firstName, String lastName) {
+        public String userName(String firstName, String lastName) {
             String result;
             firstName = firstName == null ? name.firstName(null) : firstName;
             lastName = lastName == null ? name.lastName() : lastName;
@@ -466,21 +466,21 @@ global with sharing class ATKFaker {
             return result;
         }
 
-        global String email() {
+        public String email() {
             return email(null, null, null);
         }
 
-        global String email(String firstName, String lastName, String provider) {
+        public String email(String firstName, String lastName, String provider) {
             List<String> providerList = definition.get(ATKFakerDefinition.FAKER_INTERNET_FREEEMAIL);
             provider = provider == null ? (String)random.arrayElement(providerList) : provider;
         	return helper.slugify(internet.userName(firstName, lastName)) + '@' + provider;
         }
 
-        global String url() {
+        public String url() {
         	return protocol() + '://' + domainName();
         }
 
-        global String avatar() {
+        public String avatar() {
             return (String)random.arrayElement(definition.get(ATKFakerDefinition.FAKER_INTERNET_AVATARURI));
         }
 
@@ -503,7 +503,7 @@ global with sharing class ATKFaker {
         }
     }
 
-    global class Phone implements IDataProvider {
+    public class Phone implements IDataProvider {
         public Object call(String method, List<Object> params) {
             Object param0;
             if (params != null) {
@@ -526,11 +526,11 @@ global with sharing class ATKFaker {
             return output;
         }
 
-        global String phoneNumber() {
+        public String phoneNumber() {
             return phoneNumber(null);
         }
 
-        global String phoneNumber(String format) {
+        public String phoneNumber(String format) {
             format = format == null ? phoneFormat() : format;
         	return helper.replaceSymbolsWithNumber(format);
         }
@@ -541,7 +541,7 @@ global with sharing class ATKFaker {
         }
     }
 
-    global class Name implements IDataProvider {
+    public class Name implements IDataProvider {
         public Object call(String method, List<Object> params) {
             Object param0;
             if (params != null) {
@@ -567,11 +567,11 @@ global with sharing class ATKFaker {
             return output;
         }
 
-        global String firstName() {
+        public String firstName() {
             return firstName(null);
         }
 
-        global String firstName(String gender) {
+        public String firstName(String gender) {
             list<String> nameList;
             if (gender == 'female' || gender == 'Female' || gender == 'FEMALE') {
                 nameList = definition.get(ATKFakerDefinition.FAKER_NAME_FEMALEFIRSTNAME);
@@ -585,12 +585,12 @@ global with sharing class ATKFaker {
             return (String)random.arrayElement(nameList);
         }
 
-        global String lastName() {
+        public String lastName() {
             return (String)random.arrayElement(definition.get(ATKFakerDefinition.FAKER_NAME_LASTNAME));
         }
     }
 
-    global class Finance implements IDataProvider {
+    public class Finance implements IDataProvider {
         public Object call(String method, List<Object> params) {
             Object param0;
             Object param1;
@@ -617,16 +617,16 @@ global with sharing class ATKFaker {
             return output;
         }
 
-        global Decimal amount() {
+        public Decimal amount() {
             return amount(null, null);
         }
 
-        global Decimal amount(Integer precision, Integer scale) {
+        public Decimal amount(Integer precision, Integer scale) {
         	return random.number(precision, scale);
         }
     }
 
-    global class Lorem implements IDataProvider {
+    public class Lorem implements IDataProvider {
         public Object call(String method, List<Object> params) {
             Object param0;
             Object param1;
@@ -674,16 +674,16 @@ global with sharing class ATKFaker {
             return output;
         }
 
-        global String word() {
+        public String word() {
             List<String> words = definition.get(ATKFakerDefinition.FAKER_LOREM_WORDS);
         	return (String)random.arrayElement(words);
         }
 
-        global String words() {
+        public String words() {
             return words(null);
         }
 
-        global String words(Integer count) {
+        public String words(Integer count) {
             return buildWords(count).toString();
         }
 
@@ -700,11 +700,11 @@ global with sharing class ATKFaker {
         	return builder;
         }
 
-        global String sentence() {
+        public String sentence() {
             return sentence(null);
         }
 
-        global String sentence(Integer count) {
+        public String sentence(Integer count) {
             return buildSentence(count).toString();
         }
 
@@ -718,15 +718,15 @@ global with sharing class ATKFaker {
             return builder;
         }
 
-        global String sentences() {
+        public String sentences() {
             return sentences(null, null);
         }
 
-        global String sentences(Integer count) {
+        public String sentences(Integer count) {
             return sentences(count, null);
         }
 
-        global String sentences(Integer count, String separator) {
+        public String sentences(Integer count, String separator) {
             return buildSentences(count, separator).toString();
         }
 
@@ -745,11 +745,11 @@ global with sharing class ATKFaker {
             return builder;
         }
 
-        global String paragraph() {
+        public String paragraph() {
             return paragraph(null);
         }
 
-        global String paragraph(Integer count) {
+        public String paragraph(Integer count) {
             return buildParagraph(count).toString();
         }
 
@@ -758,11 +758,11 @@ global with sharing class ATKFaker {
             return buildSentences(count + Integer.valueOf(random.number(0, 3, 2)), null);
         }
 
-        global String paragraphs() {
+        public String paragraphs() {
             return paragraphs(null, null);
         }
 
-        global String paragraphs(Integer count, String separator) {
+        public String paragraphs(Integer count, String separator) {
             return buildParagraphs(count, separator).toString();
         }
 
@@ -781,11 +781,11 @@ global with sharing class ATKFaker {
             return builder;
         }
 
-        global String lines() {
+        public String lines() {
             return lines(null);
         }
 
-        global String lines(Integer count) {
+        public String lines(Integer count) {
             return buildLines(count).toString();
         }
 
@@ -794,7 +794,7 @@ global with sharing class ATKFaker {
             return buildSentences(count, '\n');
         }
 
-        global String text() {
+        public String text() {
             List<String> methodList = new List<String> {
                 'word', 'words',
                 'sentence', 'sentences',
@@ -805,7 +805,7 @@ global with sharing class ATKFaker {
         }
     }
 
-    global class Address implements IDataProvider {
+    public class Address implements IDataProvider {
         public Object call(String method, List<Object> params) {
             Object output;
             switch on method {

@@ -1,7 +1,7 @@
 /**
  * Apex Test Kit
  */
-global with sharing class ATKCommon {
+public with sharing class ATKCommon {
     public static final Integer METHOD_GROUP_MAX_LEVEL = 100;
     public static final Converter converter = new Converter();
     public static final MethodParser METHOD_PARSER = new MethodParser();
@@ -9,19 +9,19 @@ global with sharing class ATKCommon {
     /*
      * Custom Exceptions
      */
-	global class DeepRecursionException extends Exception {
+	public class DeepRecursionException extends Exception {
 
     }
 
-    global class NotFoundException extends Exception {
+    public class NotFoundException extends Exception {
 
     }
 
-    global class InsufficientAttributeException extends Exception {
+    public class InsufficientAttributeException extends Exception {
 
     }
 
-    global class IncorrectTypeException extends Exception {
+    public class IncorrectTypeException extends Exception {
 
     }
 

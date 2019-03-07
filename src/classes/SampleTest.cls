@@ -4,17 +4,12 @@
 @isTest
 private with sharing class SampleTest {
     @isTest
-    static void testFieldGuessValue() {
+    static void testDataFactory() {
         Integer accountTotal = 5;
         Integer contactTotal = 10;
-        ATKWizard.I().wantMany('Account')
-            .guess(new List<String> { 'NumberOfEmployees', 'Fax', 'Industry' })
-            .total(accountTotal)
-            .haveMany('Contact')
-                .total(contactTotal)
-            .generate();
+        SampleTestDataFactory.generateAccountsWithContacts(accountTotal, contactTotal);
+
         List<Account> accountList = [SELECT Id, Name, NumberOfEmployees, Fax, Industry FROM Account];
-        System.debug(accountList);
         System.assertEquals(accountTotal, accountList.size());
         for (Account account : accountList) {
             System.assert(account.Fax != null);
@@ -23,10 +18,42 @@ private with sharing class SampleTest {
             System.assert(account.NumberOfEmployees != null);
         }
         List<Contact> contactList = [SELECT Id, LastName FROM Contact];
+        System.assertEquals(contactTotal, contactList.size());
         for (Contact contact : contactList) {
             System.assert(contact.LastName != null);
         }
+    }
+
+    @isTest
+    static void testFieldGuessValue() {
+        Integer accountTotal = 5;
+        Integer contactTotal = 10;
+        ATKWizard.I().wantMany(Account.SObjectType)
+            .total(accountTotal)
+            .guard()
+            .fields()
+                .eval(Account.NumberOfEmployees)
+                .eval(Account.Fax)
+                .eval(Account.Industry)
+            .end()
+            .haveMany(Contact.SObjectType)
+                .total(contactTotal)
+                .guard()
+            .generate();
+
+        List<Account> accountList = [SELECT Id, Name, NumberOfEmployees, Fax, Industry FROM Account];
+        System.assertEquals(accountTotal, accountList.size());
+        for (Account account : accountList) {
+            System.assert(account.Fax != null);
+            System.assert(account.Name != null);
+            System.assert(account.Industry != null);
+            System.assert(account.NumberOfEmployees != null);
+        }
+        List<Contact> contactList = [SELECT Id, LastName FROM Contact];
         System.assertEquals(contactTotal, contactList.size());
+        for (Contact contact : contactList) {
+            System.assert(contact.LastName != null);
+        }
     }
 
     /*
@@ -35,15 +62,16 @@ private with sharing class SampleTest {
 
     @isTest
     static void testFieldWithRuleList() {
-        ATKWizard.I().wantMany('Account')
+        ATKWizard.I().wantMany(Account.SObjectType)
             .total(6)
-            .fields(new Map<String, Object> {
-                'Name' => new List<String> {
+            .guard()
+            .fields()
+                .eval(Account.Name, new List<String> {
                     'Microsoft-{{###}}',
                     'Google-{{###}}',
                     'Apple-{{###}}'
-                }
-            })
+                })
+            .end()
             .generate();
 
         List<Account> accountList = [SELECT Id, Name, Fax FROM Account];
@@ -64,15 +92,16 @@ private with sharing class SampleTest {
 
     @isTest
     static void testFieldWithRuleSet() {
-        ATKWizard.I().wantMany('Account')
+        ATKWizard.I().wantMany(Account.SObjectType)
             .total(6)
-            .fields(new Map<String, Object> {
-                'Name' => new Set<String> {
+            .guard()
+            .fields()
+                .eval(Account.Name, new Set<String> {
                     'Microsoft-{{###}}',
                     'Google-{{###}}',
                     'Apple-{{###}}'
-                }
-            })
+                })
+            .end()
             .generate();
 
         List<Account> accountList = [SELECT Id, Name, Fax FROM Account];
@@ -87,38 +116,33 @@ private with sharing class SampleTest {
 
     @isTest
     static void testFieldWithRules() {
-        ATKWizard.I().wantMany('Account')
-            .total(100)
-            .fields(new Map<String, Object> {
-                'Name' => new List<String> {
+        ATKWizard.I().wantMany(Account.SObjectType)
+            .total(10)
+            .guard()
+            .fields()
+                .eval(Account.Name, new List<String> {
                     'Microsoft-{{###}}',
                     'Google-{{###}}',
                     'Apple-{{###}}'
-                },
-                'Fax' => '{{1##-###-####}}'
-            })
+                })
+                .eval(Account.Fax, '{{1##-###-####}}')
+            .end()
             .generate();
 
         List<Account> accountList = [SELECT Id, Name, Fax FROM Account];
-        System.debug(accountList.size());
-        for (Account account : accountList) {
-            System.debug(String.format('account: Id({0}), Name({1}), Fax({2})', new List<String> {
-                account.Id, account.Name, account.Fax
-            }));
-        }
-
-        System.assertEquals(100, accountList.size());
+        System.assertEquals(10, accountList.size());
     }
 
     @isTest
     static void testFieldPostUpdate() {
-        ATKWizard.Bag bag = ATKWizard.I().wantMany('Account')
+        ATKWand.IWizardBag bag = ATKWizard.I().wantMany(Account.SObjectType)
             .total(10)
-            .fields(new Map<String, Object> {
-                'Name' => new List<String> {
+            .guard()
+            .fields()
+                .eval(Account.Name, new List<String> {
                     'Microsoft-{{###}}'
-                }
-            })
+                })
+            .end()
             .generate();
 
         List<Account> accountList = [SELECT Id, Name FROM Account];
@@ -127,13 +151,14 @@ private with sharing class SampleTest {
             System.assert(account.Name.startsWith('Microsoft-'));
         }
 
-        ATKWizard.I().wantMany('Account')
-            .fromList(bag.get('Account'))
-            .fields(new Map<String, Object> {
-                'Name' => new List<String> {
+        ATKWizard.I().wantMany(Account.SObjectType)
+            .useList(bag.get(Account.SObjectType))
+            .guard()
+            .fields()
+                .eval(Account.Name, new List<String> {
                     'Google-{{###}}'
-                }
-            })
+                })
+            .end()
             .generate();
 
         accountList = [SELECT Id, Name FROM Account];
@@ -144,14 +169,15 @@ private with sharing class SampleTest {
     }
 
     @isTest
-    static void testFieldPostUpdateWithSecondFromList() {
-        ATKWizard.Bag bag = ATKWizard.I().wantMany('Account')
+    static void testFieldPostUpdateWithSeconduseList() {
+        ATKWand.IWizardBag bag = ATKWizard.I().wantMany(Account.SObjectType)
             .total(10)
-            .fields(new Map<String, Object> {
-                'Name' => new List<String> {
+            .guard()
+            .fields()
+                .eval(Account.Name, new List<String> {
                     'Microsoft-{{###}}'
-                }
-            })
+                })
+            .end()
             .generate();
 
         List<Account> accountList = [SELECT Id, Name FROM Account];
@@ -160,16 +186,17 @@ private with sharing class SampleTest {
             System.assert(account.Name.startsWith('Microsoft-'));
         }
 
-        ATKWizard.I().wantMany('Account')
-            .fromList(bag.get('Account'))
-            .fromList(new List<Account> {
+        ATKWizard.I().wantMany(Account.SObjectType)
+            .useList(bag.get(Account.SObjectType))
+            .useList(new List<Account> {
                 new Account(), new Account(), new Account(), new Account(), new Account()
             })
-            .fields(new Map<String, Object> {
-                'Name' => new List<String> {
+            .guard()
+            .fields()
+                .eval(Account.Name, new List<String> {
                     'Google-{{###}}'
-                }
-            })
+                })
+            .end()
             .generate();
 
         accountList = [SELECT Id, Name FROM Account];
@@ -188,27 +215,25 @@ private with sharing class SampleTest {
         Integer accountTotal = 500;
         Integer contactTotal = 1000;
         Long startTime = System.currentTimeMillis();
-        ATKWizard.Bag bag = ATKWizard.I().wantMany('Account')
+        ATKWand.IWizardBag bag = ATKWizard.I().wantMany(Account.SObjectType)
             .total(accountTotal)
-            .fields(new Map<String, Object> {
-                'Name' => new List<String> {
-                    'Microsoft-{{###}}',
-                    'Google-{{###}}',
-                    'Apple-{{###}}'
-                },
-                'Fax' => '{{1##-###-####}}',
-                'NumberOfEmployees' => '{!random.number(8, 0)}'
-            })
-            .guess(new List<String> {'Industry'})
-            .haveMany('Contact')
-                .referenceBy('AccountId')
+            .guard()
+            .fields()
+                .eval(Account.Industry)
+                .eval(Account.Name, 'Microsoft-{{###}}')
+                .eval(Account.Fax, '{{1##-###-####}}')
+                .eval(Account.NumberOfEmployees, '{!random.number(8, 0)}')
+            .end()
+            .haveMany(Contact.SObjectType)
+                .referenceBy(Contact.AccountId)
                 .total(contactTotal)
-                .fields(new Map<String, Object> {
-                    'FirstName' => '{!name.firstName(female)}',
-                    'LastName' => '{!name.lastName}',
-                    'Birthdate' => '{!dates.past}',
-                    'Email' => '{!internet.email}'
-                })
+                .guard()
+                .fields()
+                    .eval(Contact.FirstName, '{!name.firstName(female)}')
+                    .eval(Contact.LastName, '{!name.lastName}')
+                    .eval(Contact.Birthdate, '{!dates.past}')
+                    .eval(Contact.Email, '{!internet.email}')
+                .end()
             .generate();
 
         Long endTime = System.currentTimeMillis();
@@ -230,16 +255,18 @@ private with sharing class SampleTest {
 
     @isTest
     static void testRelationshipHaveManyWithLessChild() {
-        ATKWizard.I().wantMany('Account')
-            .fields(new Map<String, Object> {
-                'Name' => 'Google-{{###}}'
-            })
+        ATKWizard.I().wantMany(Account.SObjectType)
+            .guard()
+            .fields()
+                .eval(Account.Name, 'Google-{{###}}')
+            .end()
             .total(10)
-            .haveMany('Contact')
-                .referenceBy('AccountId')
-                .fields(new Map<String, Object> {
-                    'LastName' => '{!name.lastName}'
-                })
+            .haveMany(Contact.SObjectType)
+                .referenceBy(Contact.AccountId)
+                .guard()
+                .fields()
+                    .eval(Contact.LastName, '{!name.lastName}')
+                .end()
                 .total(4)
             .generate();
 
@@ -275,11 +302,11 @@ private with sharing class SampleTest {
         insert accountList;
         // no need to insert contactList, ATKWizard will handle it
 
-        ATKWizard.I().wantMany('Account')
-            .fromList(accountList)
-            .haveMany('Contact')
-                .fromList(contactList)
-                .referenceBy('AccountId')
+        ATKWizard.I().wantMany(Account.SObjectType)
+            .useList(accountList)
+            .haveMany(Contact.SObjectType)
+                .useList(contactList)
+                .referenceBy(Contact.AccountId)
             .generate();
 
         accountList = [SELECT Id, (SELECT Id FROM Contacts) FROM Account];
@@ -291,17 +318,19 @@ private with sharing class SampleTest {
 
     @isTest
     static void testRelationshipBelongTo() {
-        ATKWizard.I().wantMany('Contact')
-            .fields(new Map<String, Object> {
-                    'LastName' => '{!name.lastName}'
-                })
+        ATKWizard.I().wantMany(Contact.SObjectType)
             .total(40)
-            .belongTo('Account')
-                .referenceBy('AccountId')
-                .fields(new Map<String, Object> {
-                    'Name' => 'Google-{{###}}'
-                })
+            .guard()
+            .fields()
+                .eval(Contact.LastName, '{!name.lastName}')
+            .end()
+            .belongTo(Account.SObjectType)
+                .referenceBy(Contact.AccountId)
                 .total(10)
+                .guard()
+                .fields()
+                    .eval(Account.Name, 'Google-{{###}}')
+                .end()
             .generate();
 
         List<Account> accountList = [SELECT Id, (SELECT Id FROM Contacts) FROM Account];
@@ -313,17 +342,19 @@ private with sharing class SampleTest {
 
     @isTest
     static void testRelationshipBelongToWithLessChild() {
-        ATKWizard.I().wantMany('Contact')
-            .fields(new Map<String, Object> {
-                    'LastName' => '{!name.lastName}'
-                })
+        ATKWizard.I().wantMany(Contact.SObjectType)
             .total(4)
-            .belongTo('Account')
-                .referenceBy('AccountId')
-                .fields(new Map<String, Object> {
-                    'Name' => 'Google-{{###}}'
-                })
+            .guard()
+            .fields()
+                .eval(Contact.LastName, '{!name.lastName}')
+            .end()
+            .belongTo(Account.SObjectType)
+                .referenceBy(Contact.AccountId)
                 .total(10)
+                .guard()
+                .fields()
+                    .eval(Account.Name, 'Google-{{###}}')
+                .end()
             .generate();
 
         List<Account> accountList = [SELECT Id, (SELECT Id FROM Contacts) FROM Account];
@@ -344,30 +375,34 @@ private with sharing class SampleTest {
     static void testRelationshipHaveManyBelongTo() {
         Id pricebook2Id = Test.getStandardPricebookId();
 
-        ATKWizard.Bag bag = ATKWizard.I().wantMany('Product2')
+        ATKWand.IWizardBag bag = ATKWizard.I().wantMany(Product2.SObjectType)
             .total(5)
-            .haveMany('PricebookEntry')
-                .referenceBy('Product2Id')
-                .fields(new Map<String, Object> {
-                    'Pricebook2Id' => pricebook2Id,
-                    'UseStandardPrice' => false,
-                    'IsActive' => true
-                })
+            .guard()
+            .haveMany(PricebookEntry.SObjectType)
+                .referenceBy(PricebookEntry.Product2Id)
                 .total(5)
+                .guard()
+                .fields()
+                    .eval(PricebookEntry.Pricebook2Id, pricebook2Id)
+                    .eval(PricebookEntry.UseStandardPrice, false)
+                    .eval(PricebookEntry.IsActive, true)
+                .end()
             .generate();
 
-        ATKWizard.I().wantMany('Pricebook2')
+        ATKWizard.I().wantMany(Pricebook2.SObjectType)
             .total(5)
-            .haveMany('PricebookEntry')
-                .referenceBy('Pricebook2Id')
-                .fields(new Map<String, Object> {
-                    'UseStandardPrice' => false,
-                    'IsActive' => true
-                })
+            .guard()
+            .haveMany(PricebookEntry.SObjectType)
+                .referenceBy(PricebookEntry.Pricebook2Id)
                 .total(25)
-                .belongTo('Product2')
-                    .referenceBy('Product2Id')
-                    .fromList(bag.get('Product2'))
+                .guard()
+                .fields()
+                    .eval(PricebookEntry.UseStandardPrice, false)
+                    .eval(PricebookEntry.IsActive, true)
+                .end()
+                .belongTo(Product2.SObjectType)
+                    .referenceBy(PricebookEntry.Product2Id)
+                    .useList(bag.get(Product2.SObjectType))
             .generate();
 
         List<AggregateResult> results = [
@@ -384,33 +419,38 @@ private with sharing class SampleTest {
 
     @isTest
     static void testRelationshipAlsoTraverse() {
-        ATKWizard.I().wantMany('Account')
+        ATKWizard.I().wantMany(Account.SObjectType)
+            .guard()
             .total(3)
-            .haveMany('Contact')
-                .referenceBy('AccountId')
+            .haveMany(Contact.SObjectType)
+                .referenceBy(Contact.AccountId)
                 .total(6)
+                .guard()
             .also()
-            .haveMany('Contract')
-                .referenceBy('AccountId')
-                .fields(new Map<String, Object> {
-                    'StartDate' => '{!dates.between(2018-7-1, 2018-7-31)}',
-                    'ContractTerm' => 12,
-                    'Status' => 'Draft'
-                })
+            .haveMany(Contract.SObjectType)
+                .referenceBy(Contract.AccountId)
                 .total(6)
-                .haveMany('Order')
-                    .referenceBy('ContractId')
-                    .fields(new Map<String, Object> {
-                        'EffectiveDate' => '{!dates.between(2018-8-1, 2018-8-31)}',
-                        'EndDate' => '{!dates.between(2019-6-1, 2019-6-30)}',
-                        'IsReductionOrder' => false,
-                        'Status' => 'Draft'
-                    })
+                .guard()
+                .fields()
+                    .eval(Contract.StartDate, '{!dates.between(2018-7-1, 2018-7-31)}')
+                    .eval(Contract.ContractTerm, 12)
+                    .eval(Contract.Status, 'Draft')
+                .end()
+                .haveMany(Order.SObjectType)
+                    .referenceBy(Order.ContractId)
+                    .guard()
                     .total(12)
+                    .fields()
+                        .eval(Order.EffectiveDate, '{!dates.between(2018-8-1, 2018-8-31)}')
+                        .eval(Order.EndDate, '{!dates.between(2019-6-1, 2019-6-30)}')
+                        .eval(Order.IsReductionOrder, false)
+                        .eval(Order.Status, 'Draft')
+                    .end()
             .also(2)
-            .haveMany('Opportunity')
-                .referenceBy('AccountId')
+            .haveMany(Opportunity.SObjectType)
+                .referenceBy(Opportunity.AccountId)
                 .total(6)
+                .guard()
             .generate();
 
         List<Account> accountList = [
@@ -439,27 +479,31 @@ private with sharing class SampleTest {
 
     @isTest
     static void testRelationshipAccountOpportunity() {
-        ATKWizard.Bag bag = ATKWizard.I().wantMany('Account')
+        ATKWand.IWizardBag bag = ATKWizard.I().wantMany(Account.SObjectType)
             .total(3)
-            .haveMany('Contact')
-                .referenceBy('AccountId')
+            .guard()
+            .haveMany(Contact.SObjectType)
+                .referenceBy(Contact.AccountId)
                 .total(6)
+                .guard()
             .generate();
 
-        ATKWizard.I().wantMany('Account')
-            .fromList(bag.get('Account'))
-            .haveMany('Opportunity')
-                .fields(new Map<String, Object> {
-                    'CloseDate' => '{!dates.between(2018-7-1, 2018-8-1)}'
-                })
-                .referenceBy('AccountId')
+        ATKWizard.I().wantMany(Account.SObjectType)
+            .useList(bag.get(Account.SObjectType))
+            .haveMany(Opportunity.SObjectType)
+                .referenceBy(Opportunity.AccountId)
                 .total(6)
-                .haveMany('OpportunityContactRole')
-                    .referenceBy('OpportunityId')
+                .guard()
+                .fields()
+                    .eval(Opportunity.CloseDate, '{!dates.between(2018-7-1, 2018-8-1)}')
+                .end()
+                .haveMany(OpportunityContactRole.SObjectType)
+                    .referenceBy(OpportunityContactRole.OpportunityId)
                     .total(36)
-                    .belongTo('Contact')
-                        .referenceBy('ContactId')
-                        .fromList(bag.get('Contact'))
+                    .guard()
+                    .belongTo(Contact.SObjectType)
+                        .referenceBy(OpportunityContactRole.ContactId)
+                        .useList(bag.get(Contact.SObjectType))
             .generate();
 
         List<OpportunityContactRole> ocrList = [SELECT Id FROM OpportunityContactRole];
@@ -468,17 +512,21 @@ private with sharing class SampleTest {
 
     @isTest
     static void testRelationshipOptionalReferenceBy() {
-        ATKWizard.I().wantMany('Account')
+        ATKWizard.I().wantMany(Account.SObjectType)
             .total(10)
-            .haveMany('Contact')
+            .guard()
+            .haveMany(Contact.SObjectType)
+                .guard()
                 .total(20)
-                .haveMany('OpportunityContactRole')
+                .haveMany(OpportunityContactRole.SObjectType)
+                    .guard()
                     .total(20)
-                    .belongTo('Opportunity')
+                    .belongTo(Opportunity.SObjectType)
+                        .guard()
+                        .fields()
+                            .eval(Opportunity.CloseDate, '{!dates.between(2018-7-1, 2018-8-1)}')
+                        .end()
                         .total(20)
-                        .fields(new Map<String, Object> {
-                            'CloseDate' => '{!dates.between(2018-7-1, 2018-8-1)}'
-                        })
             .generate();
 
         List<Account> accountList = [SELECT Id, (SELECT Id FROM Contacts) FROM Account];
@@ -498,17 +546,15 @@ private with sharing class SampleTest {
     @isTest
     static void testCrossFieldReference() {
         Date current = Date.today();
-        ATKWizard.Bag bag = ATKWizard.I().wantMany('Contact')
+        ATKWand.IWizardBag bag = ATKWizard.I().wantMany(Contact.SObjectType)
             .total(10)
-            .origin(new Map<String, Object> {
-                'Birthdate' => current
-            })
-            .fields(new Map<String, Object> {
-                'Birthdate' => '{!dates.addDays($1.Birthdate, -1)}'
-            })
+            .guard()
+            .fields()
+                .xref(Contact.Birthdate, '{!dates.addDays($1.Birthdate, -1)}', current)
+            .end()
             .generate();
 
-        List<SObject> contacts = bag.get('Contact');
+        List<SObject> contacts = bag.get(Contact.SObjectType);
         for (Integer i = 0; i < contacts.size(); i++) {
             System.debug(contacts[i].get('Birthdate'));
             System.assertEquals(current.addDays(-i), contacts[i].get('Birthdate'));
@@ -518,11 +564,12 @@ private with sharing class SampleTest {
     @isTest
     static void testCrossFieldReferenceForPostUpdate() {
         Date current = Date.today();
-        ATKWizard.I().wantMany('Contact')
-            .fields(new Map<String, Object> {
-                'Birthdate' => current
-            })
+        ATKWizard.I().wantMany(Contact.SObjectType)
             .total(10)
+            .guard()
+            .fields()
+                .eval(Contact.Birthdate, current)
+            .end()
             .generate();
 
         List<Contact> contacts = [SELECT Id, Birthdate FROM Contact];
@@ -531,17 +578,15 @@ private with sharing class SampleTest {
             System.assertEquals(current, contact.Birthdate);
         }
 
-        ATKWizard.Bag bag = ATKWizard.I().wantMany('Contact')
+        ATKWand.IWizardBag bag = ATKWizard.I().wantMany(Contact.SObjectType)
             .total(10)
-            .origin(new Map<String, Object> {
-                'Birthdate' => current
-            })
-            .fields(new Map<String, Object> {
-                'Birthdate' => '{!dates.addDays($1.Birthdate, -1)}'
-            })
+            .guard()
+            .fields()
+                .xref(Contact.Birthdate, '{!dates.addDays($1.Birthdate, -1)}', current)
+            .end()
             .generate();
 
-        contacts = (List<Contact>)bag.get('Contact');
+        contacts = (List<Contact>)bag.get(Contact.SObjectType);
         System.assertEquals(10, contacts.size());
         for (Integer i = 0; i < contacts.size(); i++) {
             System.debug(contacts[i].Birthdate);
@@ -553,17 +598,15 @@ private with sharing class SampleTest {
     static void testCrossFieldReferenceOnLevelZero() {
         Long startTime = System.currentTimeMillis();
         Date current = Date.today();
-        ATKWizard.Bag bag = ATKWizard.I().wantMany('Contact')
+        ATKWand.IWizardBag bag = ATKWizard.I().wantMany(Contact.SObjectType)
             .total(1500)
-            .origin(new Map<String, Object> {
-                'Birthdate' => current
-            })
-            .fields(new Map<String, Object> {
-                'FirstName' => '{!name.firstName}',
-                'LastName' => 'A {!value.get($0.FirstName)}',
-                'Birthdate' => '{!dates.addDays($1.Birthdate, -1)}'
-            })
-            .guess(new List<String> {'Email'})
+            .guard()
+            .fields()
+                .eval(Contact.Email)
+                .eval(Contact.FirstName, '{!name.firstName}')
+                .xref(Contact.LastName, 'A {!value.get($0.FirstName)}')
+                .xref(Contact.Birthdate, '{!dates.addDays($1.Birthdate, -1)}', current)
+            .end()
             .generate();
 
 
@@ -572,7 +615,7 @@ private with sharing class SampleTest {
         System.debug('CPU Limit: ' + Limits.getCpuTime() + '/' + Limits.getLimitCpuTime());
 
         Test.startTest();
-        List<Contact> contacts = (List<Contact>)bag.get('Contact');
+        List<Contact> contacts = (List<Contact>)bag.get(Contact.SObjectType);
         for (Integer i = 0; i < contacts.size(); i++) {
             System.assertEquals(current.addDays(-i), contacts[i].Birthdate);
             System.assertEquals(contacts[i].LastName, 'A ' + contacts[i].FirstName);
@@ -584,13 +627,14 @@ private with sharing class SampleTest {
     static void testCrossFieldReferenceValidateException() {
         Boolean hasException = false;
         try {
-            ATKWizard.Bag bag = ATKWizard.I().wantMany('Contact')
-            .total(10)
-            .fields(new Map<String, Object> {
-                'FirstName' => '{!name.firstName}',
-                'Birthdate' => '{!dates.addDays($1.Birthdate, -1)}'
-            })
-            .generate();
+            ATKWand.IWizardBag bag = ATKWizard.I().wantMany(Contact.SObjectType)
+                .total(10)
+                .guard()
+                .fields()
+                    .eval(Contact.FirstName, '{!name.firstName}')
+                    .xref(Contact.Birthdate, '{!dates.addDays($1.Birthdate, -1)}')
+                .end()
+                .generate();
         } catch (ATKCommon.NotFoundException ex) {
             hasException = true;
         }
@@ -601,13 +645,14 @@ private with sharing class SampleTest {
     static void testCrossFieldReferenceValidateException2() {
         Boolean hasException = false;
         try {
-            ATKWizard.Bag bag = ATKWizard.I().wantMany('Contact')
-            .total(10)
-            .fields(new Map<String, Object> {
-                'FirstName' => '{!name.firstName}',
-                'LastName' => 'A {!value.get($0.FirstName)}'
-            })
-            .generate();
+            ATKWand.IWizardBag bag = ATKWizard.I().wantMany(Contact.SObjectType)
+                .total(10)
+                .guard()
+                .fields()
+                    .eval(Contact.FirstName, '{!name.firstName}')
+                    .xref(Contact.LastName, 'A {!value.get($0.FirstName)}')
+                .end()
+                .generate();
         } catch (ATKCommon.NotFoundException ex) {
             hasException = true;
         }
@@ -615,41 +660,17 @@ private with sharing class SampleTest {
     }
 
     @isTest
-    static void testCrossFieldReferenceValidateException3() {
-        Boolean hasException = false;
-        try {
-            ATKWizard.Bag bag = ATKWizard.I().wantMany('Contact')
-            .total(10)
-            .fields(new Map<String, Object> {
-                'FirstName' => '{!name.firstName}',
-                'LastName' => new List<String> {
-                    'A {!value.get($0.FirstName)}',
-                    'B {!value.get($0.FirstName)}',
-                    'C {!value.get($0.FirstName)}'
-                }
-            })
-            .generate();
-        } catch (ATKCommon.NotFoundException ex) {
-            hasException = true;
-        }
-        System.assert(hasException);
-    }
-
-    @isTest
     static void testCrossFieldReferenceDependencySort() {
         Datetime currentDatetime = Datetime.now();
-        ATKWizard.I().wantMany('Event')
-            .origin(new Map<String, Object> {
-                'StartDateTime' => currentDatetime
-            })
-            .guess(false, new List<String> { 'Type' })
-            .fields(new Map<String, Object> {
-                'StartDateTime' => '{!dates.addDays($1.EndDateTime, 1)}',
-                'EndDateTime' => '{!dates.addDays($0.StartDateTime, 1)}',
-                'ActivityDateTime' => '{!value.get($0.StartDateTime)}',
-                'DurationInMinutes' => 24 * 60
-            })
+        ATKWizard.I().wantMany(Event.SObjectType)
             .total(10)
+            .fields()
+                .xref(Event.StartDateTime, '{!dates.addDays($1.EndDateTime, 1)}', currentDatetime)
+                .xref(Event.EndDateTime, '{!dates.addDays($0.StartDateTime, 1)}')
+                .xref(Event.ActivityDateTime, '{!value.get($0.StartDateTime)}')
+                .eval(Event.DurationInMinutes, 24 * 60)
+                .eval(Event.Type)
+            .end()
         .generate();
 
         List<Event> events = [SELECT Id, StartDateTime, EndDateTime, ActivityDateTime, Type FROM Event];
@@ -669,18 +690,17 @@ private with sharing class SampleTest {
     @isTest
     static void testCrossFieldReferenceDependencySort2() {
         Datetime currentDatetime = Datetime.now();
-        ATKWizard.I().wantMany('Event')
-            .origin(new Map<String, Object> {
-                'StartDateTime' => new List<Object>{ currentDatetime, currentDatetime.addDays(2) }
-            })
-            .guess(false)
-            .fields(new Map<String, Object> {
-                'StartDateTime' => '{!dates.addDays($2.EndDateTime, 3)}',
-                'EndDateTime' => '{!dates.addDays($0.StartDateTime, 1)}',
-                'ActivityDateTime' => '{!value.get($0.StartDateTime)}',
-                'DurationInMinutes' => 24 * 60
-            })
+        ATKWizard.I().wantMany(Event.SObjectType)
             .total(10)
+            .fields()
+                .xref(Event.StartDateTime, '{!dates.addDays($2.EndDateTime, 3)}', new List<Object>{
+                    currentDatetime,
+                    currentDatetime.addDays(2)
+                })
+                .xref(Event.EndDateTime, '{!dates.addDays($0.StartDateTime, 1)}')
+                .xref(Event.ActivityDateTime, '{!value.get($0.StartDateTime)}')
+                .eval(Event.DurationInMinutes, 24 * 60)
+            .end()
         .generate();
 
         List<Event> events = [SELECT Id, StartDateTime, EndDateTime, ActivityDateTime FROM Event];

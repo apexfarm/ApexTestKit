@@ -1,9 +1,9 @@
 /**
  * Apex Test Kit
  */
-global with sharing class ATKWizard {
+public with sharing class ATKWizard implements ATKWand.IWizardEntity, ATKWand.IWizardField {
     private static ATKWizard instance { get; set; }
-    global static ATKWizard I() {
+    public static ATKWizard I() {
         if (instance == null) {
             instance = new ATKWizard();
         }
@@ -16,95 +16,141 @@ global with sharing class ATKWizard {
     /*
      * Entity Creation
      */
-    global ATKWizard wantMany(String entityName) {
+    public ATKWand.IWizardEntity wantTemp(SObjectType objectType, String templateName) {
         this.spellBook = new ATKWand.ATKSpellBook();
-        this.spellBook.attach(new ATKWand.EntityNode(entityName,
-            ATKWand.EntityNodeType.WantMany));
+        this.spellBook.attach(ATKWand.createTemplate(objectType, templateName));
         return this;
     }
 
-    global ATKWizard belongTo(String entityName) {
-        this.spellBook.attach(new ATKWand.EntityNode(entityName,
-            ATKWand.EntityNodeType.BelongTo));
+    public ATKWand.IWizardEntity wantMany(SObjectType objectType) {
+        this.spellBook = new ATKWand.ATKSpellBook();
+        this.spellBook.attach(new ATKWand.EntityNode(objectType, ATKWand.EntityNodeType.WantMany));
         return this;
     }
 
-    global ATKWizard haveMany(String entityName) {
-        this.spellBook.attach(new ATKWand.EntityNode(entityName,
-            ATKWand.EntityNodeType.HaveMany));
+    public ATKWand.IWizardEntity belongTo(SObjectType objectType) {
+        this.spellBook.attach(new ATKWand.EntityNode(objectType, ATKWand.EntityNodeType.BelongTo));
+        return this;
+    }
+
+    public ATKWand.IWizardEntity haveMany(SObjectType objectType) {
+        this.spellBook.attach(new ATKWand.EntityNode(objectType, ATKWand.EntityNodeType.HaveMany));
         return this;
     }
 
     /*
-     * Entity Decoration
+     * Entity Relationship
      */
-    global ATKWizard fromList(List<SObject> repository) {
-        this.spellBook.apply(new ATKWand.FromListAttribute(repository));
+
+    public ATKWand.IWizardEntity referenceBy(Schema.SObjectField relationField) {
+        this.spellBook.apply(new ATKWand.ReferenceByAttribute(relationField));
         return this;
     }
 
-    global ATKWizard total(Integer count) {
+    public ATKWand.IWizardEntity total(Integer count) {
         this.spellBook.apply(new ATKWand.TotalAttribute(count));
         return this;
     }
 
-    global ATKWizard origin(Map<String, Object> fieldRuleMap) {
-        this.spellBook.apply(new ATKWand.OriginFieldAttribute(fieldRuleMap));
-        return this;
+    public ATKWand.IWizardEntity also() {
+        return also(1);
     }
 
-    global ATKWizard fields(Map<String, Object> fieldRuleMap) {
-        this.spellBook.apply(new ATKWand.FieldAttribute(fieldRuleMap));
-        return this;
-    }
-
-    global ATKWizard referenceBy(String relationName) {
-        this.spellBook.apply(new ATKWand.ReferenceByAttribute(relationName));
-        return this;
-    }
-
-    global ATKWizard guess(List<String> fieldNames) {
-        this.spellBook.apply(new ATKWand.GuessAttribute(fieldNames));
-        return this;
-    }
-
-    global ATKWizard guess(Boolean enable) {
-        this.spellBook.apply(new ATKWand.GuessAttribute(enable));
-        return this;
-    }
-
-    global ATKWizard guess(Boolean enable, List<String> fieldNames) {
-        this.spellBook.apply(new ATKWand.GuessAttribute(enable, fieldNames));
+    public ATKWand.IWizardEntity also(Integer depth) {
+        this.spellBook.pop(depth);
         return this;
     }
 
     /*
-     * Entity Traverse
+     * Entity Field Source
      */
-    global ATKWizard also() {
-        return also(1);
+    public ATKWand.IWizardEntity useCSV(String fileName) {
+        // this.spellBook.apply(new ATKWand.UseListAttribute(repository));
+        return this;
     }
 
-    global ATKWizard also(Integer depth) {
-        this.spellBook.pop(depth);
+    public ATKWand.IWizardEntity useList(List<SObject> repository) {
+        this.spellBook.apply(new ATKWand.UseListAttribute(repository));
+        return this;
+    }
+
+    public ATKWand.IWizardEntity useTemp() {
+        this.spellBook.apply(new ATKWand.UseTempAttribute(null));
+        return this;
+    }
+
+    public ATKWand.IWizardEntity useTemp(String templateName) {
+        this.spellBook.apply(new ATKWand.UseTempAttribute(templateName));
+        return this;
+    }
+
+    /*
+     * Field Decoration
+     */
+
+    public ATKWand.IWizardEntity guard() {
+        this.spellBook.apply(new ATKWand.GuardAttribute(true));
+        return this;
+    }
+
+    public ATKWand.IWizardEntity guard(Boolean enable) {
+        this.spellBook.apply(new ATKWand.GuardAttribute(enable));
+        return this;
+    }
+
+    public ATKWand.IWizardField fields() {
+        return this;
+    }
+
+    public ATKWand.IWizardField eval(Schema.SObjectField field) {
+        this.spellBook.apply(new ATKWand.EvalAttribute(field));
+        return this;
+    }
+
+    public ATKWand.IWizardField eval(Schema.SObjectField field, Object rule) {
+        this.spellBook.apply(new ATKWand.EvalAttribute(field, rule));
+        return this;
+    }
+
+    public ATKWand.IWizardField xref(Schema.SObjectField field, String rule) {
+        this.spellBook.apply(new ATKWand.XrefAttribute(field, rule));
+        return this;
+    }
+
+    public ATKWand.IWizardField xref(Schema.SObjectField field, String rule, Object origin) {
+        this.spellBook.apply(new ATKWand.XrefAttribute(field, rule, origin));
+        return this;
+    }
+
+    public ATKWand.IWizardEntity end() {
         return this;
     }
 
     /*
      * Entity Generation
      */
-    global Bag generate() {
-        ATKWand.generate(this.spellBook);
+    public void register() {
+        (new ATKWand()).register(this.spellBook);
+    }
+
+    public ATKWand.IWizardBag generate() {
+        (new ATKWand()).generate(this.spellBook, false);
 
         Bag bag = new Bag(this.spellBook);
         this.spellBook = null;
         return bag;
     }
 
-    /**
-     * [Bag of Holding](https://en.wikipedia.org/wiki/Bag_of_holding)
-     */
-    global class Bag {
+    public ATKWand.IWizardBag generate(Boolean inMemory) {
+        (new ATKWand()).generate(this.spellBook, inMemory);
+
+        Bag bag = new Bag(this.spellBook);
+        this.spellBook = null;
+        return bag;
+    }
+
+    @TestVisible
+    private class Bag implements ATKWand.IWizardBag {
         private ATKWand.ATKSpellBook spellBook { get; set; }
 
         @TestVisible
@@ -112,8 +158,8 @@ global with sharing class ATKWizard {
             this.spellBook = spellBook;
         }
 
-        global List<SObject> get(String entityName) {
-            return this.spellBook.query(entityName);
+        public List<SObject> get(Schema.SObjectType objectType) {
+            return this.spellBook.query(objectType);
         }
     }
 }
