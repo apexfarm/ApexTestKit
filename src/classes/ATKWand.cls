@@ -1025,7 +1025,7 @@ public with sharing class ATKWand {
             this.referenceToMap = new Map<String, EntityNode>();
             this.repository = new List<SObject>();
 
-            this.guardEnabled = false;
+            this.guardEnabled = true;
             this.ruleFieldMap = new Map<Schema.SObjectField, RuleEntityField>();
             this.xrefFieldMap = new Map<Schema.SObjectField, XrefEntityField>();
             this.ruleFieldCache = new List<RuleEntityField>();

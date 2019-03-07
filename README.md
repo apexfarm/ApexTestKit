@@ -14,10 +14,8 @@ static void testAccountCreation() {
     // create 10 accounts, each has 2 contacts
     ATKWizard.I().wantMany(Account.SObjectType)
         .total(10)
-        .fields().guard().end()
         .haveMany(Contact.SObjectType)
             .total(20)
-        	.fields().guard().end()
         .generate();
 
     List<Account> accountList = [SELECT Id FROM Account];
@@ -47,11 +45,9 @@ All examples below can be successfully run from `src/classes/SampleTest.cls` in 
 ```java
 ATKWizard.I().wantMany(Account.SObjectType)
     .total(10)
-    .fields().guard().end()
     .haveMany(Contact.SObjectType)
         .referenceBy(Contact.AccountId) // can be omitted
         .total(40)
-        .fields().guard().end()
     .generate();
 ```
 
@@ -60,11 +56,9 @@ ATKWizard.I().wantMany(Account.SObjectType)
 ```java
 ATKWizard.I().wantMany(Contact.SObjectType)
     .total(40)
-    .fields().guard().end()
     .belongTo(Account.SObjectType)
         .referenceBy(Contact.AccountId) // can be omitted
         .total(10)
-        .fields().guard().end()
     .generate();
 ```
 
@@ -75,12 +69,10 @@ Id pricebook2Id = Test.getStandardPricebookId();
 
 ATKWand.IWizardBag bag = ATKWizard.I().wantMany(Product2.SObjectType)
     .total(5)
-    .fields().guard().end()
     .haveMany(PricebookEntry.SObjectType)
         .referenceBy(PricebookEntry.Product2Id) // can be omitted
         .total(5)
         .fields()
-            .guard()
             .useEval(PricebookEntry.Pricebook2Id, pricebook2Id)
             .useEval(PricebookEntry.UseStandardPrice, false)
             .useEval(PricebookEntry.IsActive, true)
@@ -89,12 +81,10 @@ ATKWand.IWizardBag bag = ATKWizard.I().wantMany(Product2.SObjectType)
 
 ATKWizard.I().wantMany(Pricebook2.SObjectType)
     .total(5)
-    .fields().guard().end()
     .haveMany(PricebookEntry.SObjectType)
         .referenceBy(PricebookEntry.Pricebook2Id) // can be omitted
         .total(25)
         .fields()
-            .guard()
             .useEval(PricebookEntry.UseStandardPrice, false)
             .useEval(PricebookEntry.IsActive, true)
         .end()
@@ -137,7 +127,7 @@ ATKWizard.I().wantMany(A__c.SObjectType)
         .referenceBy(B__C.A_ID__c)
         .total(20)
         .fields()
-           .guard()
+           .guard(false)
            .useEval(B__C.AnyField__c)
            .useEval(B__C.Price__c, 12.34)
            .useEval(B__C.PhoneNumber__c, '{{###-###-####}}')
@@ -163,7 +153,7 @@ Only use `guard()`, `useEval()`, `useXref()`, between `fields()` and `end()` key
 | --------- | ------------------------------ | ------------------------------------------------------------ |
 | fields()  | N/A                            | **Optional**. Start of declaring field generation logic.     |
 | end()     | N/A                            | **Optional**. End of declaring field generation logic.       |
-| guard()   | [Boolean]                      | **Optional**. Turn on guard for `REQUIRED_FIELD_MISSING` exceptions by implicitly guessing values for fields not defined in `useEval()` and `useXref()`. 80% of the time, implicit guessing is useful, but you would not like to use it for sObjects with many required fields such as User and Event etc. |
+| guard()   | [Boolean]                      | **Optional**. Turn on guard for `REQUIRED_FIELD_MISSING` exceptions by implicitly guessing values for fields not defined in `useEval()` and `useXref()`. 80% of the time, implicit guessing is useful, so guard is tuned on by default. But you would like to disable it for sObjects with many required fields such as User and Event etc. |
 | useEval() | SObjectField, [Object]         | **Optional**. Use this keyword to tailor the field values, either to bypass validation rules, or to fulfill assertion logics. The second parameter could be either `ATKFaker` interpolation expressions, or primitive values. |
 | useXref() | SObjectField, String, [Object] | **Optional**. Use this keyword if cross record arithmetic expressions are used, like `'{!dates.addDay($1.startDate__c, 1)}'`. Here `$1` is used to reference a previous record. Hence you can use `$0` to reference values on the current record. |
 
@@ -218,6 +208,7 @@ Datetime currentDatetime = Datetime.now();
 ATKWizard.I().wantMany(Event.SObjectType)
     .total(10)
     .fields()
+    	.guard(false)
         .useXref(Event.StartDateTime, '{!dates.addDays($1.EndDateTime, 1)}', currentDatetime)
         .useXref(Event.EndDateTime, '{!dates.addDays($0.StartDateTime, 1)}')
         .useXref(Event.ActivityDateTime, '{!value.get($0.StartDateTime)}')
