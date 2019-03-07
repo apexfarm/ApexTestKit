@@ -31,9 +31,9 @@ private with sharing class SampleTest {
         ATKWizard.I().wantMany(Account.SObjectType)
             .total(accountTotal)
             .fields()
-                .useEval(Account.NumberOfEmployees)
-                .useEval(Account.Fax)
-                .useEval(Account.Industry)
+                .eval(Account.NumberOfEmployees)
+                .eval(Account.Fax)
+                .eval(Account.Industry)
             .end()
             .haveMany(Contact.SObjectType)
                 .total(contactTotal)
@@ -63,7 +63,7 @@ private with sharing class SampleTest {
         ATKWizard.I().wantMany(Account.SObjectType)
             .total(6)
             .fields()
-                .useEval(Account.Name, new List<String> {
+                .eval(Account.Name, new List<String> {
                     'Microsoft-{{###}}',
                     'Google-{{###}}',
                     'Apple-{{###}}'
@@ -92,7 +92,7 @@ private with sharing class SampleTest {
         ATKWizard.I().wantMany(Account.SObjectType)
             .total(6)
             .fields()
-                .useEval(Account.Name, new Set<String> {
+                .eval(Account.Name, new Set<String> {
                     'Microsoft-{{###}}',
                     'Google-{{###}}',
                     'Apple-{{###}}'
@@ -115,12 +115,12 @@ private with sharing class SampleTest {
         ATKWizard.I().wantMany(Account.SObjectType)
             .total(10)
             .fields()
-                .useEval(Account.Name, new List<String> {
+                .eval(Account.Name, new List<String> {
                     'Microsoft-{{###}}',
                     'Google-{{###}}',
                     'Apple-{{###}}'
                 })
-                .useEval(Account.Fax, '{{1##-###-####}}')
+                .eval(Account.Fax, '{{1##-###-####}}')
             .end()
             .generate();
 
@@ -133,7 +133,7 @@ private with sharing class SampleTest {
         ATKWand.IWizardBag bag = ATKWizard.I().wantMany(Account.SObjectType)
             .total(10)
             .fields()
-                .useEval(Account.Name, new List<String> {
+                .eval(Account.Name, new List<String> {
                     'Microsoft-{{###}}'
                 })
             .end()
@@ -148,7 +148,7 @@ private with sharing class SampleTest {
         ATKWizard.I().wantMany(Account.SObjectType)
             .useList(bag.get(Account.SObjectType))
             .fields()
-                .useEval(Account.Name, new List<String> {
+                .eval(Account.Name, new List<String> {
                     'Google-{{###}}'
                 })
             .end()
@@ -166,7 +166,7 @@ private with sharing class SampleTest {
         ATKWand.IWizardBag bag = ATKWizard.I().wantMany(Account.SObjectType)
             .total(10)
             .fields()
-                .useEval(Account.Name, new List<String> {
+                .eval(Account.Name, new List<String> {
                     'Microsoft-{{###}}'
                 })
             .end()
@@ -184,7 +184,7 @@ private with sharing class SampleTest {
                 new Account(), new Account(), new Account(), new Account(), new Account()
             })
             .fields()
-                .useEval(Account.Name, new List<String> {
+                .eval(Account.Name, new List<String> {
                     'Google-{{###}}'
                 })
             .end()
@@ -209,19 +209,19 @@ private with sharing class SampleTest {
         ATKWand.IWizardBag bag = ATKWizard.I().wantMany(Account.SObjectType)
             .total(accountTotal)
             .fields()
-                .useEval(Account.Industry)
-                .useEval(Account.Name, 'Microsoft-{{###}}')
-                .useEval(Account.Fax, '{{1##-###-####}}')
-                .useEval(Account.NumberOfEmployees, '{!random.number(8, 0)}')
+                .eval(Account.Industry)
+                .eval(Account.Name, 'Microsoft-{{###}}')
+                .eval(Account.Fax, '{{1##-###-####}}')
+                .eval(Account.NumberOfEmployees, '{!random.number(8, 0)}')
             .end()
             .haveMany(Contact.SObjectType)
                 .referenceBy(Contact.AccountId)
                 .total(contactTotal)
                 .fields()
-                    .useEval(Contact.FirstName, '{!name.firstName(female)}')
-                    .useEval(Contact.LastName, '{!name.lastName}')
-                    .useEval(Contact.Birthdate, '{!dates.past}')
-                    .useEval(Contact.Email, '{!internet.email}')
+                    .eval(Contact.FirstName, '{!name.firstName(female)}')
+                    .eval(Contact.LastName, '{!name.lastName}')
+                    .eval(Contact.Birthdate, '{!dates.past}')
+                    .eval(Contact.Email, '{!internet.email}')
                 .end()
             .generate();
 
@@ -246,13 +246,13 @@ private with sharing class SampleTest {
     static void testRelationshipHaveManyWithLessChild() {
         ATKWizard.I().wantMany(Account.SObjectType)
             .fields()
-                .useEval(Account.Name, 'Google-{{###}}')
+                .eval(Account.Name, 'Google-{{###}}')
             .end()
             .total(10)
             .haveMany(Contact.SObjectType)
                 .referenceBy(Contact.AccountId)
                 .fields()
-                    .useEval(Contact.LastName, '{!name.lastName}')
+                    .eval(Contact.LastName, '{!name.lastName}')
                 .end()
                 .total(4)
             .generate();
@@ -308,13 +308,13 @@ private with sharing class SampleTest {
         ATKWizard.I().wantMany(Contact.SObjectType)
             .total(40)
             .fields()
-                .useEval(Contact.LastName, '{!name.lastName}')
+                .eval(Contact.LastName, '{!name.lastName}')
             .end()
             .belongTo(Account.SObjectType)
                 .referenceBy(Contact.AccountId)
                 .total(10)
                 .fields()
-                    .useEval(Account.Name, 'Google-{{###}}')
+                    .eval(Account.Name, 'Google-{{###}}')
                 .end()
             .generate();
 
@@ -330,13 +330,13 @@ private with sharing class SampleTest {
         ATKWizard.I().wantMany(Contact.SObjectType)
             .total(4)
             .fields()
-                .useEval(Contact.LastName, '{!name.lastName}')
+                .eval(Contact.LastName, '{!name.lastName}')
             .end()
             .belongTo(Account.SObjectType)
                 .referenceBy(Contact.AccountId)
                 .total(10)
                 .fields()
-                    .useEval(Account.Name, 'Google-{{###}}')
+                    .eval(Account.Name, 'Google-{{###}}')
                 .end()
             .generate();
 
@@ -364,9 +364,9 @@ private with sharing class SampleTest {
                 .referenceBy(PricebookEntry.Product2Id)
                 .total(5)
                 .fields()
-                    .useEval(PricebookEntry.Pricebook2Id, pricebook2Id)
-                    .useEval(PricebookEntry.UseStandardPrice, false)
-                    .useEval(PricebookEntry.IsActive, true)
+                    .eval(PricebookEntry.Pricebook2Id, pricebook2Id)
+                    .eval(PricebookEntry.UseStandardPrice, false)
+                    .eval(PricebookEntry.IsActive, true)
                 .end()
             .generate();
 
@@ -376,8 +376,8 @@ private with sharing class SampleTest {
                 .referenceBy(PricebookEntry.Pricebook2Id)
                 .total(25)
                 .fields()
-                    .useEval(PricebookEntry.UseStandardPrice, false)
-                    .useEval(PricebookEntry.IsActive, true)
+                    .eval(PricebookEntry.UseStandardPrice, false)
+                    .eval(PricebookEntry.IsActive, true)
                 .end()
                 .belongTo(Product2.SObjectType)
                     .referenceBy(PricebookEntry.Product2Id)
@@ -408,18 +408,18 @@ private with sharing class SampleTest {
                 .referenceBy(Contract.AccountId)
                 .total(6)
                 .fields()
-                    .useEval(Contract.StartDate, '{!dates.between(2018-7-1, 2018-7-31)}')
-                    .useEval(Contract.ContractTerm, 12)
-                    .useEval(Contract.Status, 'Draft')
+                    .eval(Contract.StartDate, '{!dates.between(2018-7-1, 2018-7-31)}')
+                    .eval(Contract.ContractTerm, 12)
+                    .eval(Contract.Status, 'Draft')
                 .end()
                 .haveMany(Order.SObjectType)
                     .referenceBy(Order.ContractId)
                     .total(12)
                     .fields()
-                        .useEval(Order.EffectiveDate, '{!dates.between(2018-8-1, 2018-8-31)}')
-                        .useEval(Order.EndDate, '{!dates.between(2019-6-1, 2019-6-30)}')
-                        .useEval(Order.IsReductionOrder, false)
-                        .useEval(Order.Status, 'Draft')
+                        .eval(Order.EffectiveDate, '{!dates.between(2018-8-1, 2018-8-31)}')
+                        .eval(Order.EndDate, '{!dates.between(2019-6-1, 2019-6-30)}')
+                        .eval(Order.IsReductionOrder, false)
+                        .eval(Order.Status, 'Draft')
                     .end()
             .also(2)
             .haveMany(Opportunity.SObjectType)
@@ -466,7 +466,7 @@ private with sharing class SampleTest {
                 .referenceBy(Opportunity.AccountId)
                 .total(6)
                 .fields()
-                    .useEval(Opportunity.CloseDate, '{!dates.between(2018-7-1, 2018-8-1)}')
+                    .eval(Opportunity.CloseDate, '{!dates.between(2018-7-1, 2018-8-1)}')
                 .end()
                 .haveMany(OpportunityContactRole.SObjectType)
                     .referenceBy(OpportunityContactRole.OpportunityId)
@@ -490,7 +490,7 @@ private with sharing class SampleTest {
                     .total(20)
                     .belongTo(Opportunity.SObjectType)
                         .fields()
-                            .useEval(Opportunity.CloseDate, '{!dates.between(2018-7-1, 2018-8-1)}')
+                            .eval(Opportunity.CloseDate, '{!dates.between(2018-7-1, 2018-8-1)}')
                         .end()
                         .total(20)
             .generate();
@@ -515,7 +515,7 @@ private with sharing class SampleTest {
         ATKWand.IWizardBag bag = ATKWizard.I().wantMany(Contact.SObjectType)
             .total(10)
             .fields()
-                .useXref(Contact.Birthdate, '{!dates.addDays($1.Birthdate, -1)}', current)
+                .xref(Contact.Birthdate, '{!dates.addDays($1.Birthdate, -1)}', current)
             .end()
             .generate();
 
@@ -532,7 +532,7 @@ private with sharing class SampleTest {
         ATKWizard.I().wantMany(Contact.SObjectType)
             .total(10)
             .fields()
-                .useEval(Contact.Birthdate, current)
+                .eval(Contact.Birthdate, current)
             .end()
             .generate();
 
@@ -545,7 +545,7 @@ private with sharing class SampleTest {
         ATKWand.IWizardBag bag = ATKWizard.I().wantMany(Contact.SObjectType)
             .total(10)
             .fields()
-                .useXref(Contact.Birthdate, '{!dates.addDays($1.Birthdate, -1)}', current)
+                .xref(Contact.Birthdate, '{!dates.addDays($1.Birthdate, -1)}', current)
             .end()
             .generate();
 
@@ -564,10 +564,10 @@ private with sharing class SampleTest {
         ATKWand.IWizardBag bag = ATKWizard.I().wantMany(Contact.SObjectType)
             .total(1500)
             .fields()
-                .useEval(Contact.Email)
-                .useEval(Contact.FirstName, '{!name.firstName}')
-                .useXref(Contact.LastName, 'A {!value.get($0.FirstName)}')
-                .useXref(Contact.Birthdate, '{!dates.addDays($1.Birthdate, -1)}', current)
+                .eval(Contact.Email)
+                .eval(Contact.FirstName, '{!name.firstName}')
+                .xref(Contact.LastName, 'A {!value.get($0.FirstName)}')
+                .xref(Contact.Birthdate, '{!dates.addDays($1.Birthdate, -1)}', current)
             .end()
             .generate();
 
@@ -592,8 +592,8 @@ private with sharing class SampleTest {
             ATKWand.IWizardBag bag = ATKWizard.I().wantMany(Contact.SObjectType)
                 .total(10)
                 .fields()
-                    .useEval(Contact.FirstName, '{!name.firstName}')
-                    .useXref(Contact.Birthdate, '{!dates.addDays($1.Birthdate, -1)}')
+                    .eval(Contact.FirstName, '{!name.firstName}')
+                    .xref(Contact.Birthdate, '{!dates.addDays($1.Birthdate, -1)}')
                 .end()
                 .generate();
         } catch (ATKCommon.NotFoundException ex) {
@@ -609,8 +609,8 @@ private with sharing class SampleTest {
             ATKWand.IWizardBag bag = ATKWizard.I().wantMany(Contact.SObjectType)
                 .total(10)
                 .fields()
-                    .useEval(Contact.FirstName, '{!name.firstName}')
-                    .useXref(Contact.LastName, 'A {!value.get($0.FirstName)}')
+                    .eval(Contact.FirstName, '{!name.firstName}')
+                    .xref(Contact.LastName, 'A {!value.get($0.FirstName)}')
                 .end()
                 .generate();
         } catch (ATKCommon.NotFoundException ex) {
@@ -626,11 +626,11 @@ private with sharing class SampleTest {
             .total(10)
             .fields()
                 .guard(false)
-                .useXref(Event.StartDateTime, '{!dates.addDays($1.EndDateTime, 1)}', currentDatetime)
-                .useXref(Event.EndDateTime, '{!dates.addDays($0.StartDateTime, 1)}')
-                .useXref(Event.ActivityDateTime, '{!value.get($0.StartDateTime)}')
-                .useEval(Event.DurationInMinutes, 24 * 60)
-                .useEval(Event.Type)
+                .xref(Event.StartDateTime, '{!dates.addDays($1.EndDateTime, 1)}', currentDatetime)
+                .xref(Event.EndDateTime, '{!dates.addDays($0.StartDateTime, 1)}')
+                .xref(Event.ActivityDateTime, '{!value.get($0.StartDateTime)}')
+                .eval(Event.DurationInMinutes, 24 * 60)
+                .eval(Event.Type)
             .end()
             .generate();
 
@@ -655,13 +655,13 @@ private with sharing class SampleTest {
             .total(10)
             .fields()
                 .guard(false)
-                .useXref(Event.StartDateTime, '{!dates.addDays($2.EndDateTime, 3)}', new List<Object>{
+                .xref(Event.StartDateTime, '{!dates.addDays($2.EndDateTime, 3)}', new List<Object>{
                     currentDatetime,
                     currentDatetime.addDays(2)
                 })
-                .useXref(Event.EndDateTime, '{!dates.addDays($0.StartDateTime, 1)}')
-                .useXref(Event.ActivityDateTime, '{!value.get($0.StartDateTime)}')
-                .useEval(Event.DurationInMinutes, 24 * 60)
+                .xref(Event.EndDateTime, '{!dates.addDays($0.StartDateTime, 1)}')
+                .xref(Event.ActivityDateTime, '{!value.get($0.StartDateTime)}')
+                .eval(Event.DurationInMinutes, 24 * 60)
             .end()
             .generate();
 

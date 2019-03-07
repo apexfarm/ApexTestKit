@@ -57,10 +57,10 @@ public with sharing class ATKWand {
     public interface IWizardField {
         IWizardField guard();
         IWizardField guard(Boolean enable);
-        IWizardField useEval(Schema.SObjectField field);
-        IWizardField useEval(Schema.SObjectField field, Object rule);
-        IWizardField useXref(Schema.SObjectField field, String rule);
-        IWizardField useXref(Schema.SObjectField field, String rule, Object origin);
+        IWizardField eval(Schema.SObjectField field);
+        IWizardField eval(Schema.SObjectField field, Object rule);
+        IWizardField xref(Schema.SObjectField field, String rule);
+        IWizardField xref(Schema.SObjectField field, String rule, Object origin);
         IWizardEntity end();
     }
 

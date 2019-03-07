@@ -7,10 +7,10 @@ public with sharing class SampleTestDataFactory {
         ATKWizard.I().wantTemp(Account.SObjectType, ACCOUNT_WITH_FAX)
             .fields()
                 .guard()
-                .useEval(Account.Fax, '{{1##-###-####}}')
-                .useEval(Account.NumberOfEmployees, '{!random.number(8, 0)}')
-                .useEval(Account.Industry)
-                .useEval(Account.Industry)
+                .eval(Account.Fax, '{{1##-###-####}}')
+                .eval(Account.NumberOfEmployees, '{!random.number(8, 0)}')
+                .eval(Account.Industry)
+                .eval(Account.Industry)
             .end()
             .register();
         return ACCOUNT_WITH_FAX;
@@ -20,10 +20,10 @@ public with sharing class SampleTestDataFactory {
         ATKWizard.I().wantTemp(Contact.SObjectType, CONTACT_WITH_EMAIL)
             .fields()
                 .guard()
-                .useEval(Contact.FirstName, '{!name.firstName(female)}')
-                .useEval(Contact.LastName, '{!name.lastName}')
-                .useEval(Contact.Birthdate, '{!dates.past}')
-                .useEval(Contact.Email, '{!internet.email}')
+                .eval(Contact.FirstName, '{!name.firstName(female)}')
+                .eval(Contact.LastName, '{!name.lastName}')
+                .eval(Contact.Birthdate, '{!dates.past}')
+                .eval(Contact.Email, '{!internet.email}')
             .end()
             .register();
         return CONTACT_WITH_EMAIL;

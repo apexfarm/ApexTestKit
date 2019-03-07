@@ -102,22 +102,22 @@ public with sharing class ATKWizard implements ATKWand.IWizardEntity, ATKWand.IW
         return this;
     }
 
-    public ATKWand.IWizardField useEval(Schema.SObjectField field) {
+    public ATKWand.IWizardField eval(Schema.SObjectField field) {
         this.spellBook.apply(new ATKWand.EvalAttribute(field));
         return this;
     }
 
-    public ATKWand.IWizardField useEval(Schema.SObjectField field, Object rule) {
+    public ATKWand.IWizardField eval(Schema.SObjectField field, Object rule) {
         this.spellBook.apply(new ATKWand.EvalAttribute(field, rule));
         return this;
     }
 
-    public ATKWand.IWizardField useXref(Schema.SObjectField field, String rule) {
+    public ATKWand.IWizardField xref(Schema.SObjectField field, String rule) {
         this.spellBook.apply(new ATKWand.XrefAttribute(field, rule));
         return this;
     }
 
-    public ATKWand.IWizardField useXref(Schema.SObjectField field, String rule, Object origin) {
+    public ATKWand.IWizardField xref(Schema.SObjectField field, String rule, Object origin) {
         this.spellBook.apply(new ATKWand.XrefAttribute(field, rule, origin));
         return this;
     }

@@ -34,7 +34,7 @@ Underneath, the data are automatically guessed with appropriate values according
 
 ## Usage of ATKWizard
 
-All examples below can be successfully run from `src/classes/SampleTest.cls` in a clean Salesforce CRM organization. If validation rules were added to CRM standard sObjects, `fields().useEval().end()` keywords could be used to tailor the record generation to bypass them.
+All examples below can be successfully run from `src/classes/SampleTest.cls` in a clean Salesforce CRM organization. If validation rules were added to CRM standard sObjects, `fields().eval().end()` keywords could be used to tailor the record generation to bypass them.
 
 ### 1. Setup Relationship
 
@@ -73,9 +73,9 @@ ATKWand.IWizardBag bag = ATKWizard.I().wantMany(Product2.SObjectType)
         .referenceBy(PricebookEntry.Product2Id) // can be omitted
         .total(5)
         .fields()
-            .useEval(PricebookEntry.Pricebook2Id, pricebook2Id)
-            .useEval(PricebookEntry.UseStandardPrice, false)
-            .useEval(PricebookEntry.IsActive, true)
+            .eval(PricebookEntry.Pricebook2Id, pricebook2Id)
+            .eval(PricebookEntry.UseStandardPrice, false)
+            .eval(PricebookEntry.IsActive, true)
         .end()
     .generate();
 
@@ -85,8 +85,8 @@ ATKWizard.I().wantMany(Pricebook2.SObjectType)
         .referenceBy(PricebookEntry.Pricebook2Id) // can be omitted
         .total(25)
         .fields()
-            .useEval(PricebookEntry.UseStandardPrice, false)
-            .useEval(PricebookEntry.IsActive, true)
+            .eval(PricebookEntry.UseStandardPrice, false)
+            .eval(PricebookEntry.IsActive, true)
         .end()
         .belongTo(Product2.SObjectType)
             .referenceBy(PricebookEntry.Product2Id) // can be omitted
@@ -122,17 +122,17 @@ Here is an example to demo the use of all entity decoration keywords. Although s
 // create 10 A, each has 2 B.
 List<A__c> aList = [SELECT Id FROM A__c Limit 10];
 ATKWizard.I().wantMany(A__c.SObjectType)
-    .fromList(aList);
+    .useList(aList);
     .haveMany(B__c.SObjectType)
         .referenceBy(B__C.A_ID__c)
         .total(20)
         .fields()
            .guard(false)
-           .useEval(B__C.AnyField__c)
-           .useEval(B__C.Price__c, 12.34)
-           .useEval(B__C.PhoneNumber__c, '{{###-###-####}}')
-           .useEval(B__C.FirstName__c, '{!name.firstName(male)}')
-           .useXref(B__C.Counter__c, '{!numbers.add($1.Counter__c, 1)}', 1)
+           .eval(B__C.AnyField__c)
+           .eval(B__C.Price__c, 12.34)
+           .eval(B__C.PhoneNumber__c, '{{###-###-####}}')
+           .eval(B__C.FirstName__c, '{!name.firstName(male)}')
+           .xref(B__C.Counter__c, '{!numbers.add($1.Counter__c, 1)}', 1)
         .end()
     .generate();
 ```
@@ -141,21 +141,21 @@ ATKWizard.I().wantMany(A__c.SObjectType)
 
 | Keyword       | Param           | Description                                                  |
 | ------------- | --------------- | ------------------------------------------------------------ |
-| total()       | Integer         | **Required***, only if `fromList()` is not used. It defines number of records to create for the attached sObject context. |
-| fromList()    | List\<sObject\> | **Required***, only if `total()` is not used. This tells the wizard to use the previously created sObject list, rather than to create the records from scratch. |
+| total()       | Integer         | **Required***, only if `useList()` is not used. It defines number of records to create for the attached sObject context. |
+| useList()     | List\<sObject\> | **Required***, only if `total()` is not used. This tells the wizard to use the previously created sObject list, rather than to create the records from scratch. |
 | referenceBy() | SObjectField    | **Optional**. Only use this keyword if there are multiple fields on the entity referencing the same sObject. |
 
 ##### 2.2.2 Entity Field Decoration Keywords
 
-Only use `guard()`, `useEval()`, `useXref()`, between `fields()` and `end()` keywords. And every `fields()` must follow an `end()` at the bottom. 
+Only use `guard()`, `eval()`, `xref()`, between `fields()` and `end()` keywords. And every `fields()` must follow an `end()` at the bottom.
 
 | Keyword   | Param                          | Description                                                  |
 | --------- | ------------------------------ | ------------------------------------------------------------ |
 | fields()  | N/A                            | **Optional**. Start of declaring field generation logic.     |
 | end()     | N/A                            | **Optional**. End of declaring field generation logic.       |
-| guard()   | [Boolean]                      | **Optional**. Turn on guard for `REQUIRED_FIELD_MISSING` exceptions by implicitly guessing values for fields not defined in `useEval()` and `useXref()`. 80% of the time, implicit guessing is useful, so guard is tuned on by default. But you would like to disable it for sObjects with many required fields such as User and Event etc. |
-| useEval() | SObjectField, [Object]         | **Optional**. Use this keyword to tailor the field values, either to bypass validation rules, or to fulfill assertion logics. The second parameter could be either `ATKFaker` interpolation expressions, or primitive values. |
-| useXref() | SObjectField, String, [Object] | **Optional**. Use this keyword if cross record arithmetic expressions are used, like `'{!dates.addDay($1.startDate__c, 1)}'`. Here `$1` is used to reference a previous record. Hence you can use `$0` to reference values on the current record. |
+| guard()   | [Boolean]                      | **Optional**. Turn on guard for `REQUIRED_FIELD_MISSING` exceptions by implicitly guessing values for fields not defined in `eval()` and `xref()`. 80% of the time, implicit guessing is useful, so guard is tuned on by default. But you would like to disable it for sObjects with many required fields such as User and Event etc. |
+| eval() | SObjectField, [Object]         | **Optional**. Use this keyword to tailor the field values, either to bypass validation rules, or to fulfill assertion logics. The second parameter could be either `ATKFaker` interpolation expressions, or primitive values. |
+| xref() | SObjectField, String, [Object] | **Optional**. Use this keyword if cross record arithmetic expressions are used, like `'{!dates.addDay($1.startDate__c, 1)}'`. Here `$1` is used to reference a previous record. Hence you can use `$0` to reference values on the current record. |
 
 #### 2.3 Entity Traversal Keywords
 
@@ -178,21 +178,21 @@ ATKWizard.I().wantMany(A__c.SObjectType)
 
 #### 3.1 Rule List
 
-With rule `List<>`, `useEval()` can sequentially assign values to records created. Use `List<Object>` instead of `List<String>` whenever there is no need of ATKFaker interpolation, due to less CPU limit consumed.
+With rule `List<>`, `eval()` can sequentially assign values to records created. Use `List<Object>` instead of `List<String>` whenever there is no need of ATKFaker interpolation, due to less CPU limit consumed.
 
 ```java
 ATKWizard.I().wantMany(SomeObject__c.SObjectType)
     .total(3)
     .fields()
     	// ATK will always try to parse String as expressions
-        .useEval(SomeObject__c.Name__c, new List<String> {
+        .eval(SomeObject__c.Name__c, new List<String> {
             'AP-{{###}}', 'GG-{{###}}', 'MS-{{###}}'
         })
     	// ATK will never try to parse Object as expressions
-        .useEval(SomeObject__c.Alias__c, new List<Object> { 
+        .eval(SomeObject__c.Alias__c, new List<Object> {
             'AP-123', 'GG-456', 'MS-789'
         })
-    	.useEval(SomeObject__c.Price__c, new List<Object> {
+    	.eval(SomeObject__c.Price__c, new List<Object> {
             12.39, 28.76, 22.00
         })
     .end()
@@ -201,7 +201,7 @@ ATKWizard.I().wantMany(SomeObject__c.SObjectType)
 
 #### 3.2 Cross Record Reference
 
-With `useXref()`, we can perform arithmetic calculations according to fields on previously created records. For example, we can create records with consecutive start dates and end dates as below:
+With `xref()`, we can perform arithmetic calculations according to fields on previously created records. For example, we can create records with consecutive start dates and end dates as below:
 
 ```java
 Datetime currentDatetime = Datetime.now();
@@ -209,10 +209,10 @@ ATKWizard.I().wantMany(Event.SObjectType)
     .total(10)
     .fields()
     	.guard(false)
-        .useXref(Event.StartDateTime, '{!dates.addDays($1.EndDateTime, 1)}', currentDatetime)
-        .useXref(Event.EndDateTime, '{!dates.addDays($0.StartDateTime, 1)}')
-        .useXref(Event.ActivityDateTime, '{!value.get($0.StartDateTime)}')
-        .useEval(Event.DurationInMinutes, 24 * 60)
+        .xref(Event.StartDateTime, '{!dates.addDays($1.EndDateTime, 1)}', currentDatetime)
+        .xref(Event.EndDateTime, '{!dates.addDays($0.StartDateTime, 1)}')
+        .xref(Event.ActivityDateTime, '{!value.get($0.StartDateTime)}')
+        .eval(Event.DurationInMinutes, 24 * 60)
     .end()
     .generate();
 ```
