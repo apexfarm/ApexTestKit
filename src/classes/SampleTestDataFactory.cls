@@ -5,13 +5,12 @@ public with sharing class SampleTestDataFactory {
 
     public static String registerAccountWithFax() {
         ATKWizard.I().wantTemp(Account.SObjectType, ACCOUNT_WITH_FAX)
-            .guard()
             .fields()
-                .eval(Account.Name, 'Microsoft-{{###}}')
-                .eval(Account.Fax, '{{1##-###-####}}')
-                .eval(Account.NumberOfEmployees, '{!random.number(8, 0)}')
-                .eval(Account.Industry)
-                .eval(Account.Industry)
+                .guard()
+                .useEval(Account.Fax, '{{1##-###-####}}')
+                .useEval(Account.NumberOfEmployees, '{!random.number(8, 0)}')
+                .useEval(Account.Industry)
+                .useEval(Account.Industry)
             .end()
             .register();
         return ACCOUNT_WITH_FAX;
@@ -19,12 +18,12 @@ public with sharing class SampleTestDataFactory {
 
     public static String registerContactWithEmail() {
         ATKWizard.I().wantTemp(Contact.SObjectType, CONTACT_WITH_EMAIL)
-            .guard()
             .fields()
-                .eval(Contact.FirstName, '{!name.firstName(female)}')
-                .eval(Contact.LastName, '{!name.lastName}')
-                .eval(Contact.Birthdate, '{!dates.past}')
-                .eval(Contact.Email, '{!internet.email}')
+                .guard()
+                .useEval(Contact.FirstName, '{!name.firstName(female)}')
+                .useEval(Contact.LastName, '{!name.lastName}')
+                .useEval(Contact.Birthdate, '{!dates.past}')
+                .useEval(Contact.Email, '{!internet.email}')
             .end()
             .register();
         return CONTACT_WITH_EMAIL;

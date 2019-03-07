@@ -29,31 +29,38 @@ public with sharing class ATKWand {
     }
 
     public interface IWizardEntity {
+        // keywords to start with
         IWizardEntity wantTemp(SObjectType entityType, String templateName);
         IWizardEntity wantMany(SObjectType entityType);
         IWizardEntity belongTo(SObjectType entityType);
         IWizardEntity haveMany(SObjectType entityType);
+
+        // keywords to build graph
         IWizardEntity referenceBy(Schema.SObjectField relationField);
+        IWizardEntity total(Integer count);
         IWizardEntity also();
         IWizardEntity also(Integer depth);
-        IWizardEntity total(Integer count);
+
+        // keywords to build values
         IWizardEntity useCSV(String fileName);
         IWizardEntity useList(List<SObject> repository);
         IWizardEntity useTemp();
         IWizardEntity useTemp(String templateName);
-        IWizardEntity guard();
-        IWizardEntity guard(Boolean enable);
         IWizardField fields();
+
+        // keywords to end with
         IWizardBag generate();
         IWizardBag generate(Boolean inMemory);
         void register();
     }
 
     public interface IWizardField {
-        IWizardField eval(Schema.SObjectField field);
-        IWizardField eval(Schema.SObjectField field, Object rule);
-        IWizardField xref(Schema.SObjectField field, String rule);
-        IWizardField xref(Schema.SObjectField field, String rule, Object origin);
+        IWizardField guard();
+        IWizardField guard(Boolean enable);
+        IWizardField useEval(Schema.SObjectField field);
+        IWizardField useEval(Schema.SObjectField field, Object rule);
+        IWizardField useXref(Schema.SObjectField field, String rule);
+        IWizardField useXref(Schema.SObjectField field, String rule, Object origin);
         IWizardEntity end();
     }
 
