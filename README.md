@@ -1,4 +1,4 @@
-# Apex Test Kit
+# Apex Test Kit 2.0
 
 ![](https://img.shields.io/badge/version-2.0.0-brightgreen.svg) ![](https://img.shields.io/badge/build-passing-brightgreen.svg) ![](https://img.shields.io/badge/coverage-%3E95%25-brightgreen.svg)
 
