@@ -34,7 +34,7 @@ Underneath, the data are automatically guessed with appropriate values according
   * Use sObjectField instead of field name string
   * Use method instead of faker generation expression
 * Put functional programming into extreme. It becomes a delightful experience to code.
-* Performance tuning. I have to make trade-offs between "good-looking names" and performance, and `index()` and `repeat()` keywords are introduced for performance considerations.
+* Performance tuning. Have to make trade-offs between "good-looking names" and performance, and `index()` and `repeat()` keywords are introduced for performance considerations.
 
 #### Roadmap
 
@@ -46,10 +46,9 @@ Underneath, the data are automatically guessed with appropriate values according
 
 ### Caveat
 
-1. Depends on number of fields generated, the size of debug log could exceed the 5MB limit. In such case, please set the ApexCode debug level to `DEBUG`.
-2. Sometime ramdom values could bring uncertainty to test results. In such case, please specify the genereation expression rule explicitly or to a fixed value.
-3. The current field generation capacity is around 15000 in 15 seconds. If there are 30 generated fields (not fixed values) per record, the max record generation capacity is around 500. If more are created, it is likely to reach the CPU limit. And consider any trigger and process builder, the actually record capacity should be less than 500.
-4. If record type is activated and there are picklist values depending on them, please try to declare the picklist values in the `fields()` explicitly for that record type.
+1. Sometime ramdom values could bring uncertainty to test results. In such case, please specify the faker genereation expression explicitly or a fixed value.
+2. The current field generation capacity is around 15000 in 15 seconds. If there are 30 generated fields (not fixed values) per record, the max record generation capacity is around 500. And consider any trigger and process builder, the actually record capacity should be less than 500. If more are created, it will hit the CPU limit.
+3. If record type is activated and there are picklist values depending on them, please try to declare the picklist values in the `fields()` explicitly for that record type.
 
 ## Usage of ATKWizard
 
@@ -115,7 +114,7 @@ ATKWizard.I().wantMany(Pricebook2.SObjectType)
 
 ### 2. Keyword Overview
 
-#### 2.1 Entity Creation Keywords
+#### 2.1 Context Initialization Keywords
 
 There are three entity creation keywords, each of them will start a new sObject context. And it is advised to use the following indentation format for clarity.
 
@@ -133,7 +132,7 @@ ATKWizard.I().wantMany(A__c.SObjectType)
 | haveMany()   | SObjectType | Establish one to many relationship between the previous working on sObject and the current sObject. |
 | belongTo() | SObjectType | Establish many to one relationship between the previous working on sObject and the current sObject. |
 
-#### 2.2 Entity Decoration Keywords
+#### 2.2 Context Decoration Keywords
 
 Here is an example to demo the use of all entity decoration keywords. Although sounds many, for basic usage only `total()` and `fields()` will be used frequently and with occasional use of `referenceBy()`.
 
@@ -157,8 +156,6 @@ ATKWizard.I().wantMany(A__c.SObjectType)
     .generate();
 ```
 
-##### 2.2.1 Entity Relationship Decoration Keywords
-
 | Keyword       | Param           | Description                                                  |
 | ------------- | --------------- | ------------------------------------------------------------ |
 | total()       | Integer         | **Required***, only if `useList()` is not used. It defines number of records to create for the attached sObject context. |
@@ -179,7 +176,7 @@ ATKWizard.I().wantMany(A__c.SObjectType)
     .generate();
 ```
 
-##### 2.2.2 Entity Field Decoration Keywords
+#### 2.3 Field Decoration Keywords
 
 Only use `guard()`, `eval()`, `xref()`, between `fields()` and `end()` keywords. And every `fields()` must follow an `end()` at the bottom.
 
@@ -199,7 +196,7 @@ fields()
 | eval() | SObjectField, [Object]         | **Optional**. Use this keyword to tailor the field values, either to bypass validation rules, or to fulfill assertion logics. The second parameter could be either `ATKFaker` interpolation expressions, or primitive values. |
 | xref() | SObjectField, String, [Object] | **Optional**. Use this keyword if cross record arithmetic expressions are used. More will be explained in the following section. |
 
-##### 2.2.3 Field Eval Decoration Keywords
+#### 2.4 Eval Decoration Keywords
 
 Users can control of the following keyword evaluation. Use `index()`, `value()`, `repeat()` whenever possible, sicne they are more predictable and efficient.
 
@@ -234,7 +231,7 @@ eval().paragraph()                      // generate 3-6 sentences
 eval().paragraphs()                     // generate 3 paragraph
 ```
 
-##### 2.2.4 Field Xref Decoration Keywords
+#### 2.5 Xref Decoration Keywords
 
 The folloiwng expressions must work with a corresponding `eval().value()` if field reference is `$1`, and `eval().repeat()` if field reference is `$2` and above. More will be explained in the following section.
 
@@ -295,15 +292,7 @@ ATKWizard is built on top of the ATKFaker, which can also be used standalone. It
 
 All of the following helper APIs also support Interpolation from string expressions.
 
-#### 1.1 Helper Interpolation
-
-Use `{!   }` Visualforce expression notation to interpolate helper methods. Empty parenthesis can be omitted.
-
-```java
-ATKFaker.fake('Hello {!name.firstName(male)} {!name.lastName}!'); // => 'Hello Jeff Jin!'
-```
-
-#### 1.2 Symbol Interpolation
+#### 1.1 Symbol Interpolation
 
 Use `{{   }}` Handlebars expression notation to interpolate symbol formats.
 
@@ -311,15 +300,27 @@ Use `{{   }}` Handlebars expression notation to interpolate symbol formats.
 ATKFaker.fake('{{###-###-####}}');
 ```
 
-Format can use the following symbols:
-
 * \# - number
 * ? - alpha
 * \* - alphanumeric
 
+#### 1.2 Helper Interpolation
+
+Use `{!   }` Visualforce expression notation to interpolate helper methods. Empty parenthesis can be omitted.
+
+```java
+ATKFaker.fake('Hello {!name.firstName(male)} {!name.lastName}!'); // => 'Hello Jeff Jin!'
+```
+
+
+
 ### 2 Helper APIs
 
-All APIs can be used in `ATKFaker.fake()` as a string expression. Just remove the `ATKFaker` class, and the single quote for string parameter, the empty parentheses can also be optionally removed.
+All following APIs can be used in `ATKFaker.fake()` and `eval().fake()` as a helper string. 
+
+1. remove the `ATKFaker.` 
+2. remove the single quote for string parameter
+3. remove empty parentheses optionally
 
 #### 2.1 Name
 
