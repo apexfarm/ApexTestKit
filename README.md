@@ -233,8 +233,6 @@ eval().paragraphs()                     // generate 3 paragraph
 
 #### 2.5 Xref Decoration Keywords
 
-The folloiwng expressions must work with a corresponding `eval().value()` if field reference is `$1`, and `eval().repeat()` if field reference is `$2` and above. More will be explained in the following section.
-
 ```java
 xref().value('$0.StartDate')            // use the StartDate of current record
 xref().add('$1.Counter__c', 1)          // subsract 1 from Counter__C of previous record
@@ -249,9 +247,7 @@ xref().addMinutes(String field, Integer value)
 xref().addSeconds(String field, Integer value)
 ```
 
-### 3. Cross Record Reference
-
-With `xref()`, we can perform arithmetic calculations according to fields on previously created records. For example, we can create records with consecutive start dates and end dates as below:
+With `xref()`, we can perform arithmetic calculations according to fields on previously created records. For example, we can create records with consecutive start dates and end dates as below. `$0` represents current record, `$1` represents previous one record, and so on. If field reference is `$1`, `xref()` must work with a corresponding `eval().value()`. And if field reference is `$2` and above, `xref()` must work with a corresponding `eval().repeat()`.
 
 ```java
 Datetime currentDatetime = Datetime.now();
@@ -266,22 +262,6 @@ ATKWizard.I().wantMany(Event.SObjectType)
         .xref(Event.ActivityDateTime).value('$0.StartDateTime') // always equal to StartDate
     .end()
     .generate();
-```
-
-`$0` represents current record, `$1` represents previous one record, and so on. Here is a list of supported arithmetic expressions, negative values could also be used on some of the keywords:
-
-```java
-xref().value('$0.StartDate')            // use the StartDate of current record
-xref().add('$1.Counter__c', 1)          // subsract 1 from Counter__C of previous record
-xref().substract('$1.Counter__c', 1)    // subsract 1 from Counter__C of previous record
-xref().divide(String field, Object value)
-xref().multiply(String field, Object value)
-xref().addYears('$1.StartDate', 1)      // add 1 year to the StartDate of previous record
-xref().addMonths(String field, Integer value)
-xref().addDays(String field, Integer value)
-xref().addHours(String field, Integer value)
-xref().addMinutes(String field, Integer value)
-xref().addSeconds(String field, Integer value)
 ```
 
 ## Usage of ATKFaker
