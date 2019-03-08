@@ -67,7 +67,7 @@ ATKWizard.I().wantMany(Contact.SObjectType)
 ```java
 Id pricebook2Id = Test.getStandardPricebookId();
 
-ATKWand.IWizardBag bag = ATKWizard.I().wantMany(Product2.SObjectType)
+ATKWand.IBag bag = ATKWizard.I().wantMany(Product2.SObjectType)
     .total(5)
     .haveMany(PricebookEntry.SObjectType)
         .referenceBy(PricebookEntry.Product2Id) // can be omitted

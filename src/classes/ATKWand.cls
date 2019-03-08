@@ -3,7 +3,7 @@
  */
 public with sharing class ATKWand {
     private static final ATKCommon.MethodParser METHOD_PARSER = ATKCommon.METHOD_PARSER;
-    private static final MethodEvaluator METHOD_EVALUATOR = new MethodEvaluator();
+    private static final ParamEvaluator PARAM_EVALUATOR = new ParamEvaluator();
 
     private static final ISchemator SCHEMATOR = new FieldSchemator(); // have state
     private static final IEvaluator EVALUATOR = new FieldEvaluator(); // have state
@@ -24,12 +24,17 @@ public with sharing class ATKWand {
         GENERATOR.generate(spellBook);
     }
 
-    public interface IWizardBag {
+    public interface IBag {
         List<SObject> get(Schema.SObjectType objectType);
     }
 
     public interface IWizardEntity {
-        // keywords to start with
+        // keywords to end with
+        IBag generate();
+        IBag generate(Boolean inMemory);
+        void register();
+
+        // keywords to start new context
         IWizardEntity wantTemp(SObjectType entityType, String templateName);
         IWizardEntity wantMany(SObjectType entityType);
         IWizardEntity belongTo(SObjectType entityType);
@@ -37,31 +42,80 @@ public with sharing class ATKWand {
 
         // keywords to build graph
         IWizardEntity referenceBy(Schema.SObjectField relationField);
-        IWizardEntity total(Integer count);
         IWizardEntity also();
         IWizardEntity also(Integer depth);
 
-        // keywords to build values
+        // keywords to control data
         IWizardEntity useCSV(String fileName);
         IWizardEntity useList(List<SObject> repository);
         IWizardEntity useTemp();
         IWizardEntity useTemp(String templateName);
+        IWizardEntity total(Integer count);
         IWizardField fields();
-
-        // keywords to end with
-        IWizardBag generate();
-        IWizardBag generate(Boolean inMemory);
-        void register();
     }
 
     public interface IWizardField {
-        IWizardField guard();
-        IWizardField guard(Boolean enable);
-        IWizardField eval(Schema.SObjectField field);
-        IWizardField eval(Schema.SObjectField field, Object rule);
-        IWizardField xref(Schema.SObjectField field, String rule);
-        IWizardField xref(Schema.SObjectField field, String rule, Object origin);
+        IWizardEndableField guard();
+        IWizardEndableField guard(Boolean enable);
+        IWizardFieldEval eval(Schema.SObjectField field);
+        IWizardFieldXref xref(Schema.SObjectField field);
+    }
+
+    public interface IWizardEndableField extends IWizardField {
         IWizardEntity end();
+    }
+
+    public interface IWizardOriginableField extends IWizardEndableField {
+        IWizardEndableField origin(List<Object> values);
+        IWizardEndableField origin(Object value1);
+        IWizardEndableField origin(Object value1, Object value2);
+        IWizardEndableField origin(Object value1, Object value2, Object value3);
+    }
+
+    public interface IWizardFieldEval {
+        // try best to make uniqueness
+        IWizardEndableField guess();
+        IWizardEndableField userName();
+        IWizardEndableField email();
+        IWizardEndableField url();
+        IWizardEndableField phone();
+        IWizardEndableField number(Integer precision, Integer scale);
+        IWizardEndableField past() ;
+        IWizardEndableField future();
+        IWizardEndableField between();
+
+        // non-uniquable, use fake() to make unique values
+        IWizardEndableField firstName();
+        IWizardEndableField lastName();
+        IWizardEndableField word();
+        IWizardEndableField words();
+        IWizardEndableField sentence();
+        IWizardEndableField sentences();
+        IWizardEndableField paragraph();
+        IWizardEndableField paragraphs();
+
+        // user control
+        IWizardEndableField fake(String rule);
+        IWizardEndableField index(String format);
+        // fixed values
+        IWizardEndableField value(Object value);
+        IWizardEndableField repeat(List<Object> values);
+        IWizardEndableField repeat(Object value1, Object value2);
+        IWizardEndableField repeat(Object value1, Object value2, Object value3);
+    }
+
+    public interface IWizardFieldXref {
+        IWizardOriginableField value(String field);
+        IWizardOriginableField add(String field, Object value);
+        IWizardOriginableField substract(String field, Object value);
+        IWizardOriginableField divide(String field, Object value);
+        IWizardOriginableField multiply(String field, Object value);
+        IWizardOriginableField addYears(String field, Integer value);
+        IWizardOriginableField addMonths(String field, Integer value);
+        IWizardOriginableField addDays(String field, Integer value);
+        IWizardOriginableField addHours(String field, Integer value);
+        IWizardOriginableField addMinutes(String field, Integer value);
+        IWizardOriginableField addSeconds(String field, Integer value);
     }
 
     interface ISchemator {
@@ -81,12 +135,7 @@ public with sharing class ATKWand {
     }
 
     interface IEvaluator {
-        void resetRuleIndexCache();
-        Object evaluate(
-            Integer recordIndex,
-            EntityNode entityNode,
-            RuleEntityField field,
-            Integer depth);
+        Object evaluate(Integer recordIndex, EntityNode entityNode, EntityField entityField, Integer depth);
     }
 
     class FieldSchemator implements ISchemator {
@@ -149,9 +198,9 @@ public with sharing class ATKWand {
                 if (entityNode.guardEnabled
                     && !dfr.isNillable()
                     && isEditableField(dfr)
-                    && !entityNode.ruleFieldMap.containsKey(field)
+                    && !entityNode.evalFieldMap.containsKey(field)
                     && !entityNode.xrefFieldMap.containsKey(field)) {
-                    entityNode.ruleFieldCache.add(new RuleEntityField(dfr, fieldName, false, null));
+                    entityNode.evalFieldCache.add(new EvalEntityField(dfr, fieldName, true));
                 }
 
                 // no need to rebuild static caches
@@ -273,26 +322,13 @@ public with sharing class ATKWand {
         @TestVisible
         void validateXrefFields(EntityNode entityNode) {
             for (XrefEntityField field : entityNode.xrefFieldCache) {
-                validateXrefFieldOrigin(entityNode, field);
-            }
-        }
-
-        @TestVisible
-        void validateXrefFieldOrigin(EntityNode entityNode, XrefEntityField field) {
-            ATKCommon.MethodGroup methodGroup = METHOD_PARSER.parse((String)field.rule);
-            if (methodGroup.hasXrefMethod) {
-                for (ATKCommon.Method method : methodGroup.methodList) {
-                    if (method instanceof ATKCommon.XrefMethod) {
-                        ATKCommon.XrefMethod xrefMethod = (ATKCommon.XrefMethod)method;
-                        if (0 < xrefMethod.level) {
-                            for (ATKCommon.XrefParam param : xrefMethod.xrefParams) {
-                                if (0 < param.level && field.origin == null) {
-                                    throw new ATKCommon.NotFoundException(
-                                        String.format('The cross reference field {0}.{1} must have an origin.',
-                                        new List<String> { entityNode.Name, field.name })
-                                    );
-                                }
-                            }
+                if (0 < field.method.level) {
+                    for (ATKCommon.XrefParam param : field.method.xrefParams) {
+                        if (0 < param.level && field.method.origins == null) {
+                            throw new ATKCommon.NotFoundException(
+                                String.format('The cross reference field {0}.{1} must have an origin.',
+                                new List<String> { entityNode.Name, field.name })
+                            );
                         }
                     }
                 }
@@ -302,7 +338,6 @@ public with sharing class ATKWand {
 
     class NodeGenerator implements IGenerator {
         public void generate(ATKSpellBook spellBook) {
-            EVALUATOR.resetRuleIndexCache();
             Iterator<EntityNode> iterator = spellBook.iterator();
             while (iterator.hasNext()) {
                 EntityNode entityNode = iterator.next();
@@ -347,22 +382,22 @@ public with sharing class ATKWand {
 
             List<SObject> repository = entityNode.repository;
             Integer total = repository.size();
-            for (RuleEntityField field : entityNode.ruleFieldCache) {
+            for (EntityField entityField : entityNode.evalFieldCache) {
                 for (Integer i = 0; i < total; i++) {
-                    Object value = EVALUATOR.evaluate(i, entityNode, field, 10);
+                    Object value = EVALUATOR.evaluate(i, entityNode, entityField, 10);
                     if (value != null) {
                         SObject record = repository[i];
-                        record.put(field.name, value);
+                        record.put(entityField.name, value);
                     }
                 }
             }
 
             for (Integer i = 0; i < total; i++) {
-               for (RuleEntityField field : entityNode.xrefFieldCache) {
-                    Object value = EVALUATOR.evaluate(i, entityNode, field, 10);
+               for (EntityField entityField : entityNode.xrefFieldCache) {
+                    Object value = EVALUATOR.evaluate(i, entityNode, entityField, 10);
                     if (value != null) {
                         SObject record = repository[i];
-                        record.put(field.name, value);
+                        record.put(entityField.name, value);
                     }
                 }
             }
@@ -408,7 +443,6 @@ public with sharing class ATKWand {
     @TestVisible
     class FieldEvaluator implements IEvaluator {
         private Map<String, List<String>> picklistCache { get; set; }
-        private Map<String, Integer> ruleIndexCache { get; set; }
         private Map<String, Set<Object>> uniqueValueCache { get; set; }
         private List<String> UNIQUE_VALUE_FORMATS { get; set; }
 
@@ -416,7 +450,6 @@ public with sharing class ATKWand {
         FieldEvaluator() {
             picklistCache = new Map<String, List<String>>();
             uniqueValueCache = new Map<String, Set<Object>>();
-            ruleIndexCache = new Map<String, Integer>();
             UNIQUE_VALUE_FORMATS = new List<String> {
                 '{{?}}',
                 '{{?*}}',
@@ -427,18 +460,9 @@ public with sharing class ATKWand {
             };
         }
 
-        public void resetRuleIndexCache() {
-            ruleIndexCache = new Map<String, Integer>();
-        }
-
-        public Object evaluate(
-            Integer recordIndex,
-            EntityNode entityNode,
-            RuleEntityField field,
-            Integer depth) {
-
+        public Object evaluate(Integer recordIndex, EntityNode entityNode, EntityField entityField, Integer depth) {
             DescribeSObjectResult dsr = entityNode.dsr;
-            Schema.DescribeFieldResult dfr = field.dfr;
+            Schema.DescribeFieldResult dfr = entityField.dfr;
             Boolean isUnique = dfr.isUnique();
             String key = dsr.getName() + '.' + dfr.getName();
 
@@ -453,7 +477,7 @@ public with sharing class ATKWand {
             Object value;
             if (isUnique) {
                 for (Integer j = 0; j < depth; j++) {
-                    value = getValue(recordIndex, entityNode, field, key);
+                    value = getValue(recordIndex, entityNode, entityField);
                     if (value == null) {
                         break;
                     } else if (!uniqueValueCache.get(key).contains(value)) {
@@ -469,7 +493,7 @@ public with sharing class ATKWand {
                     }
                 }
             } else {
-                value = getValue(recordIndex, entityNode, field, key);
+                value = getValue(recordIndex, entityNode, entityField);
             }
 
             switch on dfr.getType() {
@@ -486,57 +510,17 @@ public with sharing class ATKWand {
             return value;
         }
 
-        public Object getValue(Integer recordIndex, EntityNode entityNode, RuleEntityField field, String key) {
+        public Object getValue(Integer recordIndex, EntityNode entityNode, EntityField entityField) {
             DescribeSObjectResult dsr = entityNode.dsr;
-            Schema.DescribeFieldResult dfr = field.dfr;
-            Object rule = field.rule;
-            FieldRuleType ruleType = field.ruleType;
-
+            Schema.DescribeFieldResult dfr = entityField.dfr;
             Object value;
-            switch on ruleType {
-                when StringRule {
-                    value = fake(recordIndex, entityNode, field, (String)rule);
-                }
-                when StringList {
-                    value = fake(recordIndex, entityNode, field, (String)getIndexedRule(key, (List<String>)rule));
-                }
-                when StringSet {
-                    value = fake(recordIndex, entityNode, field, (String)ATKFaker.random.arrayElement(new List<String>((Set<String>)rule)));
-                }
-                when ObjectList {
-                    value = getIndexedRule(key, (List<Object>)rule);
-                }
-                when ObjecSet {
-                    value = ATKFaker.random.arrayElement(new List<Object>((Set<Object>)rule));
-                }
-                when FeelLuck {
-                    value = guessValue(dsr, dfr);
-                }
-                when else {
-                    value = rule;
-                }
+            if (entityField.needGuess) {
+                value = guessValue(dsr, dfr);
+            } else {
+                PARAM_EVALUATOR.entityNode = entityNode;
+                value = entityField.getValue(recordIndex);
             }
             return value;
-        }
-
-        Object fake(Integer recordIndex, EntityNode entityNode, RuleEntityField field, String rule) {
-            METHOD_EVALUATOR.currentRecordIndex = recordIndex;
-            METHOD_EVALUATOR.currentEntity = entityNode;
-            METHOD_EVALUATOR.currentField = field;
-            return METHOD_PARSER.parse(rule).evaluate(METHOD_EVALUATOR);
-        }
-
-        Object getIndexedRule(String key, List<Object> ruleList) {
-            if (ruleIndexCache.get(key) == null) {
-                ruleIndexCache.put(key, -1);
-            }
-            Integer index = ruleIndexCache.get(key);
-            index++;
-            if (index == ruleList.size()) {
-                index = 0;
-            }
-            ruleIndexCache.put(key, index);
-            return ruleList.get(index);
         }
 
         Object guessValue(Schema.DescribeSObjectResult dsr, Schema.DescribeFieldResult dfr) {
@@ -653,47 +637,6 @@ public with sharing class ATKWand {
                 picklistCache.put(key, values);
             }
             return picklistCache.get(key);
-        }
-    }
-
-    public class MethodEvaluator implements ATKCommon.IMethodEvaluator, ATKCommon.IParamEvaluator {
-        Integer currentRecordIndex { get; set; }
-        EntityNode currentEntity { get; set; }
-        RuleEntityField currentField { get; set; }
-
-        public Object evaluateMethod(ATKCommon.Method method) {
-            Object value;
-            ATKFaker.IProvider helper = ATKFaker.helperMap.get(method.helperName);
-            if (helper != null) {
-                if (method instanceof ATKCommon.XrefMethod) {
-                    ATKCommon.XrefMethod xrefMethod = (ATKCommon.XrefMethod)method;
-                    if (this.currentRecordIndex < xrefMethod.level && xrefMethod.level < ATKCommon.METHOD_GROUP_MAX_LEVEL) {
-                        Object origin = ((XrefEntityField)currentField).origin;
-                        if (origin instanceof List<Object>) {
-                            List<Object> originList = (List<Object>)origin;
-                            return originList[this.currentRecordIndex];
-                        } else {
-                            return origin;
-                        }
-                    }
-                    xrefMethod.loadParams(this);
-                }
-                value = helper.call(method.name, method.params);
-            }
-            return value;
-        }
-
-        public Object evaluateParam(Integer level, String fieldName) {
-            if (currentEntity == null) {
-                return null;
-            }
-
-            Integer size = currentEntity.repository.size();
-            if (level <= this.currentRecordIndex) {
-                SObject record = currentEntity.repository[this.currentRecordIndex - level];
-                return record.get(fieldName);
-            }
-            return null;
         }
     }
 
@@ -818,13 +761,23 @@ public with sharing class ATKWand {
         }
     }
 
+    private class Bag implements IBag {
+        private Map<Schema.SObjectType, List<SObject>> repositoryByType { get; set; }
+
+        Bag() {
+            repositoryByType = new Map<Schema.SObjectType, List<SObject>>();
+        }
+
+        public List<SObject> get(Schema.SObjectType objectType) {
+            return repositoryByType.get(objectType);
+        }
+    }
+
     public class ATKSpellBook implements Iterable<EntityNode> {
-        private Map<Schema.SObjectType, List<EntityNode>> entityNodeMap { get; set; }
         @TestVisible
         private EntityNodeMatrix matrix { get; private set; }
 
         {
-            entityNodeMap = new Map<Schema.SObjectType, List<EntityNode>>();
             matrix = new EntityNodeMatrix();
         }
 
@@ -835,34 +788,32 @@ public with sharing class ATKWand {
 
         public void attach(EntityNode entityNode) {
             this.matrix.add(entityNode);
-            addToEntityNodeMap(entityNode);
         }
 
-        public void apply(IEntityAttribute attribute) {
-            this.matrix.currentEntityNode.apply(attribute);
+        public void apply(IAttribute attribute) {
+            if (attribute instanceOf IEntityAttribute) {
+                this.matrix.currentEntityNode.apply((IEntityAttribute)attribute);
+            } else if (attribute instanceOf IFieldAttribute) {
+                this.matrix.currentEntityNode.currentEntityField.apply((IFieldAttribute)attribute);
+            }
         }
 
         public void pop(Integer depth) {
             this.matrix.pop(depth);
         }
 
-        private void addToEntityNodeMap(EntityNode entityNode) {
-            Schema.SObjectType objectType = entityNode.objectType;
-            if (entityNodeMap.get(objectType) == null) {
-                entityNodeMap.put(objectType, new List<EntityNode>());
-            }
-            entityNodeMap.get(objectType).add(entityNode);
-        }
-
-        public List<SObject> query(Schema.SObjectType objectType) {
-            List<EntityNode> entityNodeList = entityNodeMap.get(objectType);
-            List<SObject> repository = new List<SObject>();
-            if (entityNodeList != null) {
-                for (EntityNode entityNode : entityNodeList) {
-                    repository.addAll(entityNode.repository);
+        public IBag toBag() {
+            Iterator<EntityNode> iterator = iterator();
+            Bag bag = new Bag();
+            while(iterator.hasNext()) {
+                EntityNode entityNode = iterator.next();
+                if (!bag.repositoryByType.containsKey(entityNode.objectType)) {
+                    bag.repositoryByType.put(entityNode.objectType, entityNode.repository);
+                } else {
+                    bag.repositoryByType.get(entityNode.objectType).addAll(entityNode.repository);
                 }
             }
-            return repository;
+            return bag;
         }
     }
 
@@ -884,7 +835,7 @@ public with sharing class ATKWand {
 
         public Boolean hasNext() {
             return rowIndex + 1 < entityNodeMatrix.size()
-            || colIndex + 1 < entityNodeMatrix.get(rowIndex).size();
+                || colIndex + 1 < entityNodeMatrix.get(rowIndex).size();
         }
 
         public EntityNode next() {
@@ -967,16 +918,6 @@ public with sharing class ATKWand {
         Template
     }
 
-    enum FieldRuleType {
-        StringRule,
-        StringList,
-        StringSet,
-        ObjectList,
-        ObjecSet,
-        ValueRule,
-        FeelLuck
-    }
-
     public class EntityNode {
         // Graph Properties
         Integer rowIndex { get; set; }
@@ -1004,13 +945,13 @@ public with sharing class ATKWand {
         public Integer total { get; set; }
         public Map<String, EntityNode> referenceToMap { get; set; }
         public List<SObject> repository { get; set; }
-        public String templateName { get; set; }
 
         public Boolean guardEnabled { get; set; }
-        public Map<Schema.SObjectField, RuleEntityField> ruleFieldMap { get; set; }
+        public Map<Schema.SObjectField, EvalEntityField> evalFieldMap { get; set; }
         public Map<Schema.SObjectField, XrefEntityField> xrefFieldMap { get; set; }
-        List<RuleEntityField> ruleFieldCache { get; set; }
+        List<EvalEntityField> evalFieldCache { get; set; }
         List<XrefEntityField> xrefFieldCache { get; set; }
+        EntityField currentEntityField { get; set; }
 
         public EntityNode() {
 
@@ -1026,9 +967,9 @@ public with sharing class ATKWand {
             this.repository = new List<SObject>();
 
             this.guardEnabled = true;
-            this.ruleFieldMap = new Map<Schema.SObjectField, RuleEntityField>();
+            this.evalFieldMap = new Map<Schema.SObjectField, EvalEntityField>();
             this.xrefFieldMap = new Map<Schema.SObjectField, XrefEntityField>();
-            this.ruleFieldCache = new List<RuleEntityField>();
+            this.evalFieldCache = new List<EvalEntityField>();
             this.xrefFieldCache = new List<XrefEntityField>();
         }
 
@@ -1037,78 +978,133 @@ public with sharing class ATKWand {
         }
     }
 
-    public static EntityNode createTemplate(Schema.SObjectType objectType, String templateName) {
-        EntityNode template = new EntityNode();
-        template.objectType = objectType;
-        template.nodeType = EntityNodeType.Template;
-        template.templateName = templateName;
-        return template;
-    }
+    /*
+     * ENTITY FIELD
+     */
 
-    public virtual class RuleEntityField  {
-        Schema.DescribeFieldResult dfr { get; set; }
-        String name { get; set; }
-        Boolean hasRule { get; set; }
-        Object rule { get; set; }
-        FieldRuleType ruleType { get; set; }
+    private abstract class EntityField  {
+        public Schema.DescribeFieldResult dfr { get; set; }
+        public String name { get; set; }
+        public ATKCommon.Method method { get; set; }
+        public Boolean needGuess { get; set; }
 
-        RuleEntityField(Schema.DescribeFieldResult dfr, String name, Boolean hasRule, Object rule) {
-            this.name = name;
-            this.rule = rule;
-            this.hasRule = hasRule;
+        {
+            needGuess = false;
+        }
 
-            if (this.hasRule) {
-                if (rule == null) {
-                    this.ruleType = FieldRuleType.ValueRule;
-                } if (rule instanceOf String) {
-                    this.ruleType = FieldRuleType.StringRule;
-                } else if (rule instanceOf List<String>) {
-                    this.ruleType = FieldRuleType.StringList;
-                } else if (rule instanceOf Set<String>) {
-                    this.ruleType = FieldRuleType.StringSet;
-                } else if (rule instanceOf List<Object>) {
-                    this.ruleType = FieldRuleType.ObjectList;
-                } else if (rule instanceOf Set<Object>) {
-                    this.ruleType = FieldRuleType.ObjecSet;
-                } else {
-                    this.ruleType = FieldRuleType.ValueRule;
-                }
-            } else {
-                this.ruleType = FieldRuleType.FeelLuck;
-            }
+        EntityField(Schema.DescribeFieldResult dfr, String name) {
             this.dfr = dfr;
+            this.name = name;
+        }
+
+        public virtual Object getValue(Integer recordIndex) {
+            return null;
+        }
+
+        public virtual void apply(IFieldAttribute attribute) {
         }
     }
 
-    public class XrefEntityField extends RuleEntityField implements Comparable {
-        Object origin { get; set; }
+    private class EvalEntityField extends EntityField {
+        public Object value { get; set; }
+        public String indexFormat { get; set; }
+        public String fakerRule { get; set; }
+        public List<Object> repeatValues { get; set; }
 
-        XrefEntityField(Schema.DescribeFieldResult dfr, String name, Boolean hasRule, Object rule, Object origin) {
-            super(dfr, name, hasRule, rule);
-            this.origin = origin;
+        EvalEntityField(Schema.DescribeFieldResult dfr, String name) {
+            super(dfr, name);
+        }
+
+        EvalEntityField(Schema.DescribeFieldResult dfr, String name, Boolean needGuess) {
+            super(dfr, name);
+            this.needGuess = needGuess;
+        }
+
+        public override Object getValue(Integer recordIndex) {
+            if (fakerRule != null) {
+                return ATKFaker.fake(fakerRule);
+            } else if (indexFormat != null) {
+                return String.format(indexFormat, new List<String> { String.valueOf(recordIndex) });
+            } else if (repeatValues != null && repeatValues.size() > 0) {
+                Integer mod = Math.mod(recordIndex, repeatValues.size());
+                return repeatValues[mod];
+            } else if (method != null) {
+                return method.evaluate(ATKFaker.helperMap);
+            }
+            return this.value;
+        }
+
+        public override void apply(IFieldAttribute attribute) {
+            ((IEvalFieldAttribute)attribute).apply(this);
+        }
+    }
+
+    private class XrefEntityField extends EntityField implements Comparable {
+        public ATKCommon.XrefMethod method { get; set; }
+        XrefEntityField(Schema.DescribeFieldResult dfr, String name) {
+            super(dfr, name);
+        }
+
+        public override Object getValue(Integer recordIndex) {
+            return method.evaluate(ATKFaker.helperMap, recordIndex);
+        }
+
+        public override void apply(IFieldAttribute attribute) {
+            ((IXrefFieldAttribute)attribute).apply(this);
         }
 
         public Integer compareTo(Object toObj) {
-            RuleEntityField field = this;
-            RuleEntityField toField = (RuleEntityField)toObj;
-            ATKCommon.MethodGroup methodGroup = METHOD_PARSER.parse((String)field.rule);
-            ATKCommon.MethodGroup toMethodGroup = METHOD_PARSER.parse((String)toField.rule);
+            XrefEntityField field = this;
+            XrefEntityField toField = (XrefEntityField)toObj;
 
             Integer returnValue = 0; // The return value of 0 indicates that both elements are equal.
-            if (methodGroup.level < toMethodGroup.level) {
+            if (field.method.level < toField.method.level) {
                 returnValue = 1;
-            } else if (methodGroup.level > toMethodGroup.level) {
+            } else if (field.method.level > toField.method.level) {
                 returnValue = -1;
             }
             return returnValue;
         }
     }
 
+    public class ParamEvaluator implements ATKCommon.IParamEvaluator {
+        EntityNode entityNode { get; set; }
+
+        public Object evaluateParam(String fieldName, Integer recordIndex, Integer level) {
+            if (entityNode == null) {
+                return null;
+            }
+
+            Integer size = entityNode.repository.size();
+            if (level <= recordIndex) {
+                SObject record = entityNode.repository[recordIndex - level];
+                return record.get(fieldName);
+            }
+            return null;
+        }
+    }
+
     /*
-    * ENTITY ATTRIBUTE
-    */
-    public Interface IEntityAttribute {
+     * ATTRIBUTES
+     */
+
+    public interface IAttribute {
+
+    }
+
+    public interface IEntityAttribute extends IAttribute {
         void apply(EntityNode entityNode);
+    }
+
+    public interface IFieldAttribute extends IAttribute {
+    }
+
+    public interface IEvalFieldAttribute extends IFieldAttribute {
+        void apply(EvalEntityField entityField);
+    }
+
+    public interface IXrefFieldAttribute extends IFieldAttribute {
+        void apply(XrefEntityField entityField);
     }
 
     public class ReferenceByAttribute implements IEntityAttribute {
@@ -1168,7 +1164,6 @@ public with sharing class ATKWand {
         }
 
         public void apply(EntityNode entityNode) {
-            entityNode.templateName = templateName;
         }
     }
 
@@ -1187,48 +1182,159 @@ public with sharing class ATKWand {
     }
 
     public virtual class EvalAttribute implements IEntityAttribute {
-        protected Schema.SObjectField field { get; set; }
-        protected Object rule { get; set; }
-        protected Boolean hasRule { get; set; }
+        public Schema.SObjectField field { get; set; }
 
-        public EvalAttribute(Schema.SObjectField field) {
-            this.field = field;
-            this.hasRule = false;
-        }
-
-        public EvalAttribute(Schema.SObjectField field, Object rule) {
-            this.field = field;
-            this.rule = rule;
-            this.hasRule = true;
-        }
-
-        public virtual void apply(EntityNode entityNode) {
+        public void apply(EntityNode entityNode) {
             Schema.DescribeFieldResult dfr = this.field.getDescribe();
             String fieldName = dfr.getName();
-            RuleEntityField ruleEntityField = new RuleEntityField(dfr, fieldName, hasRule, rule);
-            entityNode.ruleFieldMap.put(this.field, ruleEntityField);
-            entityNode.ruleFieldCache.add(ruleEntityField);
+            EvalEntityField entityField = new EvalEntityField(dfr, fieldName);
+            entityNode.evalFieldMap.put(this.field, entityField);
+            entityNode.evalFieldCache.add(entityField);
+            entityNode.currentEntityField = entityField;
         }
     }
 
-    public class XrefAttribute extends EvalAttribute {
-        private Object origin { get; set; }
+    public class XrefAttribute implements IEntityAttribute  {
+        public Schema.SObjectField field { get; set; }
 
-        public xrefAttribute(Schema.SObjectField field, String rule) {
-            super(field, rule);
-        }
-
-        public xrefAttribute(Schema.SObjectField field, String rule, Object origin) {
-            super(field, rule);
-            this.origin = origin;
-        }
-
-        public override void apply(EntityNode entityNode) {
+        public void apply(EntityNode entityNode) {
             Schema.DescribeFieldResult dfr = this.field.getDescribe();
             String fieldName = dfr.getName();
-            XrefEntityField xrefEntityField = new XrefEntityField(dfr, fieldName, hasRule, rule, origin);
-            entityNode.xrefFieldMap.put(this.field, xrefEntityField);
-            entityNode.xrefFieldCache.add(xrefEntityField);
+            XrefEntityField entityField = new XrefEntityField(dfr, fieldName);
+            entityNode.xrefFieldMap.put(this.field, entityField);
+            entityNode.xrefFieldCache.add(entityField);
+            entityNode.currentEntityField = entityField;
+        }
+    }
+
+    public class EvalGuessAttribute implements IEvalFieldAttribute {
+        public void apply(EvalEntityField entityField) {
+            entityField.needGuess = true;
+        }
+    }
+
+    public class EvalValueAttribute implements IEvalFieldAttribute {
+        Object value { get; set; }
+
+        public EvalValueAttribute(Object value) {
+            this.value = value;
+        }
+
+        public void apply(EvalEntityField entityField) {
+            entityField.value = this.value;
+        }
+    }
+
+    public class EvalIndexAttribute implements IEvalFieldAttribute {
+        String format { get; set; }
+
+        public EvalIndexAttribute(String format) {
+            this.format = format;
+        }
+
+        public void apply(EvalEntityField entityField) {
+            entityField.indexFormat = this.format;
+        }
+    }
+
+    public class EvalRepeatAttribute implements IEvalFieldAttribute {
+        List<Object> values { get; set; }
+
+        public EvalRepeatAttribute(List<Object> values) {
+            this.values = values;
+        }
+
+        public void apply(EvalEntityField entityField) {
+            entityField.repeatValues = this.values;
+        }
+    }
+
+    public class EvalFakerAttribute implements IEvalFieldAttribute {
+        String rule { get; set; }
+
+        public EvalFakerAttribute(String rule) {
+            this.rule = rule;
+        }
+
+        public void apply(EvalEntityField entityField) {
+            entityField.fakerRule = this.rule;
+        }
+    }
+
+    public class EvalMethodAttribute implements IEvalFieldAttribute {
+        String helperName { get; set; }
+        String methodName { get; set; }
+        public List<Object> params { get; set; }
+
+        public  EvalMethodAttribute(String helperName, String methodName) {
+            this.helperName = helperName;
+            this.methodName = methodName;
+        }
+
+        public void apply(EvalEntityField entityField) {
+            ATKCommon.Method method = new ATKCommon.Method();
+            method.helperName = this.helperName;
+            method.name = this.methodName;
+            method.params = this.params;
+            entityField.method = method;
+        }
+    }
+
+    public class XrefMethodAttribute implements IXrefFieldAttribute {
+        public String helperName { get; set; }
+        public String methodName { get; set; }
+        public List<Object> params { get; set; }
+
+        public  XrefMethodAttribute() {
+
+        }
+
+        public  XrefMethodAttribute(String helperName, String methodName) {
+            this.helperName = helperName;
+            this.methodName = methodName;
+        }
+
+        public void apply(XrefEntityField entityField) {
+            List<ATKCommon.XrefParam> xrefParams = new List<ATKCommon.XrefParam>();
+            List<Object> newParams = new List<Object>();
+            for (Integer i = 0; i < this.params.size(); i++) {
+                Object param = this.params[i];
+                if (param instanceOf String) {
+                    String input = (String)param;
+                    if (input.startsWith('$')) {
+                        ATKCommon.XrefParam xrefParam = new ATKCommon.XrefParam();
+                        xrefParam.index = i;
+                        xrefParam.level = ATKCommon.converter.toInteger(input.substring(1, 2));
+                        xrefParam.fieldName = input.substring(3).toUpperCase();
+
+                        xrefParams.add(xrefParam);
+                        newParams.add(null);
+                    } else {
+                        newParams.add(param);
+                    }
+                } else {
+                    newParams.add(param);
+                }
+            }
+
+            ATKCommon.XrefMethod method = new ATKCommon.XrefMethod(xrefParams);
+            method.helperName = this.helperName;
+            method.name = this.methodName;
+            method.params = newParams;
+            method.paramEvaluator = PARAM_EVALUATOR;
+            entityField.method = method;
+        }
+    }
+
+    public class XrefOriginAttribute implements IXrefFieldAttribute {
+        List<Object> origins { get; set; }
+
+        public XrefOriginAttribute(List<Object> origins) {
+            this.origins = origins;
+        }
+
+        public void apply(XrefEntityField entityField) {
+            entityField.method.origins = this.origins;
         }
     }
 }

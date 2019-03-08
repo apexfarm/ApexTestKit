@@ -2,7 +2,6 @@
  * Apex Test Kit
  */
 public with sharing class ATKCommon {
-    public static final Integer METHOD_GROUP_MAX_LEVEL = 100;
     public static final Converter converter = new Converter();
     public static final MethodParser METHOD_PARSER = new MethodParser();
 
@@ -25,15 +24,27 @@ public with sharing class ATKCommon {
 
     }
 
+    public interface IProvider {
+        Object call(String method, List<Object> params);
+    }
+
+    public interface IDataProvider extends IProvider {
+
+    }
+
+    public interface IArithmeticProvider extends IProvider {
+
+    }
+
     /*
      * Interpolation Method Parser
      */
     public interface IMethodEvaluator {
-        Object evaluateMethod(ATKCommon.Method method);
+        Object evaluate(Map<String, IProvider> helperMap);
     }
 
     public interface IParamEvaluator {
-        Object evaluateParam(Integer level, String fieldName);
+        Object evaluateParam(String fieldName, Integer recordIndex, Integer level);
     }
 
     public class MethodParser {
@@ -57,22 +68,17 @@ public with sharing class ATKCommon {
         }
     }
 
-    public class MethodGroup {
-        public Integer level { get; private set; }
-        public List<Method> methodList { get; private set; }
-        public Boolean hasMethod { get; private set; }
-        public Boolean hasXrefMethod { get; private set; }
-
+    public class MethodGroup implements IMethodEvaluator {
         String expression { get; set; }
+        public Boolean hasMethod { get; private set; }
+        public List<Method> methodList { get; private set; }
         @TestVisible
         List<String> splits { get; set; }
         Boolean isPure { get; set; } // a single pure expression without blank characters
 
         MethodGroup(String expression, System.Matcher matcher) {
-            this.level = METHOD_GROUP_MAX_LEVEL;
             this.expression = expression;
             this.hasMethod = false;
-            this.hasXrefMethod = false;
             this.splits = new List<String>();
             this.methodList = new List<Method>();
 
@@ -97,24 +103,43 @@ public with sharing class ATKCommon {
         void addMethod(Method method) {
             this.methodList.add(method);
             this.hasMethod = true;
-
-            if (method instanceof XrefMethod) {
-                XrefMethod xrefMethod = (XrefMethod)method;
-                this.hasXrefMethod = true;
-                if (xrefMethod.level < this.level) {
-                    this.level = xrefMethod.level;
-                }
-            }
         }
 
-        public Object evaluate(IMethodEvaluator methodEvaluator) {
+        Method buildMethod(System.Matcher matcher) {
+            Method method;
+            if (matcher.group(4) != null) {
+                method = new SymbolMethod(matcher.group(4));
+                return method;
+            }
+
+            List<Object> params;
+            String paramText = matcher.group(3);
+            if (paramText != null) {
+                paramText = paramText.replaceAll('[\\(\\)\\s]', '');
+                if (String.isNotEmpty(paramText)) {
+                    params = paramText.split(',');
+                }
+            }
+
+            method = new Method();
+            method.helperName = matcher.group(1);
+            method.name = matcher.group(2);
+            method.params = params;
+
+            // System.debug('helperName: ' + method.helperName);
+            // System.debug('methodName: ' + method.name);
+            // System.debug('params: ' + method.params);
+            return method;
+        }
+
+        public Object evaluate(Map<String, IProvider> helperMap) {
             if (!this.hasMethod) {
                 return this.expression;
             }
 
             List<Object> evals = new List<Object>();
             for (Method method : this.methodList) {
-                evals.add(methodEvaluator.evaluateMethod(method));
+                evals.add(method.evaluate(helperMap));
             }
 
             List<String> splits = this.splits;
@@ -132,64 +157,23 @@ public with sharing class ATKCommon {
                 }
                 return builder.toString();
             }
-            return this.expression;
+            return null;
         }
     }
 
-    static Method buildMethod(System.Matcher matcher) {
-        Method method;
-        if (matcher.group(4) != null) {
-            method = new SymbolMethod(matcher.group(4));
-            return method;
-        }
-
-        List<XrefParam> xrefParams;
-        List<Object> params;
-        String paramText = matcher.group(3);
-        if (paramText != null) {
-            paramText = paramText.replaceAll('[\\(\\)\\s]', '');
-            if (String.isNotEmpty(paramText)) {
-                params = new List<Object>();
-                List<String> paramSplits = paramText.split(',');
-                for (Integer i = 0; i < paramSplits.size(); i++) {
-                    String input = paramSplits[i];
-                    if (input.startsWith('$')) {
-                        if (xrefParams == null) {
-                            xrefParams = new List<XrefParam>();
-                        }
-                        XrefParam param = new XrefParam();
-                        param.index = i;
-                        param.level = converter.toInteger(input.substring(1, 2));
-                        param.fieldName = input.substring(3).toUpperCase();
-                        xrefParams.add(param);
-                        params.add(null);
-                    } else {
-                        params.add(input);
-                    }
-                }
-            }
-        }
-
-        if (xrefParams != null) {
-            method = new XrefMethod(xrefParams);
-        } else {
-            method = new Method();
-        }
-
-        method.helperName = matcher.group(1);
-        method.name = matcher.group(2);
-        method.params = params;
-
-        // System.debug('helperName: ' + method.helperName);
-        // System.debug('methodName: ' + method.name);
-        // System.debug('params: ' + method.params);
-        return method;
-    }
-
-    public virtual class Method {
+    public virtual class Method implements IMethodEvaluator {
         public String helperName { get; set; }
         public String name { get; set; }
         public List<Object> params { get; set; }
+
+        public virtual Object evaluate(Map<String, IProvider> helperMap) {
+            IProvider helper = helperMap.get(helperName);
+            if (helper != null) {
+                return helper.call(name, params);
+            } else {
+                return null;
+            }
+        }
     }
 
     public class SymbolMethod extends Method {
@@ -201,6 +185,7 @@ public with sharing class ATKCommon {
     }
 
     public class XrefMethod extends Method {
+        public IParamEvaluator paramEvaluator { get; set; }
         public List<XrefParam> xrefParams { get; set; }
         public Integer level {
             get;
@@ -211,35 +196,44 @@ public with sharing class ATKCommon {
             }
         }
 
-        XrefMethod(List<XrefParam> xrefParams) {
+        public XrefMethod(List<XrefParam> xrefParams) {
             this.xrefParams = xrefParams;
             for (XrefParam param : xrefParams) {
                this.level = param.level;
             }
         }
 
-        public void loadParams(IParamEvaluator paramEvaluator) {
+        void loadParams(Integer recordIndex) {
             if (xrefParams != null && paramEvaluator != null) {
                 for (XrefParam param : xrefParams) {
-                    params.set(param.index, paramEvaluator.evaluateParam(param.level, param.fieldName));
+                    params.set(param.index, paramEvaluator.evaluateParam(param.fieldName, recordIndex, param.level));
                 }
             }
+        }
+
+        public Object evaluate(Map<String, IProvider> helperMap, Integer recordIndex) {
+            if (recordIndex >= level) {
+                loadParams(recordIndex);
+                IProvider helper = helperMap.get(helperName);
+                if (helper != null) {
+                    return helper.call(name, params);
+                }
+            }
+            return null;
         }
     }
 
     public class XrefParam {
-        @TestVisible
-        Integer index { get; set; }
-        @TestVisible
+        public Integer index { get; set; }
         public Integer level {
             get;
-            private set {
+            set {
                 if (level == null || value < level) {
                     level = value;
                 }
             }
         }
-        public String fieldName { get; private set; }
+        public String fieldName { get; set; }
     }
 
     /**

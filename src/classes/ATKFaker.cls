@@ -2,7 +2,7 @@
  * Apex Test Kit
  */
 public with sharing class ATKFaker {
-    public static Map<String, IProvider> helperMap { get; set; }
+    public static Map<String, ATKCommon.IProvider> helperMap { get; set; }
     public static Internet internet { get; set; }
     public static Phone phone { get; set; }
     public static Name name { get; set; }
@@ -19,7 +19,6 @@ public with sharing class ATKFaker {
     @TestVisible
     private static ATKFakerDefinition definition = new ATKFakerDefinition();
     public static final ATKCommon.MethodParser METHOD_PARSER = ATKCommon.METHOD_PARSER;
-    private static final MethodEvaluator METHOD_EVALUATOR = new MethodEvaluator();
 
     static {
         internet = new Internet();
@@ -33,7 +32,7 @@ public with sharing class ATKFaker {
         numbers = new NumberArithmeticHelper();
         value = new ValueArithmeticHelper();
 
-        helperMap = new Map<String, IProvider>();
+        helperMap = new Map<String, ATKCommon.IProvider>();
         helperMap.put('internet', internet);
         helperMap.put('phone', phone);
         helperMap.put('random', random);
@@ -48,33 +47,14 @@ public with sharing class ATKFaker {
 
     public static Object fake(String input) {
         ATKCommon.MethodGroup methodGroup = METHOD_PARSER.parse(input);
-        return methodGroup.evaluate(METHOD_EVALUATOR);
-    }
-
-    public class MethodEvaluator implements ATKCommon.IMethodEvaluator {
-        public Object evaluateMethod(ATKCommon.Method method) {
-            Object value;
-            IProvider helper = helperMap.get(method.helperName);
-            if (helper != null) {
-                value = helper.call(method.name, method.params);
-            }
-            return value;
-        }
+        return methodGroup.evaluate(helperMap);
     }
 
     /**
      * PROVIDERS
      */
-    public interface IProvider {
-        Object call(String method, List<Object> params);
-    }
-
-    public interface IDataProvider extends IProvider {
-
-    }
-
     @TestVisible
-    public class Helper implements IDataProvider {
+    public class Helper implements ATKCommon.IDataProvider {
         public Object call(String method, List<Object> params) {
             Object param0;
             if (params != null) {
@@ -158,7 +138,7 @@ public with sharing class ATKFaker {
         }
     }
 
-    public class Random implements IDataProvider {
+    public class Random implements ATKCommon.IDataProvider {
         private Integer RANDOM_NUMBER_CACHE_SIZE = -1; // disable random number cache
         private List<Double> randomNumberCache = new List<Double>();
         private Integer randomNumberIndex = 0;
@@ -324,7 +304,7 @@ public with sharing class ATKFaker {
         }
     }
 
-    public class DateHelper extends DateArithmeticHelper implements IDataProvider {
+    public class DateHelper extends DateArithmeticHelper implements ATKCommon.IDataProvider {
         public override Object call(String method, List<Object> params) {
             Object param0;
             Object param1;
@@ -391,43 +371,18 @@ public with sharing class ATKFaker {
         }
     }
 
-    public class Internet implements IDataProvider {
+    public class Internet implements ATKCommon.IDataProvider {
         public Object call(String method, List<Object> params) {
-            Object param0;
-            Object param1;
-            Object param2;
-            if (params != null) {
-                if (params.size() > 0) {
-                    param0 = params.get(0);
-                }
-                if (params.size() > 1) {
-                    param1 = params.get(1);
-                }
-                if (params.size() > 2) {
-                    param2 = params.get(2);
-                }
-            }
-
             Object output;
             switch on method {
                 when 'userName' {
-                    output = userName(
-                        ATKCommon.converter.toString(param0),
-                        ATKCommon.converter.toString(param1)
-                    );
+                    output = userName();
                 }
                 when 'email' {
-                    output = email(
-                        ATKCommon.converter.toString(param0),
-                        ATKCommon.converter.toString(param1),
-                        ATKCommon.converter.toString(param2)
-                    );
+                    output = email();
                 }
                 when 'url' {
                     output = url();
-                }
-                when 'avatar' {
-                    output = avatar();
                 }
                 when else {
 
@@ -437,56 +392,25 @@ public with sharing class ATKFaker {
         }
 
         public String userName() {
-            return userName(null, null);
-        }
-
-        public String userName(String firstName, String lastName) {
-            String result;
-            firstName = firstName == null ? name.firstName(null) : firstName;
-            lastName = lastName == null ? name.lastName() : lastName;
-
-            switch on Integer.valueOf(random.number(0, 2, 0)) {
-                when 0 {
-                    result = firstName + random.number(99, 999, 0);
-                }
-                when 1 {
-                    result = firstName
-                        + (String)random.arrayElement(definition.get(ATKFakerDefinition.FAKER_INTERNET_USERNAME_PUNCTUATION))
-                        + lastName;
-                }
-                when 2 {
-                    result = firstName
-                        + (String)random.arrayElement(definition.get(ATKFakerDefinition.FAKER_INTERNET_USERNAME_PUNCTUATION))
-                        + lastName
-                        + random.number(99, 999, 0);
-                }
-            }
+            String firstName = name.firstName();
+            String lastName = name.lastName();
+            String result = firstName
+                + (String)random.arrayElement(definition.get(ATKFakerDefinition.FAKER_INTERNET_USERNAME_PUNCTUATION))
+                + lastName
+                + random.number(99, 999, 0);
             result = result.replaceAll('\'', '');
             result = result.replaceAll(' ', '');
             return result;
         }
 
         public String email() {
-            return email(null, null, null);
-        }
-
-        public String email(String firstName, String lastName, String provider) {
             List<String> providerList = definition.get(ATKFakerDefinition.FAKER_INTERNET_FREEEMAIL);
-            provider = provider == null ? (String)random.arrayElement(providerList) : provider;
-        	return helper.slugify(internet.userName(firstName, lastName)) + '@' + provider;
+            String provider = (String)random.arrayElement(providerList);
+        	return helper.slugify(internet.userName()) + '@' + provider;
         }
 
         public String url() {
-        	return protocol() + '://' + domainName();
-        }
-
-        public String avatar() {
-            return (String)random.arrayElement(definition.get(ATKFakerDefinition.FAKER_INTERNET_AVATARURI));
-        }
-
-        private String protocol() {
-            List<String> protocolList = new List<String> { 'http', 'https' };
-            return (String)random.arrayElement(protocolList);
+        	return 'https://' + domainName();
         }
 
         private String domainName() {
@@ -503,7 +427,7 @@ public with sharing class ATKFaker {
         }
     }
 
-    public class Phone implements IDataProvider {
+    public class Phone implements ATKCommon.IDataProvider {
         public Object call(String method, List<Object> params) {
             Object param0;
             if (params != null) {
@@ -541,21 +465,12 @@ public with sharing class ATKFaker {
         }
     }
 
-    public class Name implements IDataProvider {
+    public class Name implements ATKCommon.IDataProvider {
         public Object call(String method, List<Object> params) {
-            Object param0;
-            if (params != null) {
-                if (params.size() > 0) {
-                    param0 = params.get(0);
-                }
-            }
-
             Object output;
             switch on method {
                 when 'firstName' {
-                    output = firstName(
-                        ATKCommon.converter.toString(param0)
-                    );
+                    output = firstName();
                 }
                 when 'lastName' {
                     output = lastName();
@@ -568,20 +483,7 @@ public with sharing class ATKFaker {
         }
 
         public String firstName() {
-            return firstName(null);
-        }
-
-        public String firstName(String gender) {
-            list<String> nameList;
-            if (gender == 'female' || gender == 'Female' || gender == 'FEMALE') {
-                nameList = definition.get(ATKFakerDefinition.FAKER_NAME_FEMALEFIRSTNAME);
-            } else if (gender == 'male' || gender == 'Male' || gender == 'MALE') {
-                nameList = definition.get(ATKFakerDefinition.FAKER_NAME_MALEFIRSTNAME);
-            }
-
-            if (nameList == null) {
-                nameList = definition.get(ATKFakerDefinition.FAKER_NAME_FIRSTNAME);
-            }
+            list<String> nameList = definition.get(ATKFakerDefinition.FAKER_NAME_FIRSTNAME);
             return (String)random.arrayElement(nameList);
         }
 
@@ -590,7 +492,7 @@ public with sharing class ATKFaker {
         }
     }
 
-    public class Finance implements IDataProvider {
+    public class Finance implements ATKCommon.IDataProvider {
         public Object call(String method, List<Object> params) {
             Object param0;
             Object param1;
@@ -626,7 +528,7 @@ public with sharing class ATKFaker {
         }
     }
 
-    public class Lorem implements IDataProvider {
+    public class Lorem implements ATKCommon.IDataProvider {
         public Object call(String method, List<Object> params) {
             Object param0;
             Object param1;
@@ -805,7 +707,7 @@ public with sharing class ATKFaker {
         }
     }
 
-    public class Address implements IDataProvider {
+    public class Address implements ATKCommon.IDataProvider {
         public Object call(String method, List<Object> params) {
             Object output;
             switch on method {
@@ -822,11 +724,7 @@ public with sharing class ATKFaker {
     /*
      * Arithmetic Provider
      */
-    public interface IArithmeticProvider extends IProvider {
-
-    }
-
-    private virtual class ValueArithmeticHelper implements IArithmeticProvider {
+    private virtual class ValueArithmeticHelper implements ATKCommon.IArithmeticProvider {
         public virtual Object call(String method, List<Object> params) {
             Object param0;
             if (params != null) {
@@ -849,7 +747,7 @@ public with sharing class ATKFaker {
     }
 
     @TestVisible
-    private virtual class NumberArithmeticHelper implements IArithmeticProvider {
+    private virtual class NumberArithmeticHelper implements ATKCommon.IArithmeticProvider {
         public virtual Object call(String method, List<Object> params) {
             Object param0;
             Object param1;
@@ -918,7 +816,7 @@ public with sharing class ATKFaker {
         }
     }
 
-    private virtual class DateArithmeticHelper implements IArithmeticProvider {
+    private virtual class DateArithmeticHelper implements ATKCommon.IArithmeticProvider {
         public virtual Object call(String method, List<Object> params) {
             Object param0;
             Object param1;
