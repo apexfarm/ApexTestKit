@@ -65,13 +65,6 @@ public with sharing class ATKWand {
         IWizardEntity end();
     }
 
-    public interface IWizardOriginableField extends IWizardEndableField {
-        IWizardEndableField origin(List<Object> values);
-        IWizardEndableField origin(Object value1);
-        IWizardEndableField origin(Object value1, Object value2);
-        IWizardEndableField origin(Object value1, Object value2, Object value3);
-    }
-
     public interface IWizardFieldEval {
         // try best to make uniqueness
         IWizardEndableField guess();
@@ -82,7 +75,7 @@ public with sharing class ATKWand {
         IWizardEndableField number(Integer precision, Integer scale);
         IWizardEndableField past() ;
         IWizardEndableField future();
-        IWizardEndableField between();
+        IWizardEndableField between(String fo, String to);
 
         // non-uniquable, use fake() to make unique values
         IWizardEndableField firstName();
@@ -105,17 +98,17 @@ public with sharing class ATKWand {
     }
 
     public interface IWizardFieldXref {
-        IWizardOriginableField value(String field);
-        IWizardOriginableField add(String field, Object value);
-        IWizardOriginableField substract(String field, Object value);
-        IWizardOriginableField divide(String field, Object value);
-        IWizardOriginableField multiply(String field, Object value);
-        IWizardOriginableField addYears(String field, Integer value);
-        IWizardOriginableField addMonths(String field, Integer value);
-        IWizardOriginableField addDays(String field, Integer value);
-        IWizardOriginableField addHours(String field, Integer value);
-        IWizardOriginableField addMinutes(String field, Integer value);
-        IWizardOriginableField addSeconds(String field, Integer value);
+        IWizardEndableField value(String field);
+        IWizardEndableField add(String field, Object value);
+        IWizardEndableField substract(String field, Object value);
+        IWizardEndableField divide(String field, Object value);
+        IWizardEndableField multiply(String field, Object value);
+        IWizardEndableField addYears(String field, Integer value);
+        IWizardEndableField addMonths(String field, Integer value);
+        IWizardEndableField addDays(String field, Integer value);
+        IWizardEndableField addHours(String field, Integer value);
+        IWizardEndableField addMinutes(String field, Integer value);
+        IWizardEndableField addSeconds(String field, Integer value);
     }
 
     interface ISchemator {
@@ -200,7 +193,7 @@ public with sharing class ATKWand {
                     && isEditableField(dfr)
                     && !entityNode.evalFieldMap.containsKey(field)
                     && !entityNode.xrefFieldMap.containsKey(field)) {
-                    entityNode.evalFieldCache.add(new EvalEntityField(dfr, fieldName, true));
+                    entityNode.evalFieldCache.add(new EvalEntityField(field, true));
                 }
 
                 // no need to rebuild static caches
@@ -324,9 +317,10 @@ public with sharing class ATKWand {
             for (XrefEntityField field : entityNode.xrefFieldCache) {
                 if (0 < field.method.level) {
                     for (ATKCommon.XrefParam param : field.method.xrefParams) {
-                        if (0 < param.level && field.method.origins == null) {
+                        if (0 < param.level && field.origin == null) {
                             throw new ATKCommon.NotFoundException(
-                                String.format('The cross reference field {0}.{1} must have an origin.',
+                                String.format('The cross reference field {0}.{1} must have a corresponding'
+                                    + ' eval({0}.{1}).value() or eval({0}.{1}).repeat() to specify its initial values.',
                                 new List<String> { entityNode.Name, field.name })
                             );
                         }
@@ -792,9 +786,13 @@ public with sharing class ATKWand {
 
         public void apply(IAttribute attribute) {
             if (attribute instanceOf IEntityAttribute) {
-                this.matrix.currentEntityNode.apply((IEntityAttribute)attribute);
-            } else if (attribute instanceOf IFieldAttribute) {
-                this.matrix.currentEntityNode.currentEntityField.apply((IFieldAttribute)attribute);
+                ((IEntityAttribute)attribute).apply(this.matrix.currentEntityNode);
+            } else if (attribute instanceOf IEvalFieldAttribute) {
+                ((IEvalFieldAttribute)attribute).apply(this.matrix.currentEntityNode,
+                (EvalEntityField)this.matrix.currentEntityNode.currentEntityField);
+            } else if (attribute instanceOf IXrefFieldAttribute) {
+                ((IXrefFieldAttribute)attribute).apply(this.matrix.currentEntityNode,
+                (XrefEntityField)this.matrix.currentEntityNode.currentEntityField);
             }
         }
 
@@ -972,10 +970,6 @@ public with sharing class ATKWand {
             this.evalFieldCache = new List<EvalEntityField>();
             this.xrefFieldCache = new List<XrefEntityField>();
         }
-
-        public void apply(IEntityAttribute attribute) {
-            attribute.apply(this);
-        }
     }
 
     /*
@@ -983,6 +977,7 @@ public with sharing class ATKWand {
      */
 
     private abstract class EntityField  {
+        public Schema.SObjectField field { get; set; }
         public Schema.DescribeFieldResult dfr { get; set; }
         public String name { get; set; }
         public ATKCommon.Method method { get; set; }
@@ -992,16 +987,14 @@ public with sharing class ATKWand {
             needGuess = false;
         }
 
-        EntityField(Schema.DescribeFieldResult dfr, String name) {
-            this.dfr = dfr;
-            this.name = name;
+        EntityField(Schema.SObjectField field) {
+            this.field = field;
+            this.dfr = this.field.getDescribe();
+            this.name = this.dfr.getName();
         }
 
         public virtual Object getValue(Integer recordIndex) {
             return null;
-        }
-
-        public virtual void apply(IFieldAttribute attribute) {
         }
     }
 
@@ -1011,12 +1004,12 @@ public with sharing class ATKWand {
         public String fakerRule { get; set; }
         public List<Object> repeatValues { get; set; }
 
-        EvalEntityField(Schema.DescribeFieldResult dfr, String name) {
-            super(dfr, name);
+        EvalEntityField(Schema.SObjectField field) {
+            super(field);
         }
 
-        EvalEntityField(Schema.DescribeFieldResult dfr, String name, Boolean needGuess) {
-            super(dfr, name);
+        EvalEntityField(Schema.SObjectField field, Boolean needGuess) {
+            super(field);
             this.needGuess = needGuess;
         }
 
@@ -1033,24 +1026,21 @@ public with sharing class ATKWand {
             }
             return this.value;
         }
-
-        public override void apply(IFieldAttribute attribute) {
-            ((IEvalFieldAttribute)attribute).apply(this);
-        }
     }
 
     private class XrefEntityField extends EntityField implements Comparable {
         public ATKCommon.XrefMethod method { get; set; }
-        XrefEntityField(Schema.DescribeFieldResult dfr, String name) {
-            super(dfr, name);
+        public EvalEntityField origin { get; set; }
+
+        XrefEntityField(Schema.SObjectField field) {
+            super(field);
         }
 
         public override Object getValue(Integer recordIndex) {
+            if (recordIndex < method.level) {
+                return origin.getValue(recordIndex);
+            }
             return method.evaluate(ATKFaker.helperMap, recordIndex);
-        }
-
-        public override void apply(IFieldAttribute attribute) {
-            ((IXrefFieldAttribute)attribute).apply(this);
         }
 
         public Integer compareTo(Object toObj) {
@@ -1075,7 +1065,6 @@ public with sharing class ATKWand {
                 return null;
             }
 
-            Integer size = entityNode.repository.size();
             if (level <= recordIndex) {
                 SObject record = entityNode.repository[recordIndex - level];
                 return record.get(fieldName);
@@ -1100,11 +1089,11 @@ public with sharing class ATKWand {
     }
 
     public interface IEvalFieldAttribute extends IFieldAttribute {
-        void apply(EvalEntityField entityField);
+        void apply(EntityNode entityNode, EvalEntityField entityField);
     }
 
     public interface IXrefFieldAttribute extends IFieldAttribute {
-        void apply(XrefEntityField entityField);
+        void apply(EntityNode entityNode, XrefEntityField entityField);
     }
 
     public class ReferenceByAttribute implements IEntityAttribute {
@@ -1185,11 +1174,28 @@ public with sharing class ATKWand {
         public Schema.SObjectField field { get; set; }
 
         public void apply(EntityNode entityNode) {
-            Schema.DescribeFieldResult dfr = this.field.getDescribe();
-            String fieldName = dfr.getName();
-            EvalEntityField entityField = new EvalEntityField(dfr, fieldName);
-            entityNode.evalFieldMap.put(this.field, entityField);
-            entityNode.evalFieldCache.add(entityField);
+            EvalEntityField entityField;
+
+            if (entityNode.xrefFieldMap.containsKey(this.field)) {
+                XrefEntityField xrefEntityField = entityNode.xrefFieldMap.get(this.field);
+                if (xrefEntityField.origin == null) {
+                    entityField = new EvalEntityField(this.field);
+                    xrefEntityField.origin = entityField;
+                } else {
+                    entityField = xrefEntityField.origin;
+                }
+            }
+
+            if (entityField == null) {
+                if (entityNode.evalFieldMap.containsKey(this.field)) {
+                    entityField = entityNode.evalFieldMap.get(this.field);
+                } else {
+                    entityField = new EvalEntityField(this.field);
+                    entityNode.evalFieldMap.put(this.field, entityField);
+                    entityNode.evalFieldCache.add(entityField);
+                }
+            }
+
             entityNode.currentEntityField = entityField;
         }
     }
@@ -1198,17 +1204,28 @@ public with sharing class ATKWand {
         public Schema.SObjectField field { get; set; }
 
         public void apply(EntityNode entityNode) {
-            Schema.DescribeFieldResult dfr = this.field.getDescribe();
-            String fieldName = dfr.getName();
-            XrefEntityField entityField = new XrefEntityField(dfr, fieldName);
-            entityNode.xrefFieldMap.put(this.field, entityField);
-            entityNode.xrefFieldCache.add(entityField);
+            XrefEntityField entityField;
+            if (entityNode.xrefFieldMap.containsKey(this.field)) {
+                entityField = entityNode.xrefFieldMap.get(this.field);
+            } else {
+                entityField = new XrefEntityField(this.field);
+                entityNode.xrefFieldMap.put(this.field, entityField);
+                entityNode.xrefFieldCache.add(entityField);
+            }
+
+            if (entityNode.evalFieldMap.containsKey(this.field)) {
+                EvalEntityField evalEntityField = entityNode.evalFieldMap.get(this.field);
+                entityNode.evalFieldMap.remove(this.field);
+                entityNode.evalFieldCache.remove(entityNode.evalFieldCache.indexOf(evalEntityField));
+                entityField.origin = evalEntityField;
+            }
+
             entityNode.currentEntityField = entityField;
         }
     }
 
     public class EvalGuessAttribute implements IEvalFieldAttribute {
-        public void apply(EvalEntityField entityField) {
+        public void apply(EntityNode entityNode, EvalEntityField entityField) {
             entityField.needGuess = true;
         }
     }
@@ -1220,7 +1237,7 @@ public with sharing class ATKWand {
             this.value = value;
         }
 
-        public void apply(EvalEntityField entityField) {
+        public void apply(EntityNode entityNode, EvalEntityField entityField) {
             entityField.value = this.value;
         }
     }
@@ -1232,7 +1249,7 @@ public with sharing class ATKWand {
             this.format = format;
         }
 
-        public void apply(EvalEntityField entityField) {
+        public void apply(EntityNode entityNode, EvalEntityField entityField) {
             entityField.indexFormat = this.format;
         }
     }
@@ -1244,7 +1261,7 @@ public with sharing class ATKWand {
             this.values = values;
         }
 
-        public void apply(EvalEntityField entityField) {
+        public void apply(EntityNode entityNode, EvalEntityField entityField) {
             entityField.repeatValues = this.values;
         }
     }
@@ -1256,7 +1273,7 @@ public with sharing class ATKWand {
             this.rule = rule;
         }
 
-        public void apply(EvalEntityField entityField) {
+        public void apply(EntityNode entityNode, EvalEntityField entityField) {
             entityField.fakerRule = this.rule;
         }
     }
@@ -1271,7 +1288,7 @@ public with sharing class ATKWand {
             this.methodName = methodName;
         }
 
-        public void apply(EvalEntityField entityField) {
+        public void apply(EntityNode entityNode, EvalEntityField entityField) {
             ATKCommon.Method method = new ATKCommon.Method();
             method.helperName = this.helperName;
             method.name = this.methodName;
@@ -1294,7 +1311,7 @@ public with sharing class ATKWand {
             this.methodName = methodName;
         }
 
-        public void apply(XrefEntityField entityField) {
+        public void apply(EntityNode entityNode, XrefEntityField entityField) {
             List<ATKCommon.XrefParam> xrefParams = new List<ATKCommon.XrefParam>();
             List<Object> newParams = new List<Object>();
             for (Integer i = 0; i < this.params.size(); i++) {
@@ -1323,18 +1340,6 @@ public with sharing class ATKWand {
             method.params = newParams;
             method.paramEvaluator = PARAM_EVALUATOR;
             entityField.method = method;
-        }
-    }
-
-    public class XrefOriginAttribute implements IXrefFieldAttribute {
-        List<Object> origins { get; set; }
-
-        public XrefOriginAttribute(List<Object> origins) {
-            this.origins = origins;
-        }
-
-        public void apply(XrefEntityField entityField) {
-            entityField.method.origins = this.origins;
         }
     }
 }

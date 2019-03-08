@@ -1,6 +1,6 @@
 # Apex Test Kit 2.0
 
-![](https://img.shields.io/badge/version-2.0.0-brightgreen.svg) ![](https://img.shields.io/badge/build-passing-brightgreen.svg) ![](https://img.shields.io/badge/coverage-%3E95%25-brightgreen.svg)
+![](https://img.shields.io/badge/version-2.1.0-brightgreen.svg) ![](https://img.shields.io/badge/build-passing-brightgreen.svg) ![](https://img.shields.io/badge/coverage-%3E95%25-brightgreen.svg)
 
 Apex Test Kit is a Salesforce library to help generate testing data for Apex test classes. It has the following features:
 
@@ -25,16 +25,35 @@ static void testAccountCreation() {
 
 Underneath, the data are automatically guessed with appropriate values according to field types, including: BOOLEAN, DATE, TIME, DATETIME, DOUBLE, INTEGER, PERCENT, CURRENCY, PICKLIST, MULTIPICKLIST, STRING, TEXTAREA, EMAIL, URL, PHONE, ADDRESS.
 
+### Version 2.0 
+
+#### Highlight
+
+* Enfore strong types rather than passing strings around as parameters, such as 
+  * Use sObjectType instead of sObject name string
+  * Use sObjectField instead of field name string
+  * Use method instead of faker generation expression
+* Put functional programming into extreme. It becomes a delightful experience to code.
+* Performance tuning. I have to make trade-offs between "good-looking names" and performance, and `index()` and `repeat()` keywords are introduced for performance considerations.
+
+#### Roadmap
+
+* Provide in-memory dummy sObject graph generation. This will have performance benefit for not triggering triggers and process builder.
+* Provid a way to compose reusable sObject templates within a test data factory class.
+* Performance tuning in two possbile directions:
+  * Use sequence generation to replace the random generation, so data can be consistent
+  * Add flag to switch generation logic to less "good-looking" mode. 
+
 ### Caveat
 
 1. Depends on number of fields generated, the size of debug log could exceed the 5MB limit. In such case, please set the ApexCode debug level to `DEBUG`.
 2. Sometime ramdom values could bring uncertainty to test results. In such case, please specify the genereation expression rule explicitly or to a fixed value.
-3. The current field generation capacity is around 6000 in 10 seconds. If there are 20 generated fields (not fixed values) per record, the max record generation capacity is around 300. If more are created, it is likely to reach the CPU limit. So It is also better to use `Test.startTest()` and `Test.stopTest()` to wrap your testing logic.
+3. The current field generation capacity is around 15000 in 15 seconds. If there are 30 generated fields (not fixed values) per record, the max record generation capacity is around 500. If more are created, it is likely to reach the CPU limit. And consider any trigger and process builder, the actually record capacity should be less than 500.
 4. If record type is activated and there are picklist values depending on them, please try to declare the picklist values in the `fields()` explicitly for that record type.
 
 ## Usage of ATKWizard
 
-All examples below can be successfully run from `src/classes/SampleTest.cls` in a clean Salesforce CRM organization. If validation rules were added to CRM standard sObjects, `fields().eval().end()` keywords could be used to tailor the record generation to bypass them.
+All examples below can be successfully run from `src/classes/SampleTest.cls` in a clean Salesforce CRM organization. If validation rules were added to CRM standard sObjects, `fields().eval().value().end()` keywords could be used to tailor the record generation to bypass them.
 
 ### 1. Setup Relationship
 
@@ -73,9 +92,9 @@ ATKWand.IBag bag = ATKWizard.I().wantMany(Product2.SObjectType)
         .referenceBy(PricebookEntry.Product2Id) // can be omitted
         .total(5)
         .fields()
-            .eval(PricebookEntry.Pricebook2Id, pricebook2Id)
-            .eval(PricebookEntry.UseStandardPrice, false)
-            .eval(PricebookEntry.IsActive, true)
+            .eval(PricebookEntry.Pricebook2Id).value(pricebook2Id)
+            .eval(PricebookEntry.UseStandardPrice).value(false)
+            .eval(PricebookEntry.IsActive).value(true)
         .end()
     .generate();
 
@@ -85,8 +104,8 @@ ATKWizard.I().wantMany(Pricebook2.SObjectType)
         .referenceBy(PricebookEntry.Pricebook2Id) // can be omitted
         .total(25)
         .fields()
-            .eval(PricebookEntry.UseStandardPrice, false)
-            .eval(PricebookEntry.IsActive, true)
+            .eval(PricebookEntry.UseStandardPrice).value(false)
+            .eval(PricebookEntry.IsActive).value(true)
         .end()
         .belongTo(Product2.SObjectType)
             .referenceBy(PricebookEntry.Product2Id) // can be omitted
@@ -128,40 +147,26 @@ ATKWizard.I().wantMany(A__c.SObjectType)
         .total(20)
         .fields()
            .guard(false)
-           .eval(B__C.AnyField__c)
-           .eval(B__C.Price__c, 12.34)
-           .eval(B__C.PhoneNumber__c, '{{###-###-####}}')
-           .eval(B__C.FirstName__c, '{!name.firstName(male)}')
-           .xref(B__C.Counter__c, '{!numbers.add($1.Counter__c, 1)}', 1)
+           .eval(B__C.AnyField__c).guess()
+           .eval(B__C.Price__c).value(12.34)
+           .eval(B__C.PhoneNumber__c).phone()
+           .eval(B__C.FirstName__c).firstName()
+           .eval(B__C.Counter__c).value(1)
+           .xref(B__C.Counter__c).add('$1.Counter__c', 1)
         .end()
     .generate();
 ```
 
-##### 2.2.1 Entity Graph Decoration Keywords
+##### 2.2.1 Entity Relationship Decoration Keywords
 
 | Keyword       | Param           | Description                                                  |
 | ------------- | --------------- | ------------------------------------------------------------ |
 | total()       | Integer         | **Required***, only if `useList()` is not used. It defines number of records to create for the attached sObject context. |
 | useList()     | List\<sObject\> | **Required***, only if `total()` is not used. This tells the wizard to use the previously created sObject list, rather than to create the records from scratch. |
 | referenceBy() | SObjectField    | **Optional**. Only use this keyword if there are multiple fields on the entity referencing the same sObject. |
+| also()        | Integer         | It can be used to switch back to any previous sObject context. |
 
-##### 2.2.2 Entity Field Decoration Keywords
-
-Only use `guard()`, `eval()`, `xref()`, between `fields()` and `end()` keywords. And every `fields()` must follow an `end()` at the bottom.
-
-| Keyword   | Param                          | Description                                                  |
-| --------- | ------------------------------ | ------------------------------------------------------------ |
-| fields()  | N/A                            | **Optional**. Start of declaring field generation logic.     |
-| end()     | N/A                            | **Optional**. End of declaring field generation logic.       |
-| guard()   | [Boolean]                      | **Optional**. Turn on guard for `REQUIRED_FIELD_MISSING` exceptions by implicitly guessing values for fields not defined in `eval()` and `xref()`. 80% of the time, implicit guessing is useful, so guard is tuned on by default. But you would like to disable it for sObjects with many required fields such as User and Event etc. |
-| eval() | SObjectField, [Object]         | **Optional**. Use this keyword to tailor the field values, either to bypass validation rules, or to fulfill assertion logics. The second parameter could be either `ATKFaker` interpolation expressions, or primitive values. |
-| xref() | SObjectField, String, [Object] | **Optional**. Use this keyword if cross record arithmetic expressions are used, like `'{!dates.addDay($1.startDate__c, 1)}'`. Here `$1` is used to reference a previous record. Hence you can use `$0` to reference values on the current record. |
-
-#### 2.3 Entity Traversal Keywords
-
-| Keyword | Param   | Description                                                  |
-| ------- | ------- | ------------------------------------------------------------ |
-| also    | Integer | It can be used to switch back to any previous sObject context. |
+The following is an example to demo how to use `also()` keyword:
 
 ```java
 ATKWizard.I().wantMany(A__c.SObjectType)
@@ -174,32 +179,80 @@ ATKWizard.I().wantMany(A__c.SObjectType)
     .generate();
 ```
 
-### 3. Advanced Usage
+##### 2.2.2 Entity Field Decoration Keywords
 
-#### 3.1 Rule List
-
-With rule `List<>`, `eval()` can sequentially assign values to records created. Use `List<Object>` instead of `List<String>` whenever there is no need of ATKFaker interpolation, due to less CPU limit consumed.
+Only use `guard()`, `eval()`, `xref()`, between `fields()` and `end()` keywords. And every `fields()` must follow an `end()` at the bottom.
 
 ```java
-ATKWizard.I().wantMany(SomeObject__c.SObjectType)
-    .total(3)
-    .fields()
-    	// ATK will always try to parse String as expressions
-        .eval(SomeObject__c.Name__c, new List<String> {
-            'AP-{{###}}', 'GG-{{###}}', 'MS-{{###}}'
-        })
-    	// ATK will never try to parse Object as expressions
-        .eval(SomeObject__c.Alias__c, new List<Object> {
-            'AP-123', 'GG-456', 'MS-789'
-        })
-    	.eval(SomeObject__c.Price__c, new List<Object> {
-            12.39, 28.76, 22.00
-        })
-    .end()
-    .generate();
+fields()
+	.guard()
+    .eval().value()
+    .xref().value()
+.end()
 ```
 
-#### 3.2 Cross Record Reference
+| Keyword   | Param                          | Description                                                  |
+| --------- | ------------------------------ | ------------------------------------------------------------ |
+| fields()  | N/A                            | **Optional**. Start of declaring field generation logic.     |
+| end()     | N/A                            | **Optional**. End of declaring field generation logic.       |
+| guard()   | [Boolean]                      | **Optional**. Turn on guard for `REQUIRED_FIELD_MISSING` exceptions by implicitly guessing values for fields not defined in `eval()` and `xref()`. 80% of the time, implicit guessing is useful, so guard is tuned on by default. But you would like to disable it for sObjects with many required fields such as User and Event etc. |
+| eval() | SObjectField, [Object]         | **Optional**. Use this keyword to tailor the field values, either to bypass validation rules, or to fulfill assertion logics. The second parameter could be either `ATKFaker` interpolation expressions, or primitive values. |
+| xref() | SObjectField, String, [Object] | **Optional**. Use this keyword if cross record arithmetic expressions are used. More will be explained in the following section. |
+
+##### 2.2.3 Field Eval Decoration Keywords
+
+Users can control of the following keyword evaluation. Use `index()`, `value()`, `repeat()` whenever possible, sicne they are more predictable and efficient.
+
+```java
+eval().fake('{!name.firstName} {{####}}'); // use two ATKFaker expressions
+eval().index('Name-{0}');                  // Name-0, Name-1, Name-2 etc.
+eval().value(Object value);                // any value of the field type
+eval().repeat(List<Object> values);        // a list of values of the field type
+eval().repeat(Object value1, Object value2);
+eval().repeat(Object value1, Object value2, Object value3);
+```
+
+Users cannot control the following keyword evaluation, and the values are produced randomly.
+
+```java
+eval().guess()                          // guess value based on field type
+eval().userName()
+eval().email()
+eval().url()
+eval().phone()                          // various US phone number format
+eval().number(8, 0)                     // precision 8, scale 0
+eval().past()                           // a date/datetime in past 3 years
+eval().future()                         // a date/datetime in next 3 years
+eval().between('2018-1-1', '2019-1-1')  // params are in ISO date/datetime formats
+eval().firstName()                      // pick up a name from ~3000 names
+eval().lastName()                       // pick up a name from ~500 names
+eval().word()                           // generate 1 lorem word
+eval().words()                          // generate 3 lorem words
+eval().sentence()                       // generate 1 sentence with 3-10 lorm words
+eval().sentences()                      // generate 2-6 sentences
+eval().paragraph()                      // generate 3-6 sentences
+eval().paragraphs()                     // generate 3 paragraph
+```
+
+##### 2.2.4 Field Xref Decoration Keywords
+
+The folloiwng expressions must work with a corresponding `eval().value()` if field reference is `$1`, and `eval().repeat()` if field reference is `$2` and above. More will be explained in the following section.
+
+```java
+xref().value('$0.StartDate')            // use the StartDate of current record
+xref().add('$1.Counter__c', 1)          // subsract 1 from Counter__C of previous record
+xref().substract('$1.Counter__c', 1)    // subsract 1 from Counter__C of previous record
+xref().divide(String field, Object value)
+xref().multiply(String field, Object value)
+xref().addYears('$1.StartDate', 1)      // add 1 year to the StartDate of previous record
+xref().addMonths(String field, Integer value)
+xref().addDays(String field, Integer value)
+xref().addHours(String field, Integer value)
+xref().addMinutes(String field, Integer value)
+xref().addSeconds(String field, Integer value)
+```
+
+### 3. Cross Record Reference
 
 With `xref()`, we can perform arithmetic calculations according to fields on previously created records. For example, we can create records with consecutive start dates and end dates as below:
 
@@ -209,35 +262,29 @@ ATKWizard.I().wantMany(Event.SObjectType)
     .total(10)
     .fields()
     	.guard(false)
-        .xref(Event.StartDateTime, '{!dates.addDays($1.EndDateTime, 1)}', currentDatetime)
-        .xref(Event.EndDateTime, '{!dates.addDays($0.StartDateTime, 1)}')
-        .xref(Event.ActivityDateTime, '{!value.get($0.StartDateTime)}')
-        .eval(Event.DurationInMinutes, 24 * 60)
+        .eval(Event.DurationInMinutes).value(24 * 60)
+    	.eval(Event.StartDateTime).value(currentDatetime)       // specify init value for $1
+        .xref(Event.StartDateTime).addDays('$1.EndDateTime', 1)
+        .xref(Event.EndDateTime)addDays('$0.StartDateTime', 1)
+        .xref(Event.ActivityDateTime).value('$0.StartDateTime') // always equal to StartDate
     .end()
     .generate();
 ```
 
-`$0` represents current record, `$1` represents previous one record, and so on. **Caution**: Cross record reference field cannot be declared as rule list.
-
-Here is a list of supported arithmetic expressions, negative values could also be used:
+`$0` represents current record, `$1` represents previous one record, and so on. Here is a list of supported arithmetic expressions, negative values could also be used on some of the keywords:
 
 ```java
-// directly get value from a record field
-'{!value.get($0.StartDateTime)}'
-
-// numeric arithmetic
-'{!numbers.add($1.Price__c, 10)}'
-'{!numbers.substract($1.Price__c, 10)}'
-'{!numbers.divide($1.Price__c, 10)}'
-'{!numbers.multiply($1.Price__c, 10)}'
-
-// date/datetime arithmetic
-'{!dates.addDays($0.StartDate__c, 1)}'
-'{!dates.addHours($0.StartDate__c, 1)}'
-'{!dates.addMinutes($0.StartDate__c, 1)}'
-'{!dates.addMonths($0.StartDate__c, 1)}'
-'{!dates.addSeconds($0.StartDate__c, 1)}'
-'{!dates.addYears($0.StartDate__c, 1)}'
+xref().value('$0.StartDate')            // use the StartDate of current record
+xref().add('$1.Counter__c', 1)          // subsract 1 from Counter__C of previous record
+xref().substract('$1.Counter__c', 1)    // subsract 1 from Counter__C of previous record
+xref().divide(String field, Object value)
+xref().multiply(String field, Object value)
+xref().addYears('$1.StartDate', 1)      // add 1 year to the StartDate of previous record
+xref().addMonths(String field, Integer value)
+xref().addDays(String field, Integer value)
+xref().addHours(String field, Integer value)
+xref().addMinutes(String field, Integer value)
+xref().addSeconds(String field, Integer value)
 ```
 
 ## Usage of ATKFaker
@@ -278,8 +325,6 @@ All APIs can be used in `ATKFaker.fake()` as a string expression. Just remove th
 
 ```java
 ATKFaker.name.firstName();
-ATKFaker.name.firstName('male');
-ATKFaker.name.firstName('female');
 ATKFaker.name.lastName();
 ```
 
@@ -289,7 +334,6 @@ ATKFaker.name.lastName();
 ATKFaker.internet.userName();
 ATKFaker.internet.email();
 ATKFaker.internet.url();
-ATKFaker.internet.avatar();
 ```
 
 #### 2.3 Phone
@@ -303,9 +347,9 @@ ATKFaker.phone.phoneNumber('1xx-xxx-xxxx');
 
 ```java
 ATKFaker.random.boolean();
-ATKFaker.random.number(); // => 0-999
-ATKFaker.random.number(99); // number(max) => 0-99
-ATKFaker.random.number(5, 2); // number(precesion, scale) => 123.45
+ATKFaker.random.number();         // => 0-999
+ATKFaker.random.number(99);       // number(max) => 0-99
+ATKFaker.random.number(5, 2);     // number(precesion, scale) => 123.45
 ATKFaker.random.number(0, 99, 2); // number(min, max, scale) => 75.23
 ATKFaker.random.arrayElements(new List<Integer> { 1, 2, 3, 4, 5 });
 ATKFaker.random.arrayElements(new List<Integer> { 1, 2, 3, 4, 5 }, 3); // => {2, 4, 5}
@@ -321,7 +365,7 @@ ATKFaker.lorem.sentences();
 ATKFaker.lorem.paragraph();
 ATKFaker.lorem.paragraphs();
 ATKFaker.lorem.lines();
-ATKFaker.lorem.text(); // word(s), sentence(s), paragraph(s), lines
+ATKFaker.lorem.text();
 ```
 
 #### 2.6 Dates

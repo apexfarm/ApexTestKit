@@ -4,7 +4,7 @@
 public with sharing class ATKWizard {
 
     private static final ATKWand.IWizardEntity entityWizard = new ATKWizardEntity();
-    private static final ATKWand.IWizardOriginableField fieldWizard = new ATKWizardField();
+    private static final ATKWand.IWizardEndableField fieldWizard = new ATKWizardField();
     private static final ATKWand.IWizardFieldEval evalWizard = new WizardFieldEval();
     private static final ATKWand.IWizardFieldXref xrefWizard = new WizardFieldXref();
 
@@ -105,7 +105,7 @@ public with sharing class ATKWizard {
         }
     }
 
-    class ATKWizardField implements ATKWand.IWizardOriginableField {
+    class ATKWizardField implements ATKWand.IWizardEndableField {
         ATKWand.EvalAttribute evalAttribute = new ATKWand.EvalAttribute();
         ATKWand.XrefAttribute xrefAttribute = new ATKWand.XrefAttribute();
 
@@ -120,26 +120,6 @@ public with sharing class ATKWizard {
 
         public ATKWand.IWizardEndableField guard(Boolean enable) {
             spellBook.apply(new ATKWand.GuardAttribute(enable));
-            return fieldWizard;
-        }
-
-        public ATKWand.IWizardEndableField origin(List<Object> values) {
-            spellBook.apply(new ATKWand.XrefOriginAttribute(values));
-            return fieldWizard;
-        }
-
-        public ATKWand.IWizardEndableField origin(Object value1) {
-            spellBook.apply(new ATKWand.XrefOriginAttribute(new List<Object> { value1 }));
-            return fieldWizard;
-        }
-
-        public ATKWand.IWizardEndableField origin(Object value1, Object value2) {
-            spellBook.apply(new ATKWand.XrefOriginAttribute(new List<Object> { value1, value2 }));
-            return fieldWizard;
-        }
-
-        public ATKWand.IWizardEndableField origin(Object value1, Object value2, Object value3) {
-            spellBook.apply(new ATKWand.XrefOriginAttribute(new List<Object> { value1, value2, value3 }));
             return fieldWizard;
         }
 
@@ -210,7 +190,8 @@ public with sharing class ATKWizard {
             return fieldWizard;
         }
 
-        public ATKWand.IWizardEndableField between() {
+        public ATKWand.IWizardEndableField between(String fo, String to) {
+            this.betweenAttribute.params = new List<Object> { fo, to };
             spellBook.apply(this.betweenAttribute);
             return fieldWizard;
         }
@@ -293,7 +274,8 @@ public with sharing class ATKWizard {
 
     public class WizardFieldXref implements ATKWand.IWizardFieldXref {
         ATKWand.XrefMethodAttribute xrefMethodAttribute = new ATKWand.XrefMethodAttribute();
-        public ATKWand.IWizardOriginableField value(String field) {
+
+        public ATKWand.IWizardEndableField value(String field) {
             this.xrefMethodAttribute.helperName = 'value';
             this.xrefMethodAttribute.methodName = 'get';
             this.xrefMethodAttribute.params = new List<Object> { field };
@@ -301,7 +283,7 @@ public with sharing class ATKWizard {
             return fieldWizard;
         }
 
-        public ATKWand.IWizardOriginableField add(String field, Object value) {
+        public ATKWand.IWizardEndableField add(String field, Object value) {
             this.xrefMethodAttribute.helperName = 'numbers';
             this.xrefMethodAttribute.methodName = 'add';
             this.xrefMethodAttribute.params = new List<Object> { field, value };
@@ -309,7 +291,7 @@ public with sharing class ATKWizard {
             return fieldWizard;
         }
 
-        public ATKWand.IWizardOriginableField substract(String field, Object value) {
+        public ATKWand.IWizardEndableField substract(String field, Object value) {
             this.xrefMethodAttribute.helperName = 'numbers';
             this.xrefMethodAttribute.methodName = 'substract';
             this.xrefMethodAttribute.params = new List<Object> { field, value };
@@ -317,7 +299,7 @@ public with sharing class ATKWizard {
             return fieldWizard;
         }
 
-        public ATKWand.IWizardOriginableField divide(String field, Object value) {
+        public ATKWand.IWizardEndableField divide(String field, Object value) {
             this.xrefMethodAttribute.helperName = 'numbers';
             this.xrefMethodAttribute.methodName = 'divide';
             this.xrefMethodAttribute.params = new List<Object> { field, value };
@@ -325,7 +307,7 @@ public with sharing class ATKWizard {
             return fieldWizard;
         }
 
-        public ATKWand.IWizardOriginableField multiply(String field, Object value) {
+        public ATKWand.IWizardEndableField multiply(String field, Object value) {
             this.xrefMethodAttribute.helperName = 'numbers';
             this.xrefMethodAttribute.methodName = 'multiply';
             this.xrefMethodAttribute.params = new List<Object> { field, value };
@@ -333,7 +315,7 @@ public with sharing class ATKWizard {
             return fieldWizard;
         }
 
-        public ATKWand.IWizardOriginableField addYears(String field, Integer value) {
+        public ATKWand.IWizardEndableField addYears(String field, Integer value) {
             this.xrefMethodAttribute.helperName = 'dates';
             this.xrefMethodAttribute.methodName = 'add';
             this.xrefMethodAttribute.params = new List<Object> { field, value };
@@ -341,7 +323,7 @@ public with sharing class ATKWizard {
             return fieldWizard;
         }
 
-        public ATKWand.IWizardOriginableField addMonths(String field, Integer value) {
+        public ATKWand.IWizardEndableField addMonths(String field, Integer value) {
             this.xrefMethodAttribute.helperName = 'dates';
             this.xrefMethodAttribute.methodName = 'add';
             this.xrefMethodAttribute.params = new List<Object> { field, value };
@@ -349,7 +331,7 @@ public with sharing class ATKWizard {
             return fieldWizard;
         }
 
-        public ATKWand.IWizardOriginableField addDays(String field, Integer value) {
+        public ATKWand.IWizardEndableField addDays(String field, Integer value) {
             this.xrefMethodAttribute.helperName = 'dates';
             this.xrefMethodAttribute.methodName = 'addDays';
             this.xrefMethodAttribute.params = new List<Object> { field, value };
@@ -357,7 +339,7 @@ public with sharing class ATKWizard {
             return fieldWizard;
         }
 
-        public ATKWand.IWizardOriginableField addHours(String field, Integer value) {
+        public ATKWand.IWizardEndableField addHours(String field, Integer value) {
             this.xrefMethodAttribute.helperName = 'dates';
             this.xrefMethodAttribute.methodName = 'addHours';
             this.xrefMethodAttribute.params = new List<Object> { field, value };
@@ -365,7 +347,7 @@ public with sharing class ATKWizard {
             return fieldWizard;
         }
 
-        public ATKWand.IWizardOriginableField addMinutes(String field, Integer value) {
+        public ATKWand.IWizardEndableField addMinutes(String field, Integer value) {
             this.xrefMethodAttribute.helperName = 'dates';
             this.xrefMethodAttribute.methodName = 'addMinutes';
             this.xrefMethodAttribute.params = new List<Object> { field, value };
@@ -373,7 +355,7 @@ public with sharing class ATKWizard {
             return fieldWizard;
         }
 
-        public ATKWand.IWizardOriginableField addSeconds(String field, Integer value) {
+        public ATKWand.IWizardEndableField addSeconds(String field, Integer value) {
             this.xrefMethodAttribute.helperName = 'dates';
             this.xrefMethodAttribute.methodName = 'addSeconds';
             this.xrefMethodAttribute.params = new List<Object> { field, value };
