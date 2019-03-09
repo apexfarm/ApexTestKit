@@ -9,18 +9,30 @@ Apex Test Kit is a Salesforce library to help generate testing data for Apex tes
 3. Establish arbitrary level many to many relationships.
 
 ```java
-@isTest
-static void testAccountCreation() {
-    // create 10 accounts, each has 2 contacts
-    ATKWizard.I().wantMany(Account.SObjectType)
-        .total(10)
-        .haveMany(Contact.SObjectType)
-            .total(20)
-        .generate();
-
-    List<Account> accountList = [SELECT Id FROM Account];
-    System.assertEquals(10, accountList.size());
-}
+// Create 10 accounts each with 2 contacts
+ATKWizard.I().wantMany(Account.SObjectType)
+    .total(10)
+    .fields()
+        .eval(Account.Name).index('Name-{0}')           // Name-0, Name-1, Name-2 ...
+        .eval(Account.AccountNumber).fake('{{?*****}}') // alpha + 6 * alphanumeric
+        .eval(Account.NumberOfEmployees).number(8, 0)   // an integer of 8 digits
+        .eval(Account.Fax).phone()                      // a standard US phone format
+        .eval(Account.Description).paragraphs()         // multiple line text
+        .eval(Account.Industry).guess()                 // pick any from the picklist
+        .eval(Account.Website).guess()                  // pick any valid url
+    .end()
+    .haveMany(Contact.SObjectType)
+        .referenceBy(Contact.AccountId)
+        .total(20)
+        .fields()
+            .eval(Contact.FirstName).firstName()        // pick one from ~3000 first names 
+            .eval(Contact.LastName).lastName()          // pick one from ~500 last names
+            .eval(Contact.Birthdate).past()             // a date in past 3 years
+            .eval(Contact.Email).email()                // a valid email address
+            .eval(Contact.DoNotCall).value(false)       // fixed value equal to false
+            .eval(Contact.Title).repeat('Mr.', 'Ms.')   // repeat 'Mr.', 'Ms.'
+        .end()
+    .generate();
 ```
 
 Underneath, the data are automatically guessed with appropriate values according to field types, including: BOOLEAN, DATE, TIME, DATETIME, DOUBLE, INTEGER, PERCENT, CURRENCY, PICKLIST, MULTIPICKLIST, STRING, TEXTAREA, EMAIL, URL, PHONE, ADDRESS.
@@ -50,7 +62,7 @@ Underneath, the data are automatically guessed with appropriate values according
 
 ## Usage of ATKWizard
 
-All examples in `src/classes/SampleTest.cls` can be successfully run in a clean Salesforce CRM organization. Please also reference it as real examples for how to use this library.
+All examples in `src/classes/SampleTest.cls` can be successfully run in a clean Salesforce CRM organization. Please also reference it as more examples for how to use this library.
 
 ### 1. Setup Relationship
 
@@ -62,7 +74,7 @@ All examples in `src/classes/SampleTest.cls` can be successfully run in a clean 
 ATKWizard.I().wantMany(Account.SObjectType)
     .total(10)
     .haveMany(Contact.SObjectType)
-        .referenceBy(Contact.AccountId) // can be omitted
+        .referenceBy(Contact.AccountId)             // can be omitted
         .total(40)
     .generate();
 ```
@@ -73,7 +85,7 @@ ATKWizard.I().wantMany(Account.SObjectType)
 ATKWizard.I().wantMany(Contact.SObjectType)
     .total(40)
     .belongTo(Account.SObjectType)
-        .referenceBy(Contact.AccountId) // can be omitted
+        .referenceBy(Contact.AccountId)             // can be omitted
         .total(10)
     .generate();
 ```
@@ -86,7 +98,7 @@ Id pricebook2Id = Test.getStandardPricebookId();
 ATKWand.IBag bag = ATKWizard.I().wantMany(Product2.SObjectType)
     .total(5)
     .haveMany(PricebookEntry.SObjectType)
-        .referenceBy(PricebookEntry.Product2Id) // can be omitted
+        .referenceBy(PricebookEntry.Product2Id)     // can be omitted
         .total(5)
         .fields()
             .eval(PricebookEntry.Pricebook2Id).value(pricebook2Id)
@@ -98,7 +110,7 @@ ATKWand.IBag bag = ATKWizard.I().wantMany(Product2.SObjectType)
 ATKWizard.I().wantMany(Pricebook2.SObjectType)
     .total(5)
     .haveMany(PricebookEntry.SObjectType)
-        .referenceBy(PricebookEntry.Pricebook2Id) // can be omitted
+        .referenceBy(PricebookEntry.Pricebook2Id)   // can be omitted
         .total(25)
         .fields()
             .eval(PricebookEntry.UseStandardPrice).value(false)
