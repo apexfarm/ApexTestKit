@@ -24,93 +24,6 @@ public with sharing class ATKWand {
         GENERATOR.generate(spellBook);
     }
 
-    public interface IBag {
-        List<SObject> get(Schema.SObjectType objectType);
-    }
-
-    public interface IWizardEntity {
-        // keywords to end with
-        IBag generate();
-        IBag generate(Boolean inMemory);
-        void register();
-
-        // keywords to start new context
-        IWizardEntity wantTemp(SObjectType entityType, String templateName);
-        IWizardEntity wantMany(SObjectType entityType);
-        IWizardEntity belongTo(SObjectType entityType);
-        IWizardEntity haveMany(SObjectType entityType);
-
-        // keywords to build graph
-        IWizardEntity referenceBy(Schema.SObjectField relationField);
-        IWizardEntity also();
-        IWizardEntity also(Integer depth);
-
-        // keywords to control data
-        IWizardEntity useCSV(String fileName);
-        IWizardEntity useList(List<SObject> repository);
-        IWizardEntity useTemp();
-        IWizardEntity useTemp(String templateName);
-        IWizardEntity total(Integer count);
-        IWizardField fields();
-    }
-
-    public interface IWizardField {
-        IWizardEndableField guard();
-        IWizardEndableField guard(Boolean enable);
-        IWizardFieldEval eval(Schema.SObjectField field);
-        IWizardFieldXref xref(Schema.SObjectField field);
-    }
-
-    public interface IWizardEndableField extends IWizardField {
-        IWizardEntity end();
-    }
-
-    public interface IWizardFieldEval {
-        // try best to make uniqueness
-        IWizardEndableField guess();
-        IWizardEndableField userName();
-        IWizardEndableField email();
-        IWizardEndableField url();
-        IWizardEndableField phone();
-        IWizardEndableField number(Integer precision, Integer scale);
-        IWizardEndableField past() ;
-        IWizardEndableField future();
-        IWizardEndableField between(String fo, String to);
-
-        // non-uniquable, use fake() to make unique values
-        IWizardEndableField firstName();
-        IWizardEndableField lastName();
-        IWizardEndableField word();
-        IWizardEndableField words();
-        IWizardEndableField sentence();
-        IWizardEndableField sentences();
-        IWizardEndableField paragraph();
-        IWizardEndableField paragraphs();
-
-        // user control
-        IWizardEndableField fake(String rule);
-        IWizardEndableField index(String format);
-        // fixed values
-        IWizardEndableField value(Object value);
-        IWizardEndableField repeat(List<Object> values);
-        IWizardEndableField repeat(Object value1, Object value2);
-        IWizardEndableField repeat(Object value1, Object value2, Object value3);
-    }
-
-    public interface IWizardFieldXref {
-        IWizardEndableField value(String field);
-        IWizardEndableField add(String field, Object value);
-        IWizardEndableField substract(String field, Object value);
-        IWizardEndableField divide(String field, Object value);
-        IWizardEndableField multiply(String field, Object value);
-        IWizardEndableField addYears(String field, Integer value);
-        IWizardEndableField addMonths(String field, Integer value);
-        IWizardEndableField addDays(String field, Integer value);
-        IWizardEndableField addHours(String field, Integer value);
-        IWizardEndableField addMinutes(String field, Integer value);
-        IWizardEndableField addSeconds(String field, Integer value);
-    }
-
     interface ISchemator {
         void build(ATKSpellBook spellBook);
         String getReferenceFieldName(String objectName, String referenceTypeName);
@@ -755,7 +668,7 @@ public with sharing class ATKWand {
         }
     }
 
-    private class Bag implements IBag {
+    private class Bag implements ATKCommon.IBag {
         private Map<Schema.SObjectType, List<SObject>> repositoryByType { get; set; }
 
         Bag() {
@@ -800,7 +713,7 @@ public with sharing class ATKWand {
             this.matrix.pop(depth);
         }
 
-        public IBag toBag() {
+        public ATKCommon.IBag toBag() {
             Iterator<EntityNode> iterator = iterator();
             Bag bag = new Bag();
             while(iterator.hasNext()) {
@@ -1142,17 +1055,6 @@ public with sharing class ATKWand {
             entityNode.repository.addAll(repository);
             IEntityAttribute totalAttribute = new TotalAttribute(repository.size());
             totalAttribute.apply(entityNode);
-        }
-    }
-
-    public class UseTempAttribute implements IEntityAttribute {
-        private String templateName { get; set; }
-
-        public UseTempAttribute(String templateName) {
-            this.templateName = templateName;
-        }
-
-        public void apply(EntityNode entityNode) {
         }
     }
 

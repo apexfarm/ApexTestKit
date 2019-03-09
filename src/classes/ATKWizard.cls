@@ -2,141 +2,133 @@
  * Apex Test Kit
  */
 public with sharing class ATKWizard {
-
-    private static final ATKWand.IWizardEntity entityWizard = new ATKWizardEntity();
-    private static final ATKWand.IWizardEndableField fieldWizard = new ATKWizardField();
-    private static final ATKWand.IWizardFieldEval evalWizard = new WizardFieldEval();
-    private static final ATKWand.IWizardFieldXref xrefWizard = new WizardFieldXref();
+    private static final ATKCommon.IWizardI iWizard = new WizardI();
+    private static final ATKCommon.IWizardEntity entityWizard = new ATKWizardEntity();
+    private static final ATKCommon.IWizardEndableField fieldWizard = new ATKWizardField();
+    private static final ATKCommon.IWizardFieldEval evalWizard = new WizardFieldEval();
+    private static final ATKCommon.IWizardFieldXref xrefWizard = new WizardFieldXref();
 
     @TestVisible
     private static ATKWand.ATKSpellBook spellBook { get; set; }
 
-    public static ATKWand.IWizardEntity I() {
-        return entityWizard;
+    public static ATKCommon.IWizardI I() {
+        return iWizard;
     }
 
-    class ATKWizardEntity implements ATKWand.IWizardEntity {
-        // keywords to end with
-        public ATKWand.IBag generate() {
-            (new ATKWand()).generate(spellBook, false);
-            ATKWand.IBag bag = spellBook.toBag();
-            spellBook = null;
-            return bag;
-        }
-
-        public ATKWand.IBag generate(Boolean inMemory) {
-            (new ATKWand()).generate(spellBook, inMemory);
-
-            ATKWand.IBag bag = spellBook.toBag();
-            spellBook = null;
-            return bag;
-        }
-
-        public void register() {
-            (new ATKWand()).register(spellBook);
-        }
-
-        // keywords to start new context
-        public ATKWand.IWizardEntity wantTemp(SObjectType objectType, String templateName) {
-            spellBook = new ATKWand.ATKSpellBook();
-            spellBook.attach(new ATKWand.EntityNode(objectType, ATKWand.EntityNodeType.Template));
-            return entityWizard;
-        }
-
-        public ATKWand.IWizardEntity wantMany(SObjectType objectType) {
+    class WizardI implements ATKCommon.IWizardI {
+        public ATKCommon.IWizardEntity wantMany(SObjectType objectType) {
             spellBook = new ATKWand.ATKSpellBook();
             spellBook.attach(new ATKWand.EntityNode(objectType, ATKWand.EntityNodeType.WantMany));
             return entityWizard;
         }
+    }
 
-        public ATKWand.IWizardEntity belongTo(SObjectType objectType) {
+    class ATKWizardEntity implements ATKCommon.IWizardEntity {
+        // keywords to end with
+        public ATKCommon.IBag generate() {
+            (new ATKWand()).generate(spellBook, false);
+            ATKCommon.IBag bag = spellBook.toBag();
+            spellBook = null;
+            return bag;
+        }
+
+        public ATKCommon.IBag generate(Boolean inMemory) {
+            (new ATKWand()).generate(spellBook, inMemory);
+            ATKCommon.IBag bag = spellBook.toBag();
+            spellBook = null;
+            return bag;
+        }
+
+        // keywords to start new context
+        public ATKCommon.IWizardEntity belongTo(SObjectType objectType) {
             spellBook.attach(new ATKWand.EntityNode(objectType, ATKWand.EntityNodeType.BelongTo));
             return entityWizard;
         }
 
-        public ATKWand.IWizardEntity haveMany(SObjectType objectType) {
+        public ATKCommon.IWizardEntity haveMany(SObjectType objectType) {
             spellBook.attach(new ATKWand.EntityNode(objectType, ATKWand.EntityNodeType.HaveMany));
             return entityWizard;
         }
 
         // keywords to build graph
-        public ATKWand.IWizardEntity referenceBy(Schema.SObjectField relationField) {
+        public ATKCommon.IWizardEntity referenceBy(Schema.SObjectField relationField) {
             spellBook.apply(new ATKWand.ReferenceByAttribute(relationField));
             return entityWizard;
         }
 
-        public ATKWand.IWizardEntity also(Integer depth) {
+        public ATKCommon.IWizardEntity also(Integer depth) {
             spellBook.pop(depth);
             return entityWizard;
         }
 
-        public ATKWand.IWizardEntity also() {
+        public ATKCommon.IWizardEntity also() {
             return also(1);
         }
 
         // keywords to control data
-        public ATKWand.IWizardEntity useCSV(String fileName) {
+        public ATKCommon.IWizardEntity useCSV(String fileName) {
             // spellBook.apply(new ATKWand.UseListAttribute(repository));
             return entityWizard;
         }
 
-        public ATKWand.IWizardEntity useList(List<SObject> repository) {
+        public ATKCommon.IWizardEntity useList(List<SObject> repository) {
             spellBook.apply(new ATKWand.UseListAttribute(repository));
             return entityWizard;
         }
 
-        public ATKWand.IWizardEntity useTemp() {
-            spellBook.apply(new ATKWand.UseTempAttribute(null));
+        public ATKCommon.IWizardEntity useTemp(Type templateClass, String templateName) {
+            if (templateClass != null) {
+                Object instance = templateClass.newInstance();
+                if (instance instanceOf ATKCommon.IWizardTemplate) {
+                    ATKCommon.IWizardTemplate template = (ATKCommon.IWizardTemplate)instance;
+                    template.apply(entityWizard, templateName);
+                }
+            }
             return entityWizard;
         }
 
-        public ATKWand.IWizardEntity useTemp(String templateName) {
-            spellBook.apply(new ATKWand.UseTempAttribute(templateName));
-            return entityWizard;
-        }
-
-        public ATKWand.IWizardEntity total(Integer count) {
+        public ATKCommon.IWizardEntity total(Integer count) {
             spellBook.apply(new ATKWand.TotalAttribute(count));
             return entityWizard;
         }
 
-        public ATKWand.IWizardField fields() {
+        public ATKCommon.IWizardField fields() {
             return fieldWizard;
         }
     }
 
-    class ATKWizardField implements ATKWand.IWizardEndableField {
+    class ATKWizardField implements ATKCommon.IWizardEndableField {
         ATKWand.EvalAttribute evalAttribute = new ATKWand.EvalAttribute();
         ATKWand.XrefAttribute xrefAttribute = new ATKWand.XrefAttribute();
 
-        public ATKWand.IWizardEntity end() {
+        public ATKCommon.IWizardEntity end() {
             return entityWizard;
         }
 
-        public ATKWand.IWizardEndableField guard() {
+        public ATKCommon.IWizardEndableField guard() {
             spellBook.apply(new ATKWand.GuardAttribute(true));
             return fieldWizard;
         }
 
-        public ATKWand.IWizardEndableField guard(Boolean enable) {
+        public ATKCommon.IWizardEndableField guard(Boolean enable) {
             spellBook.apply(new ATKWand.GuardAttribute(enable));
             return fieldWizard;
         }
 
-        public ATKWand.IWizardFieldEval eval(Schema.SObjectField field) {
+        public ATKCommon.IWizardFieldEval eval(Schema.SObjectField field) {
             evalAttribute.field = field;
             spellBook.apply(this.evalAttribute);
             return evalWizard;
         }
 
-        public ATKWand.IWizardFieldXref xref(Schema.SObjectField field) {
+        public ATKCommon.IWizardFieldXref xref(Schema.SObjectField field) {
             xrefAttribute.field = field;
             spellBook.apply(this.xrefAttribute);
             return xrefWizard;
         }
     }
 
-    public class WizardFieldEval implements ATKWand.IWizardFieldEval {
+    class WizardFieldEval implements ATKCommon.IWizardFieldEval {
         ATKWand.EvalMethodAttribute userNameAttribute = new ATKWand.EvalMethodAttribute('internet', 'userName');
         ATKWand.EvalMethodAttribute emailAttribute = new ATKWand.EvalMethodAttribute('internet', 'email');
         ATKWand.EvalMethodAttribute urlAttribute = new ATKWand.EvalMethodAttribute('internet', 'url');
@@ -154,128 +146,128 @@ public with sharing class ATKWizard {
         ATKWand.EvalMethodAttribute paragraphAttribute = new ATKWand.EvalMethodAttribute('lorem', 'paragraph');
         ATKWand.EvalMethodAttribute paragraphsAttribute = new ATKWand.EvalMethodAttribute('lorem', 'paragraphs');
 
-        public ATKWand.IWizardEndableField userName() {
+        public ATKCommon.IWizardEndableField userName() {
             spellBook.apply(this.userNameAttribute);
             return fieldWizard;
         }
 
-        public ATKWand.IWizardEndableField email() {
+        public ATKCommon.IWizardEndableField email() {
             spellBook.apply(this.emailAttribute);
             return fieldWizard;
         }
 
-        public ATKWand.IWizardEndableField url() {
+        public ATKCommon.IWizardEndableField url() {
             spellBook.apply(this.urlAttribute);
             return fieldWizard;
         }
 
-        public ATKWand.IWizardEndableField phone() {
+        public ATKCommon.IWizardEndableField phone() {
             spellBook.apply(this.phoneAttribute);
             return fieldWizard;
         }
 
-        public ATKWand.IWizardEndableField number(Integer precision, Integer scale) {
+        public ATKCommon.IWizardEndableField number(Integer precision, Integer scale) {
             this.numberAttribute.params = new List<Object> { precision, scale };
             spellBook.apply(this.numberAttribute);
             return fieldWizard;
         }
 
-        public ATKWand.IWizardEndableField past()  {
+        public ATKCommon.IWizardEndableField past()  {
             spellBook.apply(this.pastAttribute);
             return fieldWizard;
         }
 
-        public ATKWand.IWizardEndableField future() {
+        public ATKCommon.IWizardEndableField future() {
             spellBook.apply(this.futureAttribute);
             return fieldWizard;
         }
 
-        public ATKWand.IWizardEndableField between(String fo, String to) {
+        public ATKCommon.IWizardEndableField between(String fo, String to) {
             this.betweenAttribute.params = new List<Object> { fo, to };
             spellBook.apply(this.betweenAttribute);
             return fieldWizard;
         }
 
-        public ATKWand.IWizardEndableField firstName() {
+        public ATKCommon.IWizardEndableField firstName() {
             spellBook.apply(this.firstNameAttribute);
             return fieldWizard;
         }
 
-        public ATKWand.IWizardEndableField lastName() {
+        public ATKCommon.IWizardEndableField lastName() {
             spellBook.apply(this.lastNameAttribute);
             return fieldWizard;
         }
 
-        public ATKWand.IWizardEndableField word() {
+        public ATKCommon.IWizardEndableField word() {
             spellBook.apply(this.wordAttribute);
             return fieldWizard;
         }
 
-        public ATKWand.IWizardEndableField words() {
+        public ATKCommon.IWizardEndableField words() {
             spellBook.apply(this.wordsAttribute);
             return fieldWizard;
         }
 
-        public ATKWand.IWizardEndableField sentence() {
+        public ATKCommon.IWizardEndableField sentence() {
             spellBook.apply(this.sentenceAttribute);
             return fieldWizard;
         }
 
-        public ATKWand.IWizardEndableField sentences() {
+        public ATKCommon.IWizardEndableField sentences() {
             spellBook.apply(this.sentencesAttribute);
             return fieldWizard;
         }
 
-        public ATKWand.IWizardEndableField paragraph() {
+        public ATKCommon.IWizardEndableField paragraph() {
             spellBook.apply(this.paragraphAttribute);
             return fieldWizard;
         }
 
-        public ATKWand.IWizardEndableField paragraphs() {
+        public ATKCommon.IWizardEndableField paragraphs() {
             spellBook.apply(this.paragraphAttribute);
             return fieldWizard;
         }
 
-        public ATKWand.IWizardEndableField guess() {
+        public ATKCommon.IWizardEndableField guess() {
             spellBook.apply(new ATKWand.EvalGuessAttribute());
             return fieldWizard;
         }
 
-        public ATKWand.IWizardEndableField index(String format) {
+        public ATKCommon.IWizardEndableField index(String format) {
             spellBook.apply(new ATKWand.EvalIndexAttribute(format));
             return fieldWizard;
         }
 
-        public ATKWand.IWizardEndableField fake(String rule) {
+        public ATKCommon.IWizardEndableField fake(String rule) {
             spellBook.apply(new ATKWand.EvalFakerAttribute(rule));
             return fieldWizard;
         }
 
-        public ATKWand.IWizardEndableField value(Object value) {
+        public ATKCommon.IWizardEndableField value(Object value) {
             spellBook.apply(new ATKWand.EvalValueAttribute(value));
             return fieldWizard;
         }
 
-        public ATKWand.IWizardEndableField repeat(List<Object> values) {
+        public ATKCommon.IWizardEndableField repeat(List<Object> values) {
             spellBook.apply(new ATKWand.EvalRepeatAttribute(values));
             return fieldWizard;
         }
 
-        public ATKWand.IWizardEndableField repeat(Object value1, Object value2) {
+        public ATKCommon.IWizardEndableField repeat(Object value1, Object value2) {
             spellBook.apply(new ATKWand.EvalRepeatAttribute(new List<Object> { value1, value2 }));
             return fieldWizard;
         }
 
-        public ATKWand.IWizardEndableField repeat(Object value1, Object value2, Object value3) {
+        public ATKCommon.IWizardEndableField repeat(Object value1, Object value2, Object value3) {
             spellBook.apply(new ATKWand.EvalRepeatAttribute(new List<Object> { value1, value2, value3 }));
             return fieldWizard;
         }
     }
 
-    public class WizardFieldXref implements ATKWand.IWizardFieldXref {
+    class WizardFieldXref implements ATKCommon.IWizardFieldXref {
         ATKWand.XrefMethodAttribute xrefMethodAttribute = new ATKWand.XrefMethodAttribute();
 
-        public ATKWand.IWizardEndableField value(String field) {
+        public ATKCommon.IWizardEndableField value(String field) {
             this.xrefMethodAttribute.helperName = 'value';
             this.xrefMethodAttribute.methodName = 'get';
             this.xrefMethodAttribute.params = new List<Object> { field };
@@ -283,7 +275,7 @@ public with sharing class ATKWizard {
             return fieldWizard;
         }
 
-        public ATKWand.IWizardEndableField add(String field, Object value) {
+        public ATKCommon.IWizardEndableField add(String field, Object value) {
             this.xrefMethodAttribute.helperName = 'numbers';
             this.xrefMethodAttribute.methodName = 'add';
             this.xrefMethodAttribute.params = new List<Object> { field, value };
@@ -291,7 +283,7 @@ public with sharing class ATKWizard {
             return fieldWizard;
         }
 
-        public ATKWand.IWizardEndableField substract(String field, Object value) {
+        public ATKCommon.IWizardEndableField substract(String field, Object value) {
             this.xrefMethodAttribute.helperName = 'numbers';
             this.xrefMethodAttribute.methodName = 'substract';
             this.xrefMethodAttribute.params = new List<Object> { field, value };
@@ -299,7 +291,7 @@ public with sharing class ATKWizard {
             return fieldWizard;
         }
 
-        public ATKWand.IWizardEndableField divide(String field, Object value) {
+        public ATKCommon.IWizardEndableField divide(String field, Object value) {
             this.xrefMethodAttribute.helperName = 'numbers';
             this.xrefMethodAttribute.methodName = 'divide';
             this.xrefMethodAttribute.params = new List<Object> { field, value };
@@ -307,7 +299,7 @@ public with sharing class ATKWizard {
             return fieldWizard;
         }
 
-        public ATKWand.IWizardEndableField multiply(String field, Object value) {
+        public ATKCommon.IWizardEndableField multiply(String field, Object value) {
             this.xrefMethodAttribute.helperName = 'numbers';
             this.xrefMethodAttribute.methodName = 'multiply';
             this.xrefMethodAttribute.params = new List<Object> { field, value };
@@ -315,7 +307,7 @@ public with sharing class ATKWizard {
             return fieldWizard;
         }
 
-        public ATKWand.IWizardEndableField addYears(String field, Integer value) {
+        public ATKCommon.IWizardEndableField addYears(String field, Integer value) {
             this.xrefMethodAttribute.helperName = 'dates';
             this.xrefMethodAttribute.methodName = 'add';
             this.xrefMethodAttribute.params = new List<Object> { field, value };
@@ -323,7 +315,7 @@ public with sharing class ATKWizard {
             return fieldWizard;
         }
 
-        public ATKWand.IWizardEndableField addMonths(String field, Integer value) {
+        public ATKCommon.IWizardEndableField addMonths(String field, Integer value) {
             this.xrefMethodAttribute.helperName = 'dates';
             this.xrefMethodAttribute.methodName = 'add';
             this.xrefMethodAttribute.params = new List<Object> { field, value };
@@ -331,7 +323,7 @@ public with sharing class ATKWizard {
             return fieldWizard;
         }
 
-        public ATKWand.IWizardEndableField addDays(String field, Integer value) {
+        public ATKCommon.IWizardEndableField addDays(String field, Integer value) {
             this.xrefMethodAttribute.helperName = 'dates';
             this.xrefMethodAttribute.methodName = 'addDays';
             this.xrefMethodAttribute.params = new List<Object> { field, value };
@@ -339,7 +331,7 @@ public with sharing class ATKWizard {
             return fieldWizard;
         }
 
-        public ATKWand.IWizardEndableField addHours(String field, Integer value) {
+        public ATKCommon.IWizardEndableField addHours(String field, Integer value) {
             this.xrefMethodAttribute.helperName = 'dates';
             this.xrefMethodAttribute.methodName = 'addHours';
             this.xrefMethodAttribute.params = new List<Object> { field, value };
@@ -347,7 +339,7 @@ public with sharing class ATKWizard {
             return fieldWizard;
         }
 
-        public ATKWand.IWizardEndableField addMinutes(String field, Integer value) {
+        public ATKCommon.IWizardEndableField addMinutes(String field, Integer value) {
             this.xrefMethodAttribute.helperName = 'dates';
             this.xrefMethodAttribute.methodName = 'addMinutes';
             this.xrefMethodAttribute.params = new List<Object> { field, value };
@@ -355,7 +347,7 @@ public with sharing class ATKWizard {
             return fieldWizard;
         }
 
-        public ATKWand.IWizardEndableField addSeconds(String field, Integer value) {
+        public ATKCommon.IWizardEndableField addSeconds(String field, Integer value) {
             this.xrefMethodAttribute.helperName = 'dates';
             this.xrefMethodAttribute.methodName = 'addSeconds';
             this.xrefMethodAttribute.params = new List<Object> { field, value };

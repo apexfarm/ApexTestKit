@@ -24,6 +24,9 @@ public with sharing class ATKCommon {
 
     }
 
+    /*
+     * Provider Interfaces
+     */
     public interface IProvider {
         Object call(String method, List<Object> params);
     }
@@ -34,6 +37,104 @@ public with sharing class ATKCommon {
 
     public interface IArithmeticProvider extends IProvider {
 
+    }
+
+    /*
+     * Wizard Interfaces
+     */
+    public interface IBag {
+        List<SObject> get(Schema.SObjectType objectType);
+    }
+
+    public interface WizardTemplateInterface {
+        void apply(IWizardEntity entity, String templateName);
+    }
+
+    public interface IWizardTemplate extends WizardTemplateInterface {
+
+    }
+
+    public interface IWizardI {
+        IWizardEntity wantMany(SObjectType entityType);
+    }
+
+    public interface IWizardEntity {
+        // keywords to end with
+        IBag generate();
+        IBag generate(Boolean inMemory);
+
+        // keywords to start new context
+        IWizardEntity belongTo(SObjectType entityType);
+        IWizardEntity haveMany(SObjectType entityType);
+
+        // keywords to build graph
+        IWizardEntity referenceBy(Schema.SObjectField relationField);
+        IWizardEntity also();
+        IWizardEntity also(Integer depth);
+        IWizardEntity total(Integer count);
+
+        // keywords to build data
+        IWizardEntity useTemp(Type templateClass, String templateName);
+        IWizardEntity useCSV(String fileName);
+        IWizardEntity useList(List<SObject> repository);
+        IWizardField fields();
+    }
+
+    public interface IWizardField {
+        IWizardEndableField guard();
+        IWizardEndableField guard(Boolean enable);
+        IWizardFieldEval eval(Schema.SObjectField field);
+        IWizardFieldXref xref(Schema.SObjectField field);
+    }
+
+    public interface IWizardEndableField extends IWizardField {
+        IWizardEntity end();
+    }
+
+    public interface IWizardFieldEval {
+        // try best to make uniqueness
+        IWizardEndableField guess();
+        IWizardEndableField userName();
+        IWizardEndableField email();
+        IWizardEndableField url();
+        IWizardEndableField phone();
+        IWizardEndableField number(Integer precision, Integer scale);
+        IWizardEndableField past() ;
+        IWizardEndableField future();
+        IWizardEndableField between(String fo, String to);
+
+        // non-uniquable, use fake() to make unique values
+        IWizardEndableField firstName();
+        IWizardEndableField lastName();
+        IWizardEndableField word();
+        IWizardEndableField words();
+        IWizardEndableField sentence();
+        IWizardEndableField sentences();
+        IWizardEndableField paragraph();
+        IWizardEndableField paragraphs();
+
+        // user control
+        IWizardEndableField fake(String rule);
+        IWizardEndableField index(String format);
+        // fixed values
+        IWizardEndableField value(Object value);
+        IWizardEndableField repeat(List<Object> values);
+        IWizardEndableField repeat(Object value1, Object value2);
+        IWizardEndableField repeat(Object value1, Object value2, Object value3);
+    }
+
+    public interface IWizardFieldXref {
+        IWizardEndableField value(String field);
+        IWizardEndableField add(String field, Object value);
+        IWizardEndableField substract(String field, Object value);
+        IWizardEndableField divide(String field, Object value);
+        IWizardEndableField multiply(String field, Object value);
+        IWizardEndableField addYears(String field, Integer value);
+        IWizardEndableField addMonths(String field, Integer value);
+        IWizardEndableField addDays(String field, Integer value);
+        IWizardEndableField addHours(String field, Integer value);
+        IWizardEndableField addMinutes(String field, Integer value);
+        IWizardEndableField addSeconds(String field, Integer value);
     }
 
     /*

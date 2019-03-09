@@ -1,6 +1,6 @@
 # Apex Test Kit 2.0
 
-![](https://img.shields.io/badge/version-2.1.0-brightgreen.svg) ![](https://img.shields.io/badge/build-passing-brightgreen.svg) ![](https://img.shields.io/badge/coverage-%3E95%25-brightgreen.svg)
+![](https://img.shields.io/badge/version-2.1.1-brightgreen.svg) ![](https://img.shields.io/badge/build-passing-brightgreen.svg) ![](https://img.shields.io/badge/coverage-%3E95%25-brightgreen.svg)
 
 Apex Test Kit is a Salesforce library to help generate testing data for Apex test classes. It has the following features:
 
@@ -45,11 +45,11 @@ Underneath, the data are automatically guessed with appropriate values according
   * Use method instead of faker generation expression
 * Put functional programming into extreme. It becomes a delightful experience to code.
 * Performance tuning. Have to make trade-offs between "good-looking names" and performance, and `index()` and `repeat()` keywords are introduced for performance considerations.
+* (v2.1.1) Decompose generation logic into reusable templates, and reuse them with the  `useTemp()` keyword.
 
 ### Roadmap
 
 * Provide in-memory dummy sObject graph generation. This will have performance benefit for not triggering triggers and process builder.
-* Provid a way to compose reusable sObject templates within a test data factory class.
 * Performance tuning in two possbile directions:
   * Use sequence generation to replace the random generation, so data can be consistent
   * Add flag to switch generation logic to less "good-looking" mode. 
@@ -95,7 +95,7 @@ ATKWizard.I().wantMany(Contact.SObjectType)
 ```java
 Id pricebook2Id = Test.getStandardPricebookId();
 
-ATKWand.IBag bag = ATKWizard.I().wantMany(Product2.SObjectType)
+ATKCommon.IBag bag = ATKWizard.I().wantMany(Product2.SObjectType)
     .total(5)
     .haveMany(PricebookEntry.SObjectType)
         .referenceBy(PricebookEntry.Product2Id)     // can be omitted
@@ -170,6 +170,7 @@ ATKWizard.I().wantMany(A__c.SObjectType)
 | ------------- | --------------- | ------------------------------------------------------------ |
 | total()       | Integer         | **Required***, only if `useList()` is not used. It defines number of records to create for the attached sObject context. |
 | useList()     | List\<sObject\> | **Required***, only if `total()` is not used. This tells the wizard to use the previously created sObject list, rather than to create the records from scratch. |
+| useTemp()     | Type, String    | **Optional**. The first param is a class implements `ATKCommon.IWizardTemplate`. The second param serves as hint for your implementation. Please reference `src/classes/SampleTestTempFactory` and `src/classes/SampleTestDataFactory` for detail. |
 | referenceBy() | SObjectField    | **Optional**. Only use this keyword if there are multiple fields on the entity referencing the same sObject. |
 | also()        | Integer         | It can be used to switch back to any previous sObject context. |
 
