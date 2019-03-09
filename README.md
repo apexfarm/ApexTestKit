@@ -25,9 +25,7 @@ static void testAccountCreation() {
 
 Underneath, the data are automatically guessed with appropriate values according to field types, including: BOOLEAN, DATE, TIME, DATETIME, DOUBLE, INTEGER, PERCENT, CURRENCY, PICKLIST, MULTIPICKLIST, STRING, TEXTAREA, EMAIL, URL, PHONE, ADDRESS.
 
-### Version 2.0 
-
-#### Highlight
+### Version 2.0 Highlight
 
 * Enfore strong types rather than passing strings around as parameters, such as 
   * Use sObjectType instead of sObject name string
@@ -36,7 +34,7 @@ Underneath, the data are automatically guessed with appropriate values according
 * Put functional programming into extreme. It becomes a delightful experience to code.
 * Performance tuning. Have to make trade-offs between "good-looking names" and performance, and `index()` and `repeat()` keywords are introduced for performance considerations.
 
-#### Roadmap
+### Roadmap
 
 * Provide in-memory dummy sObject graph generation. This will have performance benefit for not triggering triggers and process builder.
 * Provid a way to compose reusable sObject templates within a test data factory class.
@@ -52,7 +50,7 @@ Underneath, the data are automatically guessed with appropriate values according
 
 ## Usage of ATKWizard
 
-All examples below can be successfully run from `src/classes/SampleTest.cls` in a clean Salesforce CRM organization. If validation rules were added to CRM standard sObjects, `fields().eval().value().end()` keywords could be used to tailor the record generation to bypass them.
+All examples in `src/classes/SampleTest.cls` can be successfully run in a clean Salesforce CRM organization. Please also reference it as real examples for how to use this library.
 
 ### 1. Setup Relationship
 
@@ -116,7 +114,7 @@ ATKWizard.I().wantMany(Pricebook2.SObjectType)
 
 #### 2.1 Context Initialization Keywords
 
-There are three entity creation keywords, each of them will start a new sObject context. And it is advised to use the following indentation format for clarity.
+Each of them will start a new sObject context. And it is advised to use the following indentation for clarity.
 
 ```java
 ATKWizard.I().wantMany(A__c.SObjectType)
@@ -181,8 +179,8 @@ ATKWizard.I().wantMany(A__c.SObjectType)
 Only use `guard()`, `eval()`, `xref()`, between `fields()` and `end()` keywords. And every `fields()` must follow an `end()` at the bottom.
 
 ```java
-fields()
-	.guard()
+.fields()
+    .guard()
     .eval().value()
     .xref().value()
 .end()
@@ -191,14 +189,14 @@ fields()
 | Keyword   | Param                          | Description                                                  |
 | --------- | ------------------------------ | ------------------------------------------------------------ |
 | fields()  | N/A                            | **Optional**. Start of declaring field generation logic.     |
-| end()     | N/A                            | **Optional**. End of declaring field generation logic.       |
-| guard()   | [Boolean]                      | **Optional**. Turn on guard for `REQUIRED_FIELD_MISSING` exceptions by implicitly guessing values for fields not defined in `eval()` and `xref()`. 80% of the time, implicit guessing is useful, so guard is tuned on by default. But you would like to disable it for sObjects with many required fields such as User and Event etc. |
-| eval() | SObjectField, [Object]         | **Optional**. Use this keyword to tailor the field values, either to bypass validation rules, or to fulfill assertion logics. The second parameter could be either `ATKFaker` interpolation expressions, or primitive values. |
-| xref() | SObjectField, String, [Object] | **Optional**. Use this keyword if cross record arithmetic expressions are used. More will be explained in the following section. |
+| end()     | N/A                            | **Required***, only if `fields()` is used. End of declaring field generation logic. |
+| guard()   | [Boolean]                      | **Optional**. Turn on guard for `REQUIRED_FIELD_MISSING` exceptions by implicitly guessing fields not defined in `eval()` and `xref()`. 80% of the time, implicit guessing is useful, so guard is tuned on by default. But you would like to disable it for sObjects having many required fields, i.e. User and Event etc. |
+| eval() | SObjectField, [Object]         | **Optional**. Use this keyword to tailor the field values, either to bypass validation rules, or fulfill assertion logics. |
+| xref() | SObjectField, String, [Object] | **Optional**. Use this keyword if need cross record arithmetic. More will be explained in the following section. |
 
 #### 2.4 Eval Decoration Keywords
 
-Users can control of the following keyword evaluation. Use `index()`, `value()`, `repeat()` whenever possible, sicne they are more predictable and efficient.
+Users can have great control over the following keyword evaluation. Please use `index()`, `value()`, `repeat()` as the first choice, since they are more predictable and efficient.
 
 ```java
 eval().fake('{!name.firstName} {{####}}'); // use two ATKFaker expressions
