@@ -2,7 +2,7 @@
  * Apex Test Kit
  */
 @isTest
-public with sharing class ATKFakerTest {
+private with sharing class ATKFakerTest {
     /*
      * FAKER.FAKE() TESTS
      */
@@ -743,87 +743,101 @@ public with sharing class ATKFakerTest {
     /*
      * ATKCommon Test Methods
      */
-    class TestParamEvaluator implements ATKCommon.IParamEvaluator {
-        List<String> values = new List<String> { 'A', 'B' };
-        public Object evaluateParam(String fieldName, Integer recordIndex, Integer level ) {
-            if (level < recordIndex) {
-                return values[recordIndex];
-            } else {
-                return fieldName;
+
+    class TestProvider implements ATKCommon.IProvider {
+        public Object call(String method, List<Object> params) {
+            String value = '';
+            for (Object param : params) {
+                value += (String)param;
             }
+            return value;
         }
     }
 
     @isTest
-    static void testMethodEvaluation() {
+    static void testATKCommon_MethodEvaluation() {
+        ATKCommon.MethodParser parser = new ATKCommon.MethodParser();
+        Map<String, ATKCommon.IProvider> helpers = new Map<String, ATKCommon.IProvider> {
+            'helper' => new TestProvider()
+        };
 
+        // expression with help interpolation
+        ATKCommon.MethodGroup methodGroup = parser.parse('xxx{!helper.name(param0, param1)}xxx');
+        System.assertEquals(2, methodGroup.splits.size());
+        System.assertEquals('xxx', methodGroup.splits[0]);
+        System.assertEquals('xxx', methodGroup.splits[1]);
+        System.assertEquals(1, methodGroup.methodList.size());
+        ATKCommon.Method method = methodGroup.methodList[0];
+        System.assertEquals('helper', method.helperName);
+        System.assertEquals('name', method.name);
+        System.assertEquals(2, method.params.size());
+        System.assertEquals('param0', method.params[0]);
+        System.assertEquals('param1', method.params[1]);
+        System.assertEquals('xxxparam0param1xxx', methodGroup.evaluate(helpers));
+
+        // expression with symbol interpolation
+        methodGroup = parser.parse('xxx{{###-###-####}}xxx');
+        System.assertEquals(2, methodGroup.splits.size());
+        System.assertEquals('xxx', methodGroup.splits[0]);
+        System.assertEquals('xxx', methodGroup.splits[1]);
+        System.assertEquals(1, methodGroup.methodList.size());
+        method = methodGroup.methodList[0];
+        System.assert(method instanceof ATKCommon.SymbolMethod);
+        System.assertEquals('helper', method.helperName);
+        System.assertEquals('replaceSymbols', method.name);
+        System.assertEquals(1, method.params.size());
+        System.assertEquals('###-###-####', method.params[0]);
+        System.assertEquals('xxx###-###-####xxx', methodGroup.evaluate(helpers));
+
+        // expression without interpolation
+        methodGroup = parser.parse('xxx---xxx');
+        System.assertEquals(0, methodGroup.splits.size());
+        System.assertEquals(0, methodGroup.methodList.size());
+        System.assertEquals('xxx---xxx', methodGroup.evaluate(helpers));
+
+        // expression is pure method
+        methodGroup = parser.parse('{!helper.name(param0, param1)}');
+        System.assertEquals(0, methodGroup.splits.size());
+        System.assertEquals(0, methodGroup.methodList.size());
+        System.assertEquals('param0param1', methodGroup.evaluate(helpers));
+
+        // expression is cached
+        methodGroup = parser.parse('{!helper.name(param0, param1)}');
+        System.assertEquals(0, methodGroup.splits.size());
+        System.assertEquals(0, methodGroup.methodList.size());
+        System.assertEquals('param0param1', methodGroup.evaluate(helpers));
     }
 
+    class TestParamEvaluator implements ATKCommon.IParamEvaluator {
+        public Object evaluateParam(String fieldName, Integer recordIndex, Integer level ) {
+            Object value;
+            if (fieldName == 'param0') value = 'A';
+            if (fieldName == 'param1') value = 'B';
+            return value;
+        }
+    }
 
+    @isTest
+    static void testATKCommon_XrefParamEvaluation() {
+        TestParamEvaluator paramEvaluator = new TestParamEvaluator();
+        Map<String, ATKCommon.IProvider> helpers = new Map<String, ATKCommon.IProvider> {
+            'helper' => new TestProvider()
+        };
 
-    // @isTest
-    // static void testATKCommonMethodParser() {
-    //     TestParamEvaluator paramEvaluator = new TestParamEvaluator();
+        List<ATKCommon.XrefParam> xrefParams = new List<ATKCommon.XrefParam> {
+            new ATKCommon.XrefParam('param0', 0, 1),
+            new ATKCommon.XrefParam('param1', 1, 2)
+        };
+        List<Object> params = new List<Object> { null, null };
 
-    //     ATKCommon.MethodParser parser = new ATKCommon.MethodParser();
-    //     ATKCommon.MethodGroup methodGroup = parser.parse('xxx{!helper.name(param0, param1)}xxx');
-    //     System.assertEquals(2, methodGroup.splits.size());
-    //     System.assertEquals('xxx', methodGroup.splits[0]);
-    //     System.assertEquals('xxx', methodGroup.splits[1]);
-    //     System.assertEquals(1, methodGroup.methodList.size());
-    //     ATKCommon.Method method = methodGroup.methodList[0];
-    //     System.assertEquals('helper', method.helperName);
-    //     System.assertEquals('name', method.name);
-    //     System.assertEquals(2, method.params.size());
-    //     System.assertEquals('param0', method.params[0]);
-    //     System.assertEquals('param1', method.params[1]);
-    //     System.assertEquals('xxx+param0+param1+xxx', methodGroup.evaluate(paramEvaluator));
+        ATKCommon.XrefMethod method = new ATKCommon.XrefMethod(xrefParams);
+        method.helperName = 'helper';
+        method.name = 'name';
+        method.paramEvaluator = paramEvaluator;
+        method.params = params;
 
-    //     methodGroup = parser.parse('xxx{!helper.name($1.a, $2.b)}xxx');
-    //     System.assertEquals(1, methodGroup.level);
-    //     System.assertEquals(2, methodGroup.splits.size());
-    //     System.assertEquals('xxx', methodGroup.splits[0]);
-    //     System.assertEquals('xxx', methodGroup.splits[1]);
-    //     System.assertEquals(1, methodGroup.methodList.size());
-    //     method = methodGroup.methodList[0];
-    //     System.assert(method instanceof ATKCommon.XrefMethod);
-    //     System.assertEquals('helper', method.helperName);
-    //     System.assertEquals('name', method.name);
-    //     System.assertEquals(2, method.params.size());
-    //     System.assertEquals(null, method.params[0]);
-    //     System.assertEquals(null, method.params[1]);
-    //     ATKCommon.XrefMethod xrefMethod = (ATKCommon.XrefMethod)method;
-    //     System.assertEquals(1, xrefMethod.level);
-    //     System.assertEquals(2, xrefMethod.xrefParams.size());
-    //     System.assertEquals(0, xrefMethod.xrefParams[0].index);
-    //     System.assertEquals(1, xrefMethod.xrefParams[0].level);
-    //     System.assertEquals('A', xrefMethod.xrefParams[0].fieldName);
-    //     System.assertEquals(1, xrefMethod.xrefParams[1].index);
-    //     System.assertEquals(2, xrefMethod.xrefParams[1].level);
-    //     System.assertEquals('B', xrefMethod.xrefParams[1].fieldName);
-    //     System.assertEquals('xxx+A+B+xxx', methodGroup.evaluate(paramEvaluator));
-
-    //     methodGroup = parser.parse('xxx{{###-###-####}}xxx');
-    //     System.assertEquals(2, methodGroup.splits.size());
-    //     System.assertEquals('xxx', methodGroup.splits[0]);
-    //     System.assertEquals('xxx', methodGroup.splits[1]);
-    //     System.assertEquals(1, methodGroup.methodList.size());
-    //     method = methodGroup.methodList[0];
-    //     System.assert(method instanceof ATKCommon.SymbolMethod);
-    //     System.assertEquals('helper', method.helperName);
-    //     System.assertEquals('replaceSymbols', method.name);
-    //     System.assertEquals(1, method.params.size());
-    //     System.assertEquals('###-###-####', method.params[0]);
-
-    //     methodGroup = parser.parse('xxx---xxx');
-    //     System.assertEquals(0, methodGroup.splits.size());
-    //     System.assertEquals(0, methodGroup.methodList.size());
-    //     System.assertEquals('xxx---xxx', methodGroup.evaluate(paramEvaluator));
-
-    //     methodGroup = parser.parse('   {!helper.name($1.a, $2.b)}   ');
-    //     methodGroup = parser.parse('   {!helper.name($1.a, $2.b)}   ');
-    //     System.assertEquals(2, methodGroup.splits.size());
-    //     System.assertEquals(1, methodGroup.methodList.size());
-    //     System.assertEquals('+A+B+', methodGroup.evaluate(paramEvaluator));
-    // }
+        System.assertEquals('AB', method.evaluate(helpers, 2));
+        System.assertEquals('A', method.params[0]);
+        System.assertEquals('B', method.params[1]);
+    }
 }

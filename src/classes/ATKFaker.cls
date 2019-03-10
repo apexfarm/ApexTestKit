@@ -2,7 +2,7 @@
  * Apex Test Kit
  */
 public with sharing class ATKFaker {
-    public static Map<String, ATKCommon.IProvider> helperMap { get; set; }
+    public static Map<String, ATKCommon.IProvider> helpers { get; set; }
     public static Internet internet { get; set; }
     public static Phone phone { get; set; }
     public static Name name { get; set; }
@@ -32,22 +32,22 @@ public with sharing class ATKFaker {
         numbers = new NumberArithmeticHelper();
         value = new ValueArithmeticHelper();
 
-        helperMap = new Map<String, ATKCommon.IProvider>();
-        helperMap.put('internet', internet);
-        helperMap.put('phone', phone);
-        helperMap.put('random', random);
-        helperMap.put('finance', finance);
-        helperMap.put('lorem', lorem);
-        helperMap.put('dates', dates);
-        helperMap.put('name', name);
-        helperMap.put('helper', helper);
-        helperMap.put('numbers', numbers);
-        helperMap.put('value', value);
+        helpers = new Map<String, ATKCommon.IProvider>();
+        helpers.put('internet', internet);
+        helpers.put('phone', phone);
+        helpers.put('random', random);
+        helpers.put('finance', finance);
+        helpers.put('lorem', lorem);
+        helpers.put('dates', dates);
+        helpers.put('name', name);
+        helpers.put('helper', helper);
+        helpers.put('numbers', numbers);
+        helpers.put('value', value);
     }
 
     public static Object fake(String input) {
         ATKCommon.MethodGroup methodGroup = METHOD_PARSER.parse(input);
-        return methodGroup.evaluate(helperMap);
+        return methodGroup.evaluate(helpers);
     }
 
     /**

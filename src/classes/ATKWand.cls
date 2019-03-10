@@ -901,7 +901,7 @@ public with sharing class ATKWand {
                 Integer mod = Math.mod(recordIndex, repeatValues.size());
                 return repeatValues[mod];
             } else if (method != null) {
-                return method.evaluate(ATKFaker.helperMap);
+                return method.evaluate(ATKFaker.helpers);
             }
             return this.value;
         }
@@ -919,7 +919,7 @@ public with sharing class ATKWand {
             if (recordIndex < method.level) {
                 return origin.getValue(recordIndex);
             }
-            return method.evaluate(ATKFaker.helperMap, recordIndex);
+            return method.evaluate(ATKFaker.helpers, recordIndex);
         }
 
         public Integer compareTo(Object toObj) {
@@ -1188,10 +1188,9 @@ public with sharing class ATKWand {
                 if (param instanceOf String) {
                     String input = (String)param;
                     if (input.startsWith('$')) {
-                        ATKCommon.XrefParam xrefParam = new ATKCommon.XrefParam();
-                        xrefParam.index = i;
-                        xrefParam.level = ATKCommon.converter.toInteger(input.substring(1, 2));
-                        xrefParam.fieldName = input.substring(3).toUpperCase();
+                        String fieldName = input.substring(3).toUpperCase();
+                        Integer level = ATKCommon.converter.toInteger(input.substring(1, 2));
+                        ATKCommon.XrefParam xrefParam = new ATKCommon.XrefParam(fieldName, i, level);
 
                         xrefParams.add(xrefParam);
                         newParams.add(null);

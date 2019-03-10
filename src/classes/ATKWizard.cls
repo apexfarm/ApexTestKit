@@ -1,7 +1,9 @@
 /**
  * Apex Test Kit
  */
-public with sharing class ATKWizard implements IWantKeywords, IEntityKeywords, IEndedFieldKeywords, IEvalKeywords, IXrefKeywords {
+public with sharing class ATKWizard implements IWantKeywords,
+    IEntityKeywords, IEndedFieldKeywords, IEvalKeywords, IXrefKeywords {
+
     ATKWand.ATKSpellbook spellbook { get; set; }
     ATKWand.EvalAttribute evalAttribute { get; set; }
     ATKWand.XrefAttribute xrefAttribute { get; set; }

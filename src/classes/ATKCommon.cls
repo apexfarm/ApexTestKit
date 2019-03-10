@@ -43,7 +43,7 @@ public with sharing class ATKCommon {
      * Interpolation Method Parser
      */
     public interface IMethodEvaluator {
-        Object evaluate(Map<String, IProvider> helperMap);
+        Object evaluate(Map<String, IProvider> helpers);
     }
 
     public interface IParamEvaluator {
@@ -135,14 +135,14 @@ public with sharing class ATKCommon {
             return method;
         }
 
-        public Object evaluate(Map<String, IProvider> helperMap) {
+        public Object evaluate(Map<String, IProvider> helpers) {
             if (!this.hasMethod) {
                 return this.expression;
             }
 
             List<Object> evals = new List<Object>();
             for (Method method : this.methodList) {
-                evals.add(method.evaluate(helperMap));
+                evals.add(method.evaluate(helpers));
             }
 
             List<String> splits = this.splits;
@@ -169,8 +169,8 @@ public with sharing class ATKCommon {
         public String name { get; set; }
         public List<Object> params { get; set; }
 
-        public virtual Object evaluate(Map<String, IProvider> helperMap) {
-            IProvider helper = helperMap.get(helperName);
+        public virtual Object evaluate(Map<String, IProvider> helpers) {
+            IProvider helper = helpers.get(helperName);
             if (helper != null) {
                 return helper.call(name, params);
             } else {
@@ -180,7 +180,7 @@ public with sharing class ATKCommon {
     }
 
     public class SymbolMethod extends Method {
-        private SymbolMethod(String format) {
+        SymbolMethod(String format) {
             helperName = 'helper';
             name = 'replaceSymbols';
             this.params = new List<Object> { format };
@@ -189,7 +189,7 @@ public with sharing class ATKCommon {
 
     public class XrefMethod extends Method {
         public IParamEvaluator paramEvaluator { get; set; }
-        public List<XrefParam> xrefParams { get; set; }
+        public List<XrefParam> xrefParams { get; private set; }
         public Integer level {
             get;
             set {
@@ -206,7 +206,7 @@ public with sharing class ATKCommon {
             }
         }
 
-        void loadParams(Integer recordIndex) {
+        public void loadParams(Integer recordIndex) {
             if (xrefParams != null && paramEvaluator != null) {
                 for (XrefParam param : xrefParams) {
                     params.set(param.index, paramEvaluator.evaluateParam(param.fieldName, recordIndex, param.level));
@@ -214,15 +214,13 @@ public with sharing class ATKCommon {
             }
         }
 
-        public Object evaluate(Map<String, IProvider> helperMap, Integer recordIndex) {
-            if (recordIndex >= level) {
-                loadParams(recordIndex);
-                IProvider helper = helperMap.get(helperName);
-                if (helper != null) {
-                    return helper.call(name, params);
-                }
+        public Object evaluate(Map<String, IProvider> helpers, Integer recordIndex) {
+            IProvider helper = helpers.get(helperName);
+            if (helper == null) {
+                return null;
             }
-            return null;
+            loadParams(recordIndex);
+            return helper.call(name, params);
         }
     }
 
@@ -237,6 +235,12 @@ public with sharing class ATKCommon {
             }
         }
         public String fieldName { get; set; }
+
+        public XrefParam(String fieldName, Integer index, Integer level) {
+            this.fieldName = fieldName;
+            this.index = index;
+            this.level = level;
+        }
     }
 
     /**
