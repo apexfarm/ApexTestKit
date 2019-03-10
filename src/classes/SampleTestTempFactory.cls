@@ -1,8 +1,9 @@
-public with sharing class SampleTestTempFactory implements ATKCommon.IWizardTemplate {
+@isTest
+public with sharing class SampleTestTempFactory implements ATKWizard.IWizardTemplate {
     public static final String ACCOUNT_WITH_FAX = 'SampleTestDataFactory/ACCOUNT_WITH_FAX';
     public static final String CONTACT_WITH_EMAIL = 'SampleTestDataFactory/CONTACT_WITH_EMAIL';
 
-    void applyAccountWithFax(ATKCommon.IWizardEntity accountEntity) {
+    void applyAccountWithFax(ATKWizard.IEntityKeywords accountEntity) {
         accountEntity
             .fields()
                 .guard()
@@ -12,7 +13,7 @@ public with sharing class SampleTestTempFactory implements ATKCommon.IWizardTemp
             .end();
     }
 
-    void applyContactWithEmail(ATKCommon.IWizardEntity contactEntity) {
+    void applyContactWithEmail(ATKWizard.IEntityKeywords contactEntity) {
         contactEntity
             .fields()
                 .guard()
@@ -23,7 +24,7 @@ public with sharing class SampleTestTempFactory implements ATKCommon.IWizardTemp
             .end();
     }
 
-    public void apply(ATKCommon.IWizardEntity entity, String templateName) {
+    public void apply(ATKWizard.IEntityKeywords entity, String templateName) {
         if (templateName == ACCOUNT_WITH_FAX) {
             applyAccountWithFax(entity);
         } else if (templateName == CONTACT_WITH_EMAIL) {

@@ -2,30 +2,25 @@
  * Apex Test Kit
  */
 public with sharing class ATKWand {
-    private static final ATKCommon.MethodParser METHOD_PARSER = ATKCommon.METHOD_PARSER;
-    private static final ParamEvaluator PARAM_EVALUATOR = new ParamEvaluator();
+    static final ParamEvaluator PARAM_EVALUATOR = new ParamEvaluator();
 
-    private static final ISchemator SCHEMATOR = new FieldSchemator(); // have state
-    private static final IEvaluator EVALUATOR = new FieldEvaluator(); // have state
-    private static final IValidator VALIDATOR = new NodeValidator();  // pure func
-    private static final IGenerator GENERATOR = new NodeGenerator();  // pure func
-    private static final Distributor DISTRIBUTOR = new Distributor(); // pure func
+    static final ISchemator SCHEMATOR = new FieldSchemator(); // have state
+    static final IEvaluator EVALUATOR = new FieldEvaluator(); // have state
+    static final IValidator VALIDATOR = new NodeValidator();  // pure func
+    static final IGenerator GENERATOR = new NodeGenerator();  // pure func
+    static final Distributor DISTRIBUTOR = new Distributor(); // pure func
 
-    private Boolean inMemory { get; set; }
+    Boolean inMemory { get; set; }
 
-    public void register(ATKSpellBook spellBook) {
-
-    }
-
-    public void generate(ATKSpellBook spellBook, Boolean inMemory) {
+    public void generate(ATKSpellbook spellbook, Boolean inMemory) {
         this.inMemory = inMemory;
-        SCHEMATOR.build(spellBook);
-        VALIDATOR.validate(spellBook);
-        GENERATOR.generate(spellBook);
+        SCHEMATOR.build(spellbook);
+        VALIDATOR.validate(spellbook);
+        GENERATOR.generate(spellbook);
     }
 
     interface ISchemator {
-        void build(ATKSpellBook spellBook);
+        void build(ATKSpellbook spellbook);
         String getReferenceFieldName(String objectName, String referenceTypeName);
         String getReferenceFieldType(String objectName, String referenceFieldName);
         Boolean isGeolocationField(Schema.DescribeSObjectResult dsr, Schema.DescribeFieldResult dfr);
@@ -33,11 +28,11 @@ public with sharing class ATKWand {
     }
 
     interface IValidator {
-        void validate(ATKSpellBook spellBook);
+        void validate(ATKSpellbook spellbook);
     }
 
     interface IGenerator {
-        void generate(ATKSpellBook spellBook);
+        void generate(ATKSpellbook spellbook);
     }
 
     interface IEvaluator {
@@ -45,10 +40,10 @@ public with sharing class ATKWand {
     }
 
     class FieldSchemator implements ISchemator {
-        private Map<String, Set<String>> addressFieldCache { get; set; }
-        private Map<String, Set<String>> geolocationFieldCache { get; set; }
-        private Map<String, Map<String, String>> referenceFieldNameByTypeCache { get; set; }
-        private Map<String, Map<String, String>> referenceFieldTypeByNameCache { get; set; }
+        Map<String, Set<String>> addressFieldCache { get; set; }
+        Map<String, Set<String>> geolocationFieldCache { get; set; }
+        Map<String, Map<String, String>> referenceFieldNameByTypeCache { get; set; }
+        Map<String, Map<String, String>> referenceFieldTypeByNameCache { get; set; }
 
         @TestVisible
         FieldSchemator() {
@@ -58,8 +53,8 @@ public with sharing class ATKWand {
             referenceFieldTypeByNameCache = new Map<String, Map<String, String>>();
         }
 
-        public void build(ATKSpellBook spellBook) {
-            Iterator<EntityNode> iterator = spellBook.iterator();
+        public void build(ATKSpellbook spellbook) {
+            Iterator<EntityNode> iterator = spellbook.iterator();
             while (iterator.hasNext()) {
                 EntityNode entityNode = iterator.next();
                 entityNode.xrefFieldCache.sort();
@@ -174,8 +169,8 @@ public with sharing class ATKWand {
 
     @TestVisible
     class NodeValidator implements IValidator {
-        public void validate(ATKSpellBook spellBook) {
-            Iterator<EntityNode> iterator = spellBook.iterator();
+        public void validate(ATKSpellbook spellbook) {
+            Iterator<EntityNode> iterator = spellbook.iterator();
             while (iterator.hasNext()) {
                 EntityNode entityNode = iterator.next();
                 validateTotalAndList(entityNode);
@@ -244,8 +239,8 @@ public with sharing class ATKWand {
     }
 
     class NodeGenerator implements IGenerator {
-        public void generate(ATKSpellBook spellBook) {
-            Iterator<EntityNode> iterator = spellBook.iterator();
+        public void generate(ATKSpellbook spellbook) {
+            Iterator<EntityNode> iterator = spellbook.iterator();
             while (iterator.hasNext()) {
                 EntityNode entityNode = iterator.next();
                 if (entityNode.repository.size() == 0) {
@@ -349,9 +344,9 @@ public with sharing class ATKWand {
 
     @TestVisible
     class FieldEvaluator implements IEvaluator {
-        private Map<String, List<String>> picklistCache { get; set; }
-        private Map<String, Set<Object>> uniqueValueCache { get; set; }
-        private List<String> UNIQUE_VALUE_FORMATS { get; set; }
+        Map<String, List<String>> picklistCache { get; set; }
+        Map<String, Set<Object>> uniqueValueCache { get; set; }
+        List<String> UNIQUE_VALUE_FORMATS { get; set; }
 
         @TestVisible
         FieldEvaluator() {
@@ -417,7 +412,7 @@ public with sharing class ATKWand {
             return value;
         }
 
-        public Object getValue(Integer recordIndex, EntityNode entityNode, EntityField entityField) {
+        Object getValue(Integer recordIndex, EntityNode entityNode, EntityField entityField) {
             DescribeSObjectResult dsr = entityNode.dsr;
             Schema.DescribeFieldResult dfr = entityField.dfr;
             Object value;
@@ -668,21 +663,9 @@ public with sharing class ATKWand {
         }
     }
 
-    private class Bag implements ATKCommon.IBag {
-        private Map<Schema.SObjectType, List<SObject>> repositoryByType { get; set; }
-
-        Bag() {
-            repositoryByType = new Map<Schema.SObjectType, List<SObject>>();
-        }
-
-        public List<SObject> get(Schema.SObjectType objectType) {
-            return repositoryByType.get(objectType);
-        }
-    }
-
-    public class ATKSpellBook implements Iterable<EntityNode> {
+    public class ATKSpellbook implements Iterable<EntityNode> {
         @TestVisible
-        private EntityNodeMatrix matrix { get; private set; }
+        EntityNodeMatrix matrix { get; set; }
 
         {
             matrix = new EntityNodeMatrix();
@@ -712,32 +695,18 @@ public with sharing class ATKWand {
         public void pop(Integer depth) {
             this.matrix.pop(depth);
         }
-
-        public ATKCommon.IBag toBag() {
-            Iterator<EntityNode> iterator = iterator();
-            Bag bag = new Bag();
-            while(iterator.hasNext()) {
-                EntityNode entityNode = iterator.next();
-                if (!bag.repositoryByType.containsKey(entityNode.objectType)) {
-                    bag.repositoryByType.put(entityNode.objectType, entityNode.repository);
-                } else {
-                    bag.repositoryByType.get(entityNode.objectType).addAll(entityNode.repository);
-                }
-            }
-            return bag;
-        }
     }
 
     @TestVisible
-    private class EntityNodeMatrix implements Iterator<EntityNode> {
-        private Integer rowIndex { get; set; }
-        private Integer colIndex { get; set; }
+    class EntityNodeMatrix implements Iterator<EntityNode> {
+        Integer rowIndex { get; set; }
+        Integer colIndex { get; set; }
         @TestVisible
-        private List<List<EntityNode>> entityNodeMatrix { get; set; }
-        private List<EntityNode> entityNodeStack { get; set; }
-        private EntityNode currentEntityNode { get; set; }
+        List<List<EntityNode>> entityNodeMatrix { get; set; }
+        List<EntityNode> entityNodeStack { get; set; }
+        EntityNode currentEntityNode { get; set; }
 
-        private EntityNodeMatrix() {
+        EntityNodeMatrix() {
             entityNodeMatrix = new List<List<EntityNode>>();
             entityNodeStack = new List<EntityNode>();
             rowIndex = 0;
@@ -761,12 +730,12 @@ public with sharing class ATKWand {
             return null;
         }
 
-        private void reset() {
+        void reset() {
             rowIndex = 0;
             colIndex = -1;
         }
 
-        private void pop(Integer depth) {
+        void pop(Integer depth) {
             while (depth > 0) {
                 depth--;
                 Integer size = this.entityNodeStack.size();
@@ -779,7 +748,7 @@ public with sharing class ATKWand {
             colIndex = this.currentEntityNode.colIndex;
         }
 
-        private void add(EntityNode entityNode) {
+        void add(EntityNode entityNode) {
             switch on entityNode.nodeType {
                 when WantMany {
                     rowIndex = 0;
@@ -848,25 +817,22 @@ public with sharing class ATKWand {
                 }
             }
         }
+        public List<SObject> repository { get; set; }
 
         // Entity Attributes
         public Schema.SObjectType objectType { get; set; }
-        public Schema.DescribeSObjectResult dsr { get; set; }
-        public String name { get; set; }
-        public Integer total { get; set; }
-        public Map<String, EntityNode> referenceToMap { get; set; }
-        public List<SObject> repository { get; set; }
+        Schema.DescribeSObjectResult dsr { get; set; }
+        String name { get; set; }
+        Integer total { get; set; }
+        Map<String, EntityNode> referenceToMap { get; set; }
 
-        public Boolean guardEnabled { get; set; }
-        public Map<Schema.SObjectField, EvalEntityField> evalFieldMap { get; set; }
-        public Map<Schema.SObjectField, XrefEntityField> xrefFieldMap { get; set; }
+        // Field Attributes
+        Boolean guardEnabled { get; set; }
+        Map<Schema.SObjectField, EvalEntityField> evalFieldMap { get; set; }
+        Map<Schema.SObjectField, XrefEntityField> xrefFieldMap { get; set; }
         List<EvalEntityField> evalFieldCache { get; set; }
         List<XrefEntityField> xrefFieldCache { get; set; }
         EntityField currentEntityField { get; set; }
-
-        public EntityNode() {
-
-        }
 
         public EntityNode(Schema.SObjectType objectType, EntityNodeType nodeType) {
             this.objectType = objectType;
@@ -889,12 +855,12 @@ public with sharing class ATKWand {
      * ENTITY FIELD
      */
 
-    private abstract class EntityField  {
-        public Schema.SObjectField field { get; set; }
-        public Schema.DescribeFieldResult dfr { get; set; }
-        public String name { get; set; }
-        public ATKCommon.Method method { get; set; }
-        public Boolean needGuess { get; set; }
+    abstract class EntityField  {
+        protected Schema.SObjectField field { get; set; }
+        protected Schema.DescribeFieldResult dfr { get; set; }
+        protected String name { get; set; }
+        protected ATKCommon.Method method { get; set; }
+        protected Boolean needGuess { get; set; }
 
         {
             needGuess = false;
@@ -911,11 +877,11 @@ public with sharing class ATKWand {
         }
     }
 
-    private class EvalEntityField extends EntityField {
-        public Object value { get; set; }
-        public String indexFormat { get; set; }
-        public String fakerRule { get; set; }
-        public List<Object> repeatValues { get; set; }
+    class EvalEntityField extends EntityField {
+        Object value { get; set; }
+        String indexFormat { get; set; }
+        String fakerRule { get; set; }
+        List<Object> repeatValues { get; set; }
 
         EvalEntityField(Schema.SObjectField field) {
             super(field);
@@ -941,9 +907,9 @@ public with sharing class ATKWand {
         }
     }
 
-    private class XrefEntityField extends EntityField implements Comparable {
-        public ATKCommon.XrefMethod method { get; set; }
-        public EvalEntityField origin { get; set; }
+    class XrefEntityField extends EntityField implements Comparable {
+        ATKCommon.XrefMethod method { get; set; }
+        EvalEntityField origin { get; set; }
 
         XrefEntityField(Schema.SObjectField field) {
             super(field);
@@ -970,7 +936,7 @@ public with sharing class ATKWand {
         }
     }
 
-    public class ParamEvaluator implements ATKCommon.IParamEvaluator {
+    class ParamEvaluator implements ATKCommon.IParamEvaluator {
         EntityNode entityNode { get; set; }
 
         public Object evaluateParam(String fieldName, Integer recordIndex, Integer level) {
@@ -999,6 +965,7 @@ public with sharing class ATKWand {
     }
 
     public interface IFieldAttribute extends IAttribute {
+
     }
 
     public interface IEvalFieldAttribute extends IFieldAttribute {
@@ -1010,7 +977,7 @@ public with sharing class ATKWand {
     }
 
     public class ReferenceByAttribute implements IEntityAttribute {
-        private String referenceBy { get; set; }
+        String referenceBy { get; set; }
         public ReferenceByAttribute(Schema.SObjectField referenceBy) {
             this.referenceBy = referenceBy.getDescribe().getName();
         }
@@ -1030,7 +997,7 @@ public with sharing class ATKWand {
     }
 
     public class TotalAttribute implements IEntityAttribute {
-        private Integer total { get; set; }
+        Integer total { get; set; }
         public TotalAttribute(Integer total) {
             this.total = total;
         }
@@ -1045,7 +1012,7 @@ public with sharing class ATKWand {
     }
 
     public class UseListAttribute implements IEntityAttribute {
-        private List<SObject> repository { get; set; }
+        List<SObject> repository { get; set; }
 
         public UseListAttribute(List<SObject> repository) {
             this.repository = repository;
@@ -1059,7 +1026,7 @@ public with sharing class ATKWand {
     }
 
     public class GuardAttribute implements IEntityAttribute {
-        private Boolean guardEnabled { get; set; }
+        Boolean guardEnabled { get; set; }
 
         public GuardAttribute(Boolean guardEnabled) {
             this.guardEnabled = guardEnabled;

@@ -652,14 +652,19 @@ public with sharing class ATKFakerTest {
      * ATKCommon String Builder
      */
     @isTest
-    static void testATKCommonStringBuilder() {
+    static void testATKCommon_StringBuilder() {
         {
             ATKCommon.StringBuilder builder = new ATKCommon.StringBuilder();
-            for (Integer i = 0; i < 100; i++) {
-                builder.append('a');
+            for (Integer i = 0; i < 10; i++) {
+                if (Math.mod(i, 2) == 0) {
+                    builder.append('a');
+                } else {
+                    builder.append(1);
+                }
             }
             String s = builder.toString();
-            System.assertEquals(100, s.length());
+            System.assertEquals(10, s.length());
+            System.assertEquals('a1a1a1a1a1', s);
         }
 
         {
@@ -686,18 +691,75 @@ public with sharing class ATKFakerTest {
     }
 
     /*
+     * ATKCommon Converter
+     */
+
+    @isTest
+    static void testATKCommon_Converter() {
+        ATKCommon.Converter converter = new ATKCommon.Converter();
+        System.assertEquals(null, converter.toInteger(null));
+        System.assertEquals(null, converter.toInteger('abc'));
+        System.assertEquals(123, converter.toInteger(123));
+        System.assertEquals(123, converter.toInteger(123.00));
+        System.assertEquals(123, converter.toInteger('123'));
+        System.assertEquals(123, converter.toInteger('123.00'));
+
+        System.assertEquals(null, converter.toDecimal(Datetime.now()));
+        System.assertEquals(null, converter.toDecimal(null));
+        System.assertEquals(null, converter.toDecimal('abc'));
+        System.assertEquals(123, converter.toDecimal(123));
+        System.assertEquals(123, converter.toDecimal(123.00));
+        System.assertEquals(123.45, converter.toDecimal(123.45));
+        System.assertEquals(123, converter.toDecimal('123'));
+        System.assertEquals(123, converter.toDecimal('123.00'));
+        System.assertEquals(123.45, converter.toDecimal('123.45'));
+
+        System.assertEquals(null, converter.toString(null));
+        System.assertEquals('abc', converter.toString('abc'));
+        System.assertEquals('123', converter.toString(123));
+
+        System.assertEquals(null, converter.toDate(null));
+        System.assertEquals(Date.today(), converter.toDate(Date.today()));
+        System.assertEquals(Date.today(), converter.toDate(Datetime.now()));
+        System.assertEquals(Date.newInstance(2018, 8, 28), converter.toDate('2018-8-28'));
+        System.assertEquals(null, converter.toDate('2018-08-28T14:24:22Z'));
+        System.assertEquals(null, converter.toDate('abc'));
+
+        System.assertEquals(null, converter.toDatetime(null));
+        Datetime now = Datetime.now();
+        System.assertEquals(now, converter.toDatetime(now));
+        System.assertEquals(Datetime.valueOfGmt('2018-08-28 14:24:22'), converter.toDatetime('2018-08-28T14:24:22Z'));
+        System.assertEquals(Datetime.valueOfGmt('2018-08-28 14:24:22'), converter.toDatetime('2018-08-28T22:24:22+08:00'));
+        System.assertEquals(null, converter.toDatetime('abc'));
+
+        System.assertEquals(null, converter.toTime(null));
+        System.assertEquals(Time.newInstance(8, 28, 36, 0), converter.toTime(Time.newInstance(8, 28, 36, 0)));
+        System.assertEquals(Time.newInstance(8, 28, 36, 0), converter.toTime(Datetime.newInstance(2018, 8, 28, 8, 28, 36)));
+        System.assertEquals(null, converter.toTime('2018-08-28T14:24:22Z'));
+        System.assertEquals(null, converter.toTime('abc'));
+    }
+
+
+    /*
      * ATKCommon Test Methods
      */
-    // class TestParamEvaluator implements ATKCommon.IParamEvaluator {
-    //     List<String> values = new List<String> { 'A', 'B' };
-    //     public Object evaluateParam(String fieldName, Integer recordIndex, Integer level ) {
-    //         if (level < recordIndex) {
-    //             return values[recordIndex];
-    //         } else {
-    //             return fieldName;
-    //         }
-    //     }
-    // }
+    class TestParamEvaluator implements ATKCommon.IParamEvaluator {
+        List<String> values = new List<String> { 'A', 'B' };
+        public Object evaluateParam(String fieldName, Integer recordIndex, Integer level ) {
+            if (level < recordIndex) {
+                return values[recordIndex];
+            } else {
+                return fieldName;
+            }
+        }
+    }
+
+    @isTest
+    static void testMethodEvaluation() {
+
+    }
+
+
 
     // @isTest
     // static void testATKCommonMethodParser() {
@@ -764,49 +826,4 @@ public with sharing class ATKFakerTest {
     //     System.assertEquals(1, methodGroup.methodList.size());
     //     System.assertEquals('+A+B+', methodGroup.evaluate(paramEvaluator));
     // }
-
-    @isTest
-    static void testATKCommonConverter() {
-        ATKCommon.Converter converter = new ATKCommon.Converter();
-        System.assertEquals(null, converter.toInteger(null));
-        System.assertEquals(null, converter.toInteger('abc'));
-        System.assertEquals(123, converter.toInteger(123));
-        System.assertEquals(123, converter.toInteger(123.00));
-        System.assertEquals(123, converter.toInteger('123'));
-        System.assertEquals(123, converter.toInteger('123.00'));
-
-        System.assertEquals(null, converter.toDecimal(Datetime.now()));
-        System.assertEquals(null, converter.toDecimal(null));
-        System.assertEquals(null, converter.toDecimal('abc'));
-        System.assertEquals(123, converter.toDecimal(123));
-        System.assertEquals(123, converter.toDecimal(123.00));
-        System.assertEquals(123.45, converter.toDecimal(123.45));
-        System.assertEquals(123, converter.toDecimal('123'));
-        System.assertEquals(123, converter.toDecimal('123.00'));
-        System.assertEquals(123.45, converter.toDecimal('123.45'));
-
-        System.assertEquals(null, converter.toString(null));
-        System.assertEquals('abc', converter.toString('abc'));
-        System.assertEquals('123', converter.toString(123));
-
-        System.assertEquals(null, converter.toDate(null));
-        System.assertEquals(Date.today(), converter.toDate(Date.today()));
-        System.assertEquals(Date.today(), converter.toDate(Datetime.now()));
-        System.assertEquals(Date.newInstance(2018, 8, 28), converter.toDate('2018-8-28'));
-        System.assertEquals(null, converter.toDate('2018-08-28T14:24:22Z'));
-        System.assertEquals(null, converter.toDate('abc'));
-
-        System.assertEquals(null, converter.toDatetime(null));
-        Datetime now = Datetime.now();
-        System.assertEquals(now, converter.toDatetime(now));
-        System.assertEquals(Datetime.valueOfGmt('2018-08-28 14:24:22'), converter.toDatetime('2018-08-28T14:24:22Z'));
-        System.assertEquals(Datetime.valueOfGmt('2018-08-28 14:24:22'), converter.toDatetime('2018-08-28T22:24:22+08:00'));
-        System.assertEquals(null, converter.toDatetime('abc'));
-
-        System.assertEquals(null, converter.toTime(null));
-        System.assertEquals(Time.newInstance(8, 28, 36, 0), converter.toTime(Time.newInstance(8, 28, 36, 0)));
-        System.assertEquals(Time.newInstance(8, 28, 36, 0), converter.toTime(Datetime.newInstance(2018, 8, 28, 8, 28, 36)));
-        System.assertEquals(null, converter.toTime('2018-08-28T14:24:22Z'));
-        System.assertEquals(null, converter.toTime('abc'));
-    }
 }

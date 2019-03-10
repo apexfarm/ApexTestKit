@@ -25,7 +25,7 @@ ATKWizard.I().wantMany(Account.SObjectType)
         .referenceBy(Contact.AccountId)
         .total(20)
         .fields()
-            .eval(Contact.FirstName).firstName()        // pick one from ~3000 first names 
+            .eval(Contact.FirstName).firstName()        // pick one from ~3000 first names
             .eval(Contact.LastName).lastName()          // pick one from ~500 last names
             .eval(Contact.Birthdate).past()             // a date in past 3 years
             .eval(Contact.Email).email()                // a valid email address
@@ -39,7 +39,7 @@ Underneath, the data are automatically guessed with appropriate values according
 
 ### Version 2.0 Highlight
 
-* Enfore strong types rather than passing strings around as parameters, such as 
+* Enfore strong types rather than passing strings around as parameters, such as
   * Use sObjectType instead of sObject name string
   * Use sObjectField instead of field name string
   * Use method instead of faker generation expression
@@ -52,7 +52,7 @@ Underneath, the data are automatically guessed with appropriate values according
 * Provide in-memory dummy sObject graph generation. This will have performance benefit for not triggering triggers and process builder.
 * Performance tuning in two possbile directions:
   * Use sequence generation to replace the random generation, so data can be consistent
-  * Add flag to switch generation logic to less "good-looking" mode. 
+  * Add flag to switch generation logic to less "good-looking" mode.
 
 ### Caveat
 
@@ -95,7 +95,7 @@ ATKWizard.I().wantMany(Contact.SObjectType)
 ```java
 Id pricebook2Id = Test.getStandardPricebookId();
 
-ATKCommon.IBag bag = ATKWizard.I().wantMany(Product2.SObjectType)
+ATKWizard.Bag bag = ATKWizard.I().wantMany(Product2.SObjectType)
     .total(5)
     .haveMany(PricebookEntry.SObjectType)
         .referenceBy(PricebookEntry.Product2Id)     // can be omitted
@@ -170,7 +170,7 @@ ATKWizard.I().wantMany(A__c.SObjectType)
 | ------------- | --------------- | ------------------------------------------------------------ |
 | total()       | Integer         | **Required***, only if `useList()` is not used. It defines number of records to create for the attached sObject context. |
 | useList()     | List\<sObject\> | **Required***, only if `total()` is not used. This tells the wizard to use the previously created sObject list, rather than to create the records from scratch. |
-| useTemp()     | Type, String    | **Optional**. The first param is a class implements `ATKCommon.IWizardTemplate`. The second param serves as hint for your implementation. Please reference `src/classes/SampleTestTempFactory` and `src/classes/SampleTestDataFactory` for detail. |
+| useTemp()     | Type, String    | **Optional**. The first param is a class implements `IWizardTemplate`. The second param serves as hint for your implementation. Please reference `src/classes/SampleTestTempFactory` and `src/classes/SampleTestDataFactory` for detail. |
 | referenceBy() | SObjectField    | **Optional**. Only use this keyword if there are multiple fields on the entity referencing the same sObject. |
 | also()        | Integer         | It can be used to switch back to any previous sObject context. |
 
@@ -307,9 +307,9 @@ ATKFaker.fake('Hello {!name.firstName(male)} {!name.lastName}!'); // => 'Hello J
 
 ### 2 Helper APIs
 
-All following APIs can be used in `ATKFaker.fake()` and `eval().fake()` as a helper string. 
+All following APIs can be used in `ATKFaker.fake()` and `eval().fake()` as a helper string.
 
-1. remove the `ATKFaker.` 
+1. remove the `ATKFaker.`
 2. remove the single quote for string parameter
 3. remove empty parentheses optionally
 

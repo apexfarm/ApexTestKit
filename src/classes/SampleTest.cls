@@ -81,7 +81,7 @@ private with sharing class SampleTest {
 
     @isTest
     static void testFieldPostUpdate() {
-        ATKCommon.IBag bag = ATKWizard.I().wantMany(Account.SObjectType)
+        ATKWizard.Bag bag = ATKWizard.I().wantMany(Account.SObjectType)
             .total(10)
             .fields()
                 .eval(Account.Name).index('Microsoft-{0}')
@@ -110,7 +110,7 @@ private with sharing class SampleTest {
 
     @isTest
     static void testFieldPostUpdateWithSecondUseList() {
-        ATKCommon.IBag bag = ATKWizard.I().wantMany(Account.SObjectType)
+        ATKWizard.Bag bag = ATKWizard.I().wantMany(Account.SObjectType)
             .total(10)
             .fields()
                 .eval(Account.Name).fake('Microsoft-{{###}}')
@@ -150,7 +150,7 @@ private with sharing class SampleTest {
 
         Integer accountTotal = 500;
         Integer contactTotal = 1000;
-        ATKCommon.IBag bag = ATKWizard.I().wantMany(Account.SObjectType)
+        ATKWizard.Bag bag = ATKWizard.I().wantMany(Account.SObjectType)
             .total(accountTotal)
             .fields()
                 .eval(Account.Name).index('Name-{0}')           // Name-0, Name-1, Name-2 ...
@@ -307,7 +307,7 @@ private with sharing class SampleTest {
     static void testRelationshipHaveManyBelongTo() {
         Id pricebook2Id = Test.getStandardPricebookId();
 
-        ATKCommon.IBag bag = ATKWizard.I().wantMany(Product2.SObjectType)
+        ATKWizard.Bag bag = ATKWizard.I().wantMany(Product2.SObjectType)
             .total(5)
             .haveMany(PricebookEntry.SObjectType)
                 .referenceBy(PricebookEntry.Product2Id)
@@ -402,7 +402,7 @@ private with sharing class SampleTest {
 
     @isTest
     static void testRelationshipAccountOpportunity() {
-        ATKCommon.IBag bag = ATKWizard.I().wantMany(Account.SObjectType)
+        ATKWizard.Bag bag = ATKWizard.I().wantMany(Account.SObjectType)
             .total(3)
             .haveMany(Contact.SObjectType)
                 .referenceBy(Contact.AccountId)
@@ -465,7 +465,7 @@ private with sharing class SampleTest {
     @isTest
     static void testCrossFieldReference() {
         Date current = Date.today();
-        ATKCommon.IBag bag = ATKWizard.I().wantMany(Contact.SObjectType)
+        ATKWizard.Bag bag = ATKWizard.I().wantMany(Contact.SObjectType)
             .total(10)
             .fields()
                 .eval(Contact.Birthdate).value(current.addDays(100))
@@ -484,7 +484,7 @@ private with sharing class SampleTest {
     @isTest
     static void testCrossFieldReference2() {
         Date current = Date.today();
-        ATKCommon.IBag bag = ATKWizard.I().wantMany(Contact.SObjectType)
+        ATKWizard.Bag bag = ATKWizard.I().wantMany(Contact.SObjectType)
             .total(10)
             .fields()
                 .eval(Contact.Birthdate).value(current.addDays(100))
@@ -503,7 +503,7 @@ private with sharing class SampleTest {
     @isTest
     static void testCrossFieldReference3() {
         Date current = Date.today();
-        ATKCommon.IBag bag = ATKWizard.I().wantMany(Contact.SObjectType)
+        ATKWizard.Bag bag = ATKWizard.I().wantMany(Contact.SObjectType)
             .total(10)
             .fields()
                 .xref(Contact.Birthdate).addDays('$1.Birthdate', -2)
@@ -536,7 +536,7 @@ private with sharing class SampleTest {
             System.assertEquals(current, contact.Birthdate);
         }
 
-        ATKCommon.IBag bag = ATKWizard.I().wantMany(Contact.SObjectType)
+        ATKWizard.Bag bag = ATKWizard.I().wantMany(Contact.SObjectType)
             .total(10)
             .fields()
                 .eval(Contact.Birthdate).value(current)
@@ -556,7 +556,7 @@ private with sharing class SampleTest {
     static void testCrossFieldReferenceOnLevelZero() {
         Long startTime = System.currentTimeMillis();
         Date current = Date.today();
-        ATKCommon.IBag bag = ATKWizard.I().wantMany(Contact.SObjectType)
+        ATKWizard.Bag bag = ATKWizard.I().wantMany(Contact.SObjectType)
             .total(1500)
             .fields()
                 .eval(Contact.Email).guess()
@@ -585,7 +585,7 @@ private with sharing class SampleTest {
     static void testCrossFieldReferenceValidateException() {
         Boolean hasException = false;
         try {
-            ATKCommon.IBag bag = ATKWizard.I().wantMany(Contact.SObjectType)
+            ATKWizard.Bag bag = ATKWizard.I().wantMany(Contact.SObjectType)
                 .total(10)
                 .fields()
                     .eval(Contact.FirstName).firstName()
@@ -602,7 +602,7 @@ private with sharing class SampleTest {
     static void testCrossFieldReferenceValidateException2() {
         Boolean hasException = false;
         try {
-            ATKCommon.IBag bag = ATKWizard.I().wantMany(Contact.SObjectType)
+            ATKWizard.Bag bag = ATKWizard.I().wantMany(Contact.SObjectType)
                 .total(10)
                 .fields()
                     .eval(Contact.FirstName).firstName()
