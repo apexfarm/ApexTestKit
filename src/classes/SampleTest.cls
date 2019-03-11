@@ -476,7 +476,7 @@ private with sharing class SampleTest {
 
         List<SObject> contacts = bag.get(Contact.SObjectType);
         for (Integer i = 0; i < contacts.size(); i++) {
-            System.debug(contacts[i].get('Birthdate'));
+            System.debug(current.addDays(-i) + ' == ' + contacts[i].get('Birthdate'));
             System.assertEquals(current.addDays(-i), contacts[i].get('Birthdate'));
         }
     }

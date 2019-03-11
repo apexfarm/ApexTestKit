@@ -797,14 +797,14 @@ private with sharing class ATKFakerTest {
 
         // expression is pure method
         methodGroup = parser.parse('{!helper.name(param0, param1)}');
-        System.assertEquals(0, methodGroup.splits.size());
-        System.assertEquals(0, methodGroup.methodList.size());
+        System.assertEquals(2, methodGroup.splits.size());
+        System.assertEquals(1, methodGroup.methodList.size());
         System.assertEquals('param0param1', methodGroup.evaluate(helpers));
 
         // expression is cached
         methodGroup = parser.parse('{!helper.name(param0, param1)}');
-        System.assertEquals(0, methodGroup.splits.size());
-        System.assertEquals(0, methodGroup.methodList.size());
+        System.assertEquals(2, methodGroup.splits.size());
+        System.assertEquals(1, methodGroup.methodList.size());
         System.assertEquals('param0param1', methodGroup.evaluate(helpers));
     }
 

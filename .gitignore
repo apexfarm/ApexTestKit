@@ -53,3 +53,4 @@ TestsResultsCache.xml
 # vscode
 .sfdx
 .vscode
+PLGCC_*

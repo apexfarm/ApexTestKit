@@ -60,7 +60,7 @@ public with sharing class ATKWizard implements IWantKeywords,
      * Template Interfaces
      */
     public interface WizardTemplateInterface {
-        void apply(IEntityKeywords entity, String templateName);
+        void build(IEntityKeywords entity, String templateName);
     }
 
     public interface IWizardTemplate extends WizardTemplateInterface {
@@ -236,9 +236,9 @@ public with sharing class ATKWizard implements IWantKeywords,
     public IEntityKeywords useTemp(Type templateClass, String templateName) {
         if (templateClass != null) {
             Object instance = templateClass.newInstance();
-            if (instance instanceOf IWizardTemplate) {
-                IWizardTemplate template = (IWizardTemplate)instance;
-                template.apply(sharedWizard, templateName);
+            if (instance instanceOf WizardTemplateInterface) {
+                WizardTemplateInterface template = (WizardTemplateInterface)instance;
+                template.build(sharedWizard, templateName);
             }
         }
         return sharedWizard;

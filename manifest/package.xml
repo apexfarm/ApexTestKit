@@ -6,6 +6,7 @@
         <members>ATKFakerDefinition</members>
         <members>ATKFakerTest</members>
         <members>ATKWand</members>
+        <members>ATKWandTest</members>
         <members>ATKWizard</members>
         <name>ApexClass</name>
     </types>
