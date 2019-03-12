@@ -48,11 +48,11 @@ public with sharing class ATKCommand implements IEntityKeywords, IEndedFieldKeyw
     /*
      * Template Interfaces
      */
-    public interface WizardTemplateInterface {
+    public interface EntityTemplateInterface {
         void build(IEntityKeywords entity, String templateName);
     }
 
-    public interface IWizardTemplate extends WizardTemplateInterface {
+    public interface IEntityTemplate extends EntityTemplateInterface {
 
     }
 
@@ -227,8 +227,8 @@ public with sharing class ATKCommand implements IEntityKeywords, IEndedFieldKeyw
     public IEntityKeywords useTemp(Type templateClass, String templateName) {
         if (templateClass != null) {
             Object instance = templateClass.newInstance();
-            if (instance instanceOf WizardTemplateInterface) {
-                WizardTemplateInterface template = (WizardTemplateInterface)instance;
+            if (instance instanceOf EntityTemplateInterface) {
+                EntityTemplateInterface template = (EntityTemplateInterface)instance;
                 template.build(sharedCommand, templateName);
             }
         }

@@ -138,7 +138,7 @@ ATKCommand.prepare(A__c.SObjectType)
 
 | Keyword     | Param  | Description                                                  |
 | ----------- | ------ | ------------------------------------------------------------ |
-| prepare()  | SObjectType | Always start chain with prepare keyword. It is the root sObject to start relationship with. |
+| prepare()  | SObjectType | Always start chain with `prepare()` keyword. It is the root sObject to start relationship with. |
 | haveMany()   | SObjectType | Establish one to many relationship between the previous working on sObject and the current sObject. |
 | belongTo() | SObjectType | Establish many to one relationship between the previous working on sObject and the current sObject. |
 
@@ -170,7 +170,7 @@ ATKCommand.prepare(A__c.SObjectType)
 | ------------- | --------------- | ------------------------------------------------------------ |
 | total()       | Integer         | **Required***, only if `useList()` is not used. It defines number of records to create for the attached sObject context. |
 | useList()     | List\<sObject\> | **Required***, only if `total()` is not used. This tells the wizard to use the previously created sObject list, rather than to create the records from scratch. |
-| useTemp()     | Type, String    | **Optional**. The first param is a class implements `IWizardTemplate`. The second param serves as hint for your implementation. Please reference `src/classes/SampleTestTempFactory` and `src/classes/SampleTestDataFactory` for detail. |
+| useTemp()     | Type, String    | **Optional**. The first param is a class implements `IEntityTemplate`. The second param serves as hint for your implementation. Please reference `src/classes/SampleTestTempFactory` and `src/classes/SampleTestDataFactory` for detail. |
 | referenceBy() | SObjectField    | **Optional**. Only use this keyword if there are multiple fields on the entity referencing the same sObject. |
 | also()        | Integer         | It can be used to switch back to any previous sObject context. |
 

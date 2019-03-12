@@ -1,5 +1,5 @@
 @isTest
-public with sharing class SampleTestTempFactory implements ATKCommand.IWizardTemplate {
+public with sharing class SampleTestTempFactory implements ATKCommand.IEntityTemplate {
     public static final String ACCOUNT_WITH_FAX = 'SampleTestDataFactory/ACCOUNT_WITH_FAX';
     public static final String CONTACT_WITH_EMAIL = 'SampleTestDataFactory/CONTACT_WITH_EMAIL';
 

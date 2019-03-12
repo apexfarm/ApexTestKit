@@ -330,7 +330,7 @@ public with sharing class ATKCommon {
             } else if (input instanceof Date) {
                 return (Date)input;
             } else if (input instanceof Datetime){
-                return ((Datetime)input).date();
+                return ((Datetime)input).dateGmt();
             } else if (input instanceof String) {
                 try {
                     return (Date)JSON.deserialize(
