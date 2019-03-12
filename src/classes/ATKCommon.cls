@@ -47,7 +47,7 @@ public with sharing class ATKCommon {
     }
 
     public interface IParamEvaluator {
-        Object evaluateParam(String fieldName, Integer recordIndex, Integer level);
+        Object evaluateParam(String fieldName, Integer level);
     }
 
     public class MethodParser {
@@ -173,9 +173,8 @@ public with sharing class ATKCommon {
             IProvider helper = helpers.get(helperName);
             if (helper != null) {
                 return helper.call(name, params);
-            } else {
-                return null;
             }
+            return null;
         }
     }
 
@@ -188,7 +187,6 @@ public with sharing class ATKCommon {
     }
 
     public class XrefMethod extends Method {
-        public IParamEvaluator paramEvaluator { get; set; }
         public List<XrefParam> xrefParams { get; private set; }
         public Integer level {
             get;
@@ -206,21 +204,12 @@ public with sharing class ATKCommon {
             }
         }
 
-        public void loadParams(Integer recordIndex) {
+        public void loadParams(IParamEvaluator paramEvaluator) {
             if (xrefParams != null && paramEvaluator != null) {
                 for (XrefParam param : xrefParams) {
-                    params.set(param.index, paramEvaluator.evaluateParam(param.fieldName, recordIndex, param.level));
+                    params.set(param.index, paramEvaluator.evaluateParam(param.fieldName, param.level));
                 }
             }
-        }
-
-        public Object evaluate(Map<String, IProvider> helpers, Integer recordIndex) {
-            IProvider helper = helpers.get(helperName);
-            if (helper == null) {
-                return null;
-            }
-            loadParams(recordIndex);
-            return helper.call(name, params);
         }
     }
 
@@ -341,7 +330,7 @@ public with sharing class ATKCommon {
             } else if (input instanceof Date) {
                 return (Date)input;
             } else if (input instanceof Datetime){
-                return ((Datetime)input).dateGMT();
+                return ((Datetime)input).date();
             } else if (input instanceof String) {
                 try {
                     return (Date)JSON.deserialize(

@@ -1,59 +1,48 @@
 /**
  * Apex Test Kit
  */
-public with sharing class ATKWizard implements IWantKeywords,
-    IEntityKeywords, IEndedFieldKeywords, IEvalKeywords, IXrefKeywords {
+public with sharing class ATKCommand implements IEntityKeywords, IEndedFieldKeywords, IEvalKeywords, IXrefKeywords {
 
-    ATKWand.ATKSpellbook spellbook { get; set; }
-    ATKWand.EvalAttribute evalAttribute { get; set; }
-    ATKWand.XrefAttribute xrefAttribute { get; set; }
-    ATKWand.EvalMethodAttribute userNameAttribute { get; set; }
-    ATKWand.EvalMethodAttribute emailAttribute { get; set; }
-    ATKWand.EvalMethodAttribute urlAttribute { get; set; }
-    ATKWand.EvalMethodAttribute phoneAttribute { get; set; }
-    ATKWand.EvalMethodAttribute numberAttribute { get; set; }
-    ATKWand.EvalMethodAttribute pastAttribute { get; set; }
-    ATKWand.EvalMethodAttribute futureAttribute { get; set; }
-    ATKWand.EvalMethodAttribute betweenAttribute { get; set; }
-    ATKWand.EvalMethodAttribute firstNameAttribute { get; set; }
-    ATKWand.EvalMethodAttribute lastNameAttribute { get; set; }
-    ATKWand.EvalMethodAttribute wordAttribute { get; set; }
-    ATKWand.EvalMethodAttribute wordsAttribute { get; set; }
-    ATKWand.EvalMethodAttribute sentenceAttribute { get; set; }
-    ATKWand.EvalMethodAttribute sentencesAttribute { get; set; }
-    ATKWand.EvalMethodAttribute paragraphAttribute { get; set; }
-    ATKWand.EvalMethodAttribute paragraphsAttribute { get; set; }
-    ATKWand.XrefMethodAttribute xrefMethodAttribute { get; set; }
+    ATKEntityCollection.EvalAttribute evalAttribute { get; set; }
+    ATKEntityCollection.XrefAttribute xrefAttribute { get; set; }
+    ATKEntityCollection.EvalMethodAttribute userNameAttribute { get; set; }
+    ATKEntityCollection.EvalMethodAttribute emailAttribute { get; set; }
+    ATKEntityCollection.EvalMethodAttribute urlAttribute { get; set; }
+    ATKEntityCollection.EvalMethodAttribute phoneAttribute { get; set; }
+    ATKEntityCollection.EvalMethodAttribute numberAttribute { get; set; }
+    ATKEntityCollection.EvalMethodAttribute pastAttribute { get; set; }
+    ATKEntityCollection.EvalMethodAttribute futureAttribute { get; set; }
+    ATKEntityCollection.EvalMethodAttribute betweenAttribute { get; set; }
+    ATKEntityCollection.EvalMethodAttribute firstNameAttribute { get; set; }
+    ATKEntityCollection.EvalMethodAttribute lastNameAttribute { get; set; }
+    ATKEntityCollection.EvalMethodAttribute wordAttribute { get; set; }
+    ATKEntityCollection.EvalMethodAttribute wordsAttribute { get; set; }
+    ATKEntityCollection.EvalMethodAttribute sentenceAttribute { get; set; }
+    ATKEntityCollection.EvalMethodAttribute sentencesAttribute { get; set; }
+    ATKEntityCollection.EvalMethodAttribute paragraphAttribute { get; set; }
+    ATKEntityCollection.EvalMethodAttribute paragraphsAttribute { get; set; }
+    ATKEntityCollection.XrefMethodAttribute xrefMethodAttribute { get; set; }
 
-    private static ATKWizard sharedWizard { get; set; }
-
-    public static IWantKeywords I() {
-        if (sharedWizard == null) {
-            sharedWizard = new ATKWizard();
-        }
-        return sharedWizard;
-    }
-
-    ATKWizard() {
-        evalAttribute = new ATKWand.EvalAttribute();
-        xrefAttribute = new ATKWand.XrefAttribute();
-        userNameAttribute = new ATKWand.EvalMethodAttribute('internet', 'userName');
-        emailAttribute = new ATKWand.EvalMethodAttribute('internet', 'email');
-        urlAttribute = new ATKWand.EvalMethodAttribute('internet', 'url');
-        phoneAttribute = new ATKWand.EvalMethodAttribute('phone', 'phoneNumber');
-        numberAttribute = new ATKWand.EvalMethodAttribute('random', 'number');
-        pastAttribute = new ATKWand.EvalMethodAttribute('dates', 'past');
-        futureAttribute = new ATKWand.EvalMethodAttribute('dates', 'future');
-        betweenAttribute = new ATKWand.EvalMethodAttribute('dates', 'between');
-        firstNameAttribute = new ATKWand.EvalMethodAttribute('name', 'firstName');
-        lastNameAttribute = new ATKWand.EvalMethodAttribute('name', 'lastName');
-        wordAttribute = new ATKWand.EvalMethodAttribute('lorem', 'word');
-        wordsAttribute = new ATKWand.EvalMethodAttribute('lorem', 'words');
-        sentenceAttribute = new ATKWand.EvalMethodAttribute('lorem', 'sentence');
-        sentencesAttribute = new ATKWand.EvalMethodAttribute('lorem', 'sentences');
-        paragraphAttribute = new ATKWand.EvalMethodAttribute('lorem', 'paragraph');
-        paragraphsAttribute = new ATKWand.EvalMethodAttribute('lorem', 'paragraphs');
-        xrefMethodAttribute = new ATKWand.XrefMethodAttribute();
+    ATKCommand() {
+        evalAttribute = new ATKEntityCollection.EvalAttribute();
+        xrefAttribute = new ATKEntityCollection.XrefAttribute();
+        userNameAttribute = new ATKEntityCollection.EvalMethodAttribute('internet', 'userName');
+        emailAttribute = new ATKEntityCollection.EvalMethodAttribute('internet', 'email');
+        urlAttribute = new ATKEntityCollection.EvalMethodAttribute('internet', 'url');
+        phoneAttribute = new ATKEntityCollection.EvalMethodAttribute('phone', 'phoneNumber');
+        numberAttribute = new ATKEntityCollection.EvalMethodAttribute('random', 'number');
+        pastAttribute = new ATKEntityCollection.EvalMethodAttribute('dates', 'past');
+        futureAttribute = new ATKEntityCollection.EvalMethodAttribute('dates', 'future');
+        betweenAttribute = new ATKEntityCollection.EvalMethodAttribute('dates', 'between');
+        firstNameAttribute = new ATKEntityCollection.EvalMethodAttribute('name', 'firstName');
+        lastNameAttribute = new ATKEntityCollection.EvalMethodAttribute('name', 'lastName');
+        wordAttribute = new ATKEntityCollection.EvalMethodAttribute('lorem', 'word');
+        wordsAttribute = new ATKEntityCollection.EvalMethodAttribute('lorem', 'words');
+        sentenceAttribute = new ATKEntityCollection.EvalMethodAttribute('lorem', 'sentence');
+        sentencesAttribute = new ATKEntityCollection.EvalMethodAttribute('lorem', 'sentences');
+        paragraphAttribute = new ATKEntityCollection.EvalMethodAttribute('lorem', 'paragraph');
+        paragraphsAttribute = new ATKEntityCollection.EvalMethodAttribute('lorem', 'paragraphs');
+        xrefMethodAttribute = new ATKEntityCollection.XrefMethodAttribute();
     }
 
     /*
@@ -71,14 +60,10 @@ public with sharing class ATKWizard implements IWantKeywords,
      * Keyword Interfaces
      */
 
-    public interface IWantKeywords {
-        IEntityKeywords wantMany(SObjectType entityType);
-    }
-
     public interface IEntityKeywords {
         // keywords to end with
-        Bag generate();
-        Bag generate(Boolean inMemory);
+        ResultMap generate();
+        ResultMap generate(Boolean inMemory);
 
         // keywords to start new context
         IEntityKeywords belongTo(SObjectType entityType);
@@ -154,14 +139,14 @@ public with sharing class ATKWizard implements IWantKeywords,
         IEndedFieldKeywords addSeconds(String field, Integer value);
     }
 
-    public class Bag {
+    public class ResultMap {
         Map<Schema.SObjectType, List<SObject>> repositoryByType { get; set; }
 
-        Bag(ATKWand.ATKSpellbook spellbook) {
+        ResultMap(ATKEntityCollection entityCollection) {
             repositoryByType = new Map<Schema.SObjectType, List<SObject>>();
-            Iterator<ATKWand.EntityNode> iterator = spellbook.iterator();
+            Iterator<ATKEntityCollection.EntityNode> iterator = entityCollection.iterator();
             while(iterator.hasNext()) {
-                ATKWand.EntityNode entityNode = iterator.next();
+                ATKEntityCollection.EntityNode entityNode = iterator.next();
                 if (!this.repositoryByType.containsKey(entityNode.objectType)) {
                     this.repositoryByType.put(entityNode.objectType, entityNode.repository);
                 } else {
@@ -175,47 +160,53 @@ public with sharing class ATKWizard implements IWantKeywords,
         }
     }
 
-    public IEntityKeywords wantMany(SObjectType objectType) {
-        spellbook = new ATKWand.ATKSpellbook();
-        spellbook.attach(new ATKWand.EntityNode(objectType, ATKWand.EntityNodeType.WantMany));
-        return sharedWizard;
+    private static ATKCommand sharedCommand { get; set; }
+    ATKEntityCollection entityCollection { get; set; }
+
+    public static IEntityKeywords prepare(SObjectType objectType) {
+        if (sharedCommand == null) {
+            sharedCommand = new ATKCommand();
+        }
+        sharedCommand.entityCollection = new ATKEntityCollection();
+        sharedCommand.entityCollection.attach(new ATKEntityCollection.EntityNode(objectType, ATKEntityCollection.EntityNodeType.Prepare));
+        return sharedCommand;
     }
 
     // keywords to end with
-    public Bag generate() {
-        (new ATKWand()).generate(spellbook, false);
-        BAg bag = new Bag(spellbook);
-        spellbook = null;
-        return bag;
+    public ResultMap generate() {
+        (new ATKEntityGenerator()).generate(entityCollection, false);
+        ResultMap results = new ResultMap(entityCollection);
+        entityCollection = null;
+        return results;
     }
 
-    public Bag generate(Boolean inMemory) {
-        (new ATKWand()).generate(spellbook, inMemory);
-        Bag bag = new Bag(spellbook);
-        spellbook = null;
-        return bag;
+    public ResultMap generate(Boolean inMemory) {
+        (new ATKEntityGenerator()).generate(entityCollection, inMemory);
+        ResultMap results = new ResultMap(entityCollection);
+        entityCollection = null;
+        return results;
     }
 
     // keywords to start new context
     public IEntityKeywords belongTo(SObjectType objectType) {
-        spellbook.attach(new ATKWand.EntityNode(objectType, ATKWand.EntityNodeType.BelongTo));
-        return sharedWizard;
+        entityCollection.attach(new ATKEntityCollection.EntityNode(objectType, ATKEntityCollection.EntityNodeType.BelongTo));
+        return sharedCommand;
     }
 
     public IEntityKeywords haveMany(SObjectType objectType) {
-        spellbook.attach(new ATKWand.EntityNode(objectType, ATKWand.EntityNodeType.HaveMany));
-        return sharedWizard;
+        entityCollection.attach(new ATKEntityCollection.EntityNode(objectType, ATKEntityCollection.EntityNodeType.HaveMany));
+        return sharedCommand;
     }
 
     // keywords to build graph
     public IEntityKeywords referenceBy(Schema.SObjectField relationField) {
-        spellbook.apply(new ATKWand.ReferenceByAttribute(relationField));
-        return sharedWizard;
+        entityCollection.apply(new ATKEntityCollection.ReferenceByAttribute(relationField));
+        return sharedCommand;
     }
 
     public IEntityKeywords also(Integer depth) {
-        spellbook.pop(depth);
-        return sharedWizard;
+        entityCollection.pop(depth);
+        return sharedCommand;
     }
 
     public IEntityKeywords also() {
@@ -224,13 +215,13 @@ public with sharing class ATKWizard implements IWantKeywords,
 
     // keywords to control data
     public IEntityKeywords useCSV(String fileName) {
-        // spellbook.apply(new ATKWand.UseListAttribute(repository));
-        return sharedWizard;
+        // entityCollection.apply(new ATKEntityCollection.UseListAttribute(repository));
+        return sharedCommand;
     }
 
     public IEntityKeywords useList(List<SObject> repository) {
-        spellbook.apply(new ATKWand.UseListAttribute(repository));
-        return sharedWizard;
+        entityCollection.apply(new ATKEntityCollection.UseListAttribute(repository));
+        return sharedCommand;
     }
 
     public IEntityKeywords useTemp(Type templateClass, String templateName) {
@@ -238,165 +229,165 @@ public with sharing class ATKWizard implements IWantKeywords,
             Object instance = templateClass.newInstance();
             if (instance instanceOf WizardTemplateInterface) {
                 WizardTemplateInterface template = (WizardTemplateInterface)instance;
-                template.build(sharedWizard, templateName);
+                template.build(sharedCommand, templateName);
             }
         }
-        return sharedWizard;
+        return sharedCommand;
     }
 
     public IEntityKeywords total(Integer count) {
-        spellbook.apply(new ATKWand.TotalAttribute(count));
-        return sharedWizard;
+        entityCollection.apply(new ATKEntityCollection.TotalAttribute(count));
+        return sharedCommand;
     }
 
     public IFieldKeywords fields() {
-        return sharedWizard;
+        return sharedCommand;
     }
 
     public IEntityKeywords end() {
-        return sharedWizard;
+        return sharedCommand;
     }
 
     public IEndedFieldKeywords guard() {
-        spellbook.apply(new ATKWand.GuardAttribute(true));
-        return sharedWizard;
+        entityCollection.apply(new ATKEntityCollection.GuardAttribute(true));
+        return sharedCommand;
     }
 
     public IEndedFieldKeywords guard(Boolean enable) {
-        spellbook.apply(new ATKWand.GuardAttribute(enable));
-        return sharedWizard;
+        entityCollection.apply(new ATKEntityCollection.GuardAttribute(enable));
+        return sharedCommand;
     }
 
     public IEvalKeywords eval(Schema.SObjectField field) {
         evalAttribute.field = field;
-        spellbook.apply(this.evalAttribute);
-        return sharedWizard;
+        entityCollection.apply(this.evalAttribute);
+        return sharedCommand;
     }
 
     public IXrefKeywords xref(Schema.SObjectField field) {
         xrefAttribute.field = field;
-        spellbook.apply(this.xrefAttribute);
-        return sharedWizard;
+        entityCollection.apply(this.xrefAttribute);
+        return sharedCommand;
     }
 
     /*
      * Eval Keywords
      */
     public IEndedFieldKeywords userName() {
-        spellbook.apply(this.userNameAttribute);
-        return sharedWizard;
+        entityCollection.apply(this.userNameAttribute);
+        return sharedCommand;
     }
 
     public IEndedFieldKeywords email() {
-        spellbook.apply(this.emailAttribute);
-        return sharedWizard;
+        entityCollection.apply(this.emailAttribute);
+        return sharedCommand;
     }
 
     public IEndedFieldKeywords url() {
-        spellbook.apply(this.urlAttribute);
-        return sharedWizard;
+        entityCollection.apply(this.urlAttribute);
+        return sharedCommand;
     }
 
     public IEndedFieldKeywords phone() {
-        spellbook.apply(this.phoneAttribute);
-        return sharedWizard;
+        entityCollection.apply(this.phoneAttribute);
+        return sharedCommand;
     }
 
     public IEndedFieldKeywords number(Integer precision, Integer scale) {
         this.numberAttribute.params = new List<Object> { precision, scale };
-        spellbook.apply(this.numberAttribute);
-        return sharedWizard;
+        entityCollection.apply(this.numberAttribute);
+        return sharedCommand;
     }
 
     public IEndedFieldKeywords past()  {
-        spellbook.apply(this.pastAttribute);
-        return sharedWizard;
+        entityCollection.apply(this.pastAttribute);
+        return sharedCommand;
     }
 
     public IEndedFieldKeywords future() {
-        spellbook.apply(this.futureAttribute);
-        return sharedWizard;
+        entityCollection.apply(this.futureAttribute);
+        return sharedCommand;
     }
 
     public IEndedFieldKeywords between(String fo, String to) {
         this.betweenAttribute.params = new List<Object> { fo, to };
-        spellbook.apply(this.betweenAttribute);
-        return sharedWizard;
+        entityCollection.apply(this.betweenAttribute);
+        return sharedCommand;
     }
 
     public IEndedFieldKeywords firstName() {
-        spellbook.apply(this.firstNameAttribute);
-        return sharedWizard;
+        entityCollection.apply(this.firstNameAttribute);
+        return sharedCommand;
     }
 
     public IEndedFieldKeywords lastName() {
-        spellbook.apply(this.lastNameAttribute);
-        return sharedWizard;
+        entityCollection.apply(this.lastNameAttribute);
+        return sharedCommand;
     }
 
     public IEndedFieldKeywords word() {
-        spellbook.apply(this.wordAttribute);
-        return sharedWizard;
+        entityCollection.apply(this.wordAttribute);
+        return sharedCommand;
     }
 
     public IEndedFieldKeywords words() {
-        spellbook.apply(this.wordsAttribute);
-        return sharedWizard;
+        entityCollection.apply(this.wordsAttribute);
+        return sharedCommand;
     }
 
     public IEndedFieldKeywords sentence() {
-        spellbook.apply(this.sentenceAttribute);
-        return sharedWizard;
+        entityCollection.apply(this.sentenceAttribute);
+        return sharedCommand;
     }
 
     public IEndedFieldKeywords sentences() {
-        spellbook.apply(this.sentencesAttribute);
-        return sharedWizard;
+        entityCollection.apply(this.sentencesAttribute);
+        return sharedCommand;
     }
 
     public IEndedFieldKeywords paragraph() {
-        spellbook.apply(this.paragraphAttribute);
-        return sharedWizard;
+        entityCollection.apply(this.paragraphAttribute);
+        return sharedCommand;
     }
 
     public IEndedFieldKeywords paragraphs() {
-        spellbook.apply(this.paragraphAttribute);
-        return sharedWizard;
+        entityCollection.apply(this.paragraphAttribute);
+        return sharedCommand;
     }
 
     public IEndedFieldKeywords guess() {
-        spellbook.apply(new ATKWand.EvalGuessAttribute());
-        return sharedWizard;
+        entityCollection.apply(new ATKEntityCollection.EvalGuessAttribute());
+        return sharedCommand;
     }
 
     public IEndedFieldKeywords index(String format) {
-        spellbook.apply(new ATKWand.EvalIndexAttribute(format));
-        return sharedWizard;
+        entityCollection.apply(new ATKEntityCollection.EvalIndexAttribute(format));
+        return sharedCommand;
     }
 
     public IEndedFieldKeywords fake(String rule) {
-        spellbook.apply(new ATKWand.EvalFakerAttribute(rule));
-        return sharedWizard;
+        entityCollection.apply(new ATKEntityCollection.EvalFakerAttribute(rule));
+        return sharedCommand;
     }
 
     public IEndedFieldKeywords value(Object value) {
-        spellbook.apply(new ATKWand.EvalValueAttribute(value));
-        return sharedWizard;
+        entityCollection.apply(new ATKEntityCollection.EvalValueAttribute(value));
+        return sharedCommand;
     }
 
     public IEndedFieldKeywords repeat(List<Object> values) {
-        spellbook.apply(new ATKWand.EvalRepeatAttribute(values));
-        return sharedWizard;
+        entityCollection.apply(new ATKEntityCollection.EvalRepeatAttribute(values));
+        return sharedCommand;
     }
 
     public IEndedFieldKeywords repeat(Object value1, Object value2) {
-        spellbook.apply(new ATKWand.EvalRepeatAttribute(new List<Object> { value1, value2 }));
-        return sharedWizard;
+        entityCollection.apply(new ATKEntityCollection.EvalRepeatAttribute(new List<Object> { value1, value2 }));
+        return sharedCommand;
     }
 
     public IEndedFieldKeywords repeat(Object value1, Object value2, Object value3) {
-        spellbook.apply(new ATKWand.EvalRepeatAttribute(new List<Object> { value1, value2, value3 }));
-        return sharedWizard;
+        entityCollection.apply(new ATKEntityCollection.EvalRepeatAttribute(new List<Object> { value1, value2, value3 }));
+        return sharedCommand;
     }
 
     /*
@@ -406,87 +397,87 @@ public with sharing class ATKWizard implements IWantKeywords,
         this.xrefMethodAttribute.helperName = 'value';
         this.xrefMethodAttribute.methodName = 'get';
         this.xrefMethodAttribute.params = new List<Object> { field };
-        spellbook.apply(this.xrefMethodAttribute);
-        return sharedWizard;
+        entityCollection.apply(this.xrefMethodAttribute);
+        return sharedCommand;
     }
 
     public IEndedFieldKeywords add(String field, Object value) {
         this.xrefMethodAttribute.helperName = 'numbers';
         this.xrefMethodAttribute.methodName = 'add';
         this.xrefMethodAttribute.params = new List<Object> { field, value };
-        spellbook.apply(this.xrefMethodAttribute);
-        return sharedWizard;
+        entityCollection.apply(this.xrefMethodAttribute);
+        return sharedCommand;
     }
 
     public IEndedFieldKeywords substract(String field, Object value) {
         this.xrefMethodAttribute.helperName = 'numbers';
         this.xrefMethodAttribute.methodName = 'substract';
         this.xrefMethodAttribute.params = new List<Object> { field, value };
-        spellbook.apply(this.xrefMethodAttribute);
-        return sharedWizard;
+        entityCollection.apply(this.xrefMethodAttribute);
+        return sharedCommand;
     }
 
     public IEndedFieldKeywords divide(String field, Object value) {
         this.xrefMethodAttribute.helperName = 'numbers';
         this.xrefMethodAttribute.methodName = 'divide';
         this.xrefMethodAttribute.params = new List<Object> { field, value };
-        spellbook.apply(this.xrefMethodAttribute);
-        return sharedWizard;
+        entityCollection.apply(this.xrefMethodAttribute);
+        return sharedCommand;
     }
 
     public IEndedFieldKeywords multiply(String field, Object value) {
         this.xrefMethodAttribute.helperName = 'numbers';
         this.xrefMethodAttribute.methodName = 'multiply';
         this.xrefMethodAttribute.params = new List<Object> { field, value };
-        spellbook.apply(this.xrefMethodAttribute);
-        return sharedWizard;
+        entityCollection.apply(this.xrefMethodAttribute);
+        return sharedCommand;
     }
 
     public IEndedFieldKeywords addYears(String field, Integer value) {
         this.xrefMethodAttribute.helperName = 'dates';
         this.xrefMethodAttribute.methodName = 'add';
         this.xrefMethodAttribute.params = new List<Object> { field, value };
-        spellbook.apply(this.xrefMethodAttribute);
-        return sharedWizard;
+        entityCollection.apply(this.xrefMethodAttribute);
+        return sharedCommand;
     }
 
     public IEndedFieldKeywords addMonths(String field, Integer value) {
         this.xrefMethodAttribute.helperName = 'dates';
         this.xrefMethodAttribute.methodName = 'add';
         this.xrefMethodAttribute.params = new List<Object> { field, value };
-        spellbook.apply(this.xrefMethodAttribute);
-        return sharedWizard;
+        entityCollection.apply(this.xrefMethodAttribute);
+        return sharedCommand;
     }
 
     public IEndedFieldKeywords addDays(String field, Integer value) {
         this.xrefMethodAttribute.helperName = 'dates';
         this.xrefMethodAttribute.methodName = 'addDays';
         this.xrefMethodAttribute.params = new List<Object> { field, value };
-        spellbook.apply(this.xrefMethodAttribute);
-        return sharedWizard;
+        entityCollection.apply(this.xrefMethodAttribute);
+        return sharedCommand;
     }
 
     public IEndedFieldKeywords addHours(String field, Integer value) {
         this.xrefMethodAttribute.helperName = 'dates';
         this.xrefMethodAttribute.methodName = 'addHours';
         this.xrefMethodAttribute.params = new List<Object> { field, value };
-        spellbook.apply(this.xrefMethodAttribute);
-        return sharedWizard;
+        entityCollection.apply(this.xrefMethodAttribute);
+        return sharedCommand;
     }
 
     public IEndedFieldKeywords addMinutes(String field, Integer value) {
         this.xrefMethodAttribute.helperName = 'dates';
         this.xrefMethodAttribute.methodName = 'addMinutes';
         this.xrefMethodAttribute.params = new List<Object> { field, value };
-        spellbook.apply(this.xrefMethodAttribute);
-        return sharedWizard;
+        entityCollection.apply(this.xrefMethodAttribute);
+        return sharedCommand;
     }
 
     public IEndedFieldKeywords addSeconds(String field, Integer value) {
         this.xrefMethodAttribute.helperName = 'dates';
         this.xrefMethodAttribute.methodName = 'addSeconds';
         this.xrefMethodAttribute.params = new List<Object> { field, value };
-        spellbook.apply(this.xrefMethodAttribute);
-        return sharedWizard;
+        entityCollection.apply(this.xrefMethodAttribute);
+        return sharedCommand;
     }
 }

@@ -29,7 +29,7 @@ private with sharing class SampleTest {
     static void testFieldGuessValue() {
         Integer accountTotal = 5;
         Integer contactTotal = 10;
-        ATKWizard.I().wantMany(Account.SObjectType)
+        ATKCommand.prepare(Account.SObjectType)
             .total(accountTotal)
             .fields()
                 .eval(Account.NumberOfEmployees).guess()
@@ -61,7 +61,7 @@ private with sharing class SampleTest {
 
     @isTest
     static void testFieldWithRuleList() {
-        ATKWizard.I().wantMany(Account.SObjectType)
+        ATKCommand.prepare(Account.SObjectType)
             .total(6)
             .fields()
                 .eval(Account.Name).fake('Microsoft-{{###}}')
@@ -81,7 +81,7 @@ private with sharing class SampleTest {
 
     @isTest
     static void testFieldPostUpdate() {
-        ATKWizard.Bag bag = ATKWizard.I().wantMany(Account.SObjectType)
+        ATKCommand.ResultMap results = ATKCommand.prepare(Account.SObjectType)
             .total(10)
             .fields()
                 .eval(Account.Name).index('Microsoft-{0}')
@@ -94,8 +94,8 @@ private with sharing class SampleTest {
             System.assert(account.Name.startsWith('Microsoft-'));
         }
 
-        ATKWizard.I().wantMany(Account.SObjectType)
-            .useList(bag.get(Account.SObjectType))
+        ATKCommand.prepare(Account.SObjectType)
+            .useList(results.get(Account.SObjectType))
             .fields()
                 .eval(Account.Name).index('Google-{0}')
             .end()
@@ -110,7 +110,7 @@ private with sharing class SampleTest {
 
     @isTest
     static void testFieldPostUpdateWithSecondUseList() {
-        ATKWizard.Bag bag = ATKWizard.I().wantMany(Account.SObjectType)
+        ATKCommand.ResultMap results = ATKCommand.prepare(Account.SObjectType)
             .total(10)
             .fields()
                 .eval(Account.Name).fake('Microsoft-{{###}}')
@@ -123,8 +123,8 @@ private with sharing class SampleTest {
             System.assert(account.Name.startsWith('Microsoft-'));
         }
 
-        ATKWizard.I().wantMany(Account.SObjectType)
-            .useList(bag.get(Account.SObjectType))
+        ATKCommand.prepare(Account.SObjectType)
+            .useList(results.get(Account.SObjectType))
             .useList(new List<Account> {
                 new Account(), new Account(), new Account(), new Account(), new Account()
             })
@@ -150,7 +150,7 @@ private with sharing class SampleTest {
 
         Integer accountTotal = 500;
         Integer contactTotal = 1000;
-        ATKWizard.Bag bag = ATKWizard.I().wantMany(Account.SObjectType)
+        ATKCommand.ResultMap results = ATKCommand.prepare(Account.SObjectType)
             .total(accountTotal)
             .fields()
                 .eval(Account.Name).index('Name-{0}')           // Name-0, Name-1, Name-2 ...
@@ -193,7 +193,7 @@ private with sharing class SampleTest {
 
     @isTest
     static void testRelationshipHaveManyWithLessChild() {
-        ATKWizard.I().wantMany(Account.SObjectType)
+        ATKCommand.prepare(Account.SObjectType)
             .fields()
                 .eval(Account.Name).fake('Google-{{###}}')
             .end()
@@ -236,9 +236,9 @@ private with sharing class SampleTest {
             ));
         }
         insert accountList;
-        // no need to insert contactList, ATKWizard will handle it
+        // no need to insert contactList, ATKCommand will handle it
 
-        ATKWizard.I().wantMany(Account.SObjectType)
+        ATKCommand.prepare(Account.SObjectType)
             .useList(accountList)
             .haveMany(Contact.SObjectType)
                 .useList(contactList)
@@ -254,7 +254,7 @@ private with sharing class SampleTest {
 
     @isTest
     static void testRelationshipBelongTo() {
-        ATKWizard.I().wantMany(Contact.SObjectType)
+        ATKCommand.prepare(Contact.SObjectType)
             .total(40)
             .fields()
                 .eval(Contact.LastName).lastName()
@@ -276,7 +276,7 @@ private with sharing class SampleTest {
 
     @isTest
     static void testRelationshipBelongToWithLessChild() {
-        ATKWizard.I().wantMany(Contact.SObjectType)
+        ATKCommand.prepare(Contact.SObjectType)
             .total(4)
             .fields()
                 .eval(Contact.LastName).lastName()
@@ -307,7 +307,7 @@ private with sharing class SampleTest {
     static void testRelationshipHaveManyBelongTo() {
         Id pricebook2Id = Test.getStandardPricebookId();
 
-        ATKWizard.Bag bag = ATKWizard.I().wantMany(Product2.SObjectType)
+        ATKCommand.ResultMap results = ATKCommand.prepare(Product2.SObjectType)
             .total(5)
             .haveMany(PricebookEntry.SObjectType)
                 .referenceBy(PricebookEntry.Product2Id)
@@ -319,7 +319,7 @@ private with sharing class SampleTest {
                 .end()
             .generate();
 
-        ATKWizard.I().wantMany(Pricebook2.SObjectType)
+        ATKCommand.prepare(Pricebook2.SObjectType)
             .total(5)
             .haveMany(PricebookEntry.SObjectType)
                 .referenceBy(PricebookEntry.Pricebook2Id)
@@ -330,24 +330,24 @@ private with sharing class SampleTest {
                 .end()
                 .belongTo(Product2.SObjectType)
                     .referenceBy(PricebookEntry.Product2Id)
-                    .useList(bag.get(Product2.SObjectType))
+                    .useList(results.get(Product2.SObjectType))
             .generate();
 
-        List<AggregateResult> results = [
+        List<AggregateResult> aggregateResults = [
             SELECT count(Id)
             FROM PricebookEntry
             WHERE Pricebook2Id != :pricebook2Id
             GROUP BY Product2Id
         ];
 
-        for (AggregateResult result : results) {
+        for (AggregateResult result : aggregateResults) {
             System.assertEquals(5, result.get('expr0'));
         }
     }
 
     @isTest
     static void testRelationshipAlsoTraverse() {
-        ATKWizard.I().wantMany(Account.SObjectType)
+        ATKCommand.prepare(Account.SObjectType)
             .total(3)
             .haveMany(Contact.SObjectType)
                 .referenceBy(Contact.AccountId)
@@ -402,15 +402,15 @@ private with sharing class SampleTest {
 
     @isTest
     static void testRelationshipAccountOpportunity() {
-        ATKWizard.Bag bag = ATKWizard.I().wantMany(Account.SObjectType)
+        ATKCommand.ResultMap results = ATKCommand.prepare(Account.SObjectType)
             .total(3)
             .haveMany(Contact.SObjectType)
                 .referenceBy(Contact.AccountId)
                 .total(6)
             .generate();
 
-        ATKWizard.I().wantMany(Account.SObjectType)
-            .useList(bag.get(Account.SObjectType))
+        ATKCommand.prepare(Account.SObjectType)
+            .useList(results.get(Account.SObjectType))
             .haveMany(Opportunity.SObjectType)
                 .referenceBy(Opportunity.AccountId)
                 .total(6)
@@ -422,7 +422,7 @@ private with sharing class SampleTest {
                     .total(36)
                     .belongTo(Contact.SObjectType)
                         .referenceBy(OpportunityContactRole.ContactId)
-                        .useList(bag.get(Contact.SObjectType))
+                        .useList(results.get(Contact.SObjectType))
             .generate();
 
         List<OpportunityContactRole> ocrList = [SELECT Id FROM OpportunityContactRole];
@@ -431,7 +431,7 @@ private with sharing class SampleTest {
 
     @isTest
     static void testRelationshipOptionalReferenceBy() {
-        ATKWizard.I().wantMany(Account.SObjectType)
+        ATKCommand.prepare(Account.SObjectType)
             .total(10)
             .haveMany(Contact.SObjectType)
                 .total(20)
@@ -465,7 +465,7 @@ private with sharing class SampleTest {
     @isTest
     static void testCrossFieldReference() {
         Date current = Date.today();
-        ATKWizard.Bag bag = ATKWizard.I().wantMany(Contact.SObjectType)
+        ATKCommand.ResultMap results = ATKCommand.prepare(Contact.SObjectType)
             .total(10)
             .fields()
                 .eval(Contact.Birthdate).value(current.addDays(100))
@@ -474,7 +474,7 @@ private with sharing class SampleTest {
             .end()
             .generate();
 
-        List<SObject> contacts = bag.get(Contact.SObjectType);
+        List<SObject> contacts = results.get(Contact.SObjectType);
         for (Integer i = 0; i < contacts.size(); i++) {
             System.debug(current.addDays(-i) + ' == ' + contacts[i].get('Birthdate'));
             System.assertEquals(current.addDays(-i), contacts[i].get('Birthdate'));
@@ -484,7 +484,7 @@ private with sharing class SampleTest {
     @isTest
     static void testCrossFieldReference2() {
         Date current = Date.today();
-        ATKWizard.Bag bag = ATKWizard.I().wantMany(Contact.SObjectType)
+        ATKCommand.ResultMap results = ATKCommand.prepare(Contact.SObjectType)
             .total(10)
             .fields()
                 .eval(Contact.Birthdate).value(current.addDays(100))
@@ -493,7 +493,7 @@ private with sharing class SampleTest {
             .end()
             .generate();
 
-        List<SObject> contacts = bag.get(Contact.SObjectType);
+        List<SObject> contacts = results.get(Contact.SObjectType);
         for (Integer i = 0; i < contacts.size(); i++) {
             System.debug(contacts[i].get('Birthdate'));
             System.assertEquals(current.addDays(-i), contacts[i].get('Birthdate'));
@@ -503,7 +503,7 @@ private with sharing class SampleTest {
     @isTest
     static void testCrossFieldReference3() {
         Date current = Date.today();
-        ATKWizard.Bag bag = ATKWizard.I().wantMany(Contact.SObjectType)
+        ATKCommand.ResultMap results = ATKCommand.prepare(Contact.SObjectType)
             .total(10)
             .fields()
                 .xref(Contact.Birthdate).addDays('$1.Birthdate', -2)
@@ -513,7 +513,7 @@ private with sharing class SampleTest {
             .end()
             .generate();
 
-        List<SObject> contacts = bag.get(Contact.SObjectType);
+        List<SObject> contacts = results.get(Contact.SObjectType);
         for (Integer i = 0; i < contacts.size(); i++) {
             System.debug(contacts[i].get('Birthdate'));
             System.assertEquals(current.addDays(-i), contacts[i].get('Birthdate'));
@@ -523,7 +523,7 @@ private with sharing class SampleTest {
     @isTest
     static void testCrossFieldReferenceForPostUpdate() {
         Date current = Date.today();
-        ATKWizard.I().wantMany(Contact.SObjectType)
+        ATKCommand.prepare(Contact.SObjectType)
             .total(10)
             .fields()
                 .eval(Contact.Birthdate).value(current)
@@ -536,7 +536,7 @@ private with sharing class SampleTest {
             System.assertEquals(current, contact.Birthdate);
         }
 
-        ATKWizard.Bag bag = ATKWizard.I().wantMany(Contact.SObjectType)
+        ATKCommand.ResultMap results = ATKCommand.prepare(Contact.SObjectType)
             .total(10)
             .fields()
                 .eval(Contact.Birthdate).value(current)
@@ -544,7 +544,7 @@ private with sharing class SampleTest {
             .end()
             .generate();
 
-        contacts = (List<Contact>)bag.get(Contact.SObjectType);
+        contacts = (List<Contact>)results.get(Contact.SObjectType);
         System.assertEquals(10, contacts.size());
         for (Integer i = 0; i < contacts.size(); i++) {
             System.debug(contacts[i].Birthdate);
@@ -556,7 +556,7 @@ private with sharing class SampleTest {
     static void testCrossFieldReferenceOnLevelZero() {
         Long startTime = System.currentTimeMillis();
         Date current = Date.today();
-        ATKWizard.Bag bag = ATKWizard.I().wantMany(Contact.SObjectType)
+        ATKCommand.ResultMap results = ATKCommand.prepare(Contact.SObjectType)
             .total(1500)
             .fields()
                 .eval(Contact.Email).guess()
@@ -573,7 +573,7 @@ private with sharing class SampleTest {
         System.debug('CPU Limit: ' + Limits.getCpuTime() + '/' + Limits.getLimitCpuTime());
 
         Test.startTest();
-        List<Contact> contacts = (List<Contact>)bag.get(Contact.SObjectType);
+        List<Contact> contacts = (List<Contact>)results.get(Contact.SObjectType);
         for (Integer i = 0; i < contacts.size(); i++) {
             System.assertEquals(current.addDays(-i), contacts[i].Birthdate);
             System.assertEquals(contacts[i].LastName, contacts[i].FirstName);
@@ -585,7 +585,7 @@ private with sharing class SampleTest {
     static void testCrossFieldReferenceValidateException() {
         Boolean hasException = false;
         try {
-            ATKWizard.Bag bag = ATKWizard.I().wantMany(Contact.SObjectType)
+            ATKCommand.ResultMap results = ATKCommand.prepare(Contact.SObjectType)
                 .total(10)
                 .fields()
                     .eval(Contact.FirstName).firstName()
@@ -602,7 +602,7 @@ private with sharing class SampleTest {
     static void testCrossFieldReferenceValidateException2() {
         Boolean hasException = false;
         try {
-            ATKWizard.Bag bag = ATKWizard.I().wantMany(Contact.SObjectType)
+            ATKCommand.ResultMap results = ATKCommand.prepare(Contact.SObjectType)
                 .total(10)
                 .fields()
                     .eval(Contact.FirstName).firstName()
@@ -618,7 +618,7 @@ private with sharing class SampleTest {
     @isTest
     static void testCrossFieldReferenceDependencySort() {
         Datetime currentDatetime = Datetime.now();
-        ATKWizard.I().wantMany(Event.SObjectType)
+        ATKCommand.prepare(Event.SObjectType)
             .total(10)
             .fields()
                 .guard(false)
@@ -648,7 +648,7 @@ private with sharing class SampleTest {
     @isTest
     static void testCrossFieldReferenceDependencySort2() {
         Datetime currentDatetime = Datetime.now();
-        ATKWizard.I().wantMany(Event.SObjectType)
+        ATKCommand.prepare(Event.SObjectType)
             .total(10)
             .fields()
                 .guard(false)

@@ -3,12 +3,12 @@
  */
 
 @IsTest
-private class ATKWandTest {
+private class ATKEntityGeneratorTest {
     @IsTest
     static void testDistributor_Production() {
         List<Object> leftList = new List<Object> { 'A', 'B', 'C' };
         List<Object> rightList = new List<Object> { '1', '2' };
-        ATKWand.Distributor distributor = new ATKWand.Distributor();
+        ATKEntityGenerator.Distributor distributor = new ATKEntityGenerator.Distributor();
         List<List<Object>> pairs = distributor.product(leftList, rightList, 6);
         for (Integer i = 0; i < pairs.size(); i++) {
             System.debug(String.valueOf(pairs[i][0]) + String.valueOf(pairs[i][1]));
@@ -26,7 +26,7 @@ private class ATKWandTest {
     static void testDistributor_Production2() {
         List<Object> leftList = new List<Object> { 'A', 'B', 'C' };
         List<Object> rightList = new List<Object> { '1', '2' };
-        ATKWand.Distributor distributor = new ATKWand.Distributor();
+        ATKEntityGenerator.Distributor distributor = new ATKEntityGenerator.Distributor();
         List<List<Object>> pairs = distributor.product2(leftList, rightList, 5);
         for (Integer i = 0; i < pairs.size(); i++) {
             System.debug(String.valueOf(pairs[i][0]) + String.valueOf(pairs[i][1]));
@@ -43,7 +43,7 @@ private class ATKWandTest {
     static void testDistributor_Distribution() {
         List<Object> leftList = new List<Object> { 'i0', 'i1', 'i2', 'i3', 'i4' };
         List<Object> rightList = new List<Object> { 'j0', 'j1' };
-        ATKWand.Distributor distributor = new ATKWand.Distributor();
+        ATKEntityGenerator.Distributor distributor = new ATKEntityGenerator.Distributor();
         List<List<Object>> pairs = distributor.distribute(leftList, rightList);
         for (Integer i = 0; i < pairs.size(); i++) {
             System.debug(String.valueOf(pairs[i][0]) + String.valueOf(pairs[i][1]));

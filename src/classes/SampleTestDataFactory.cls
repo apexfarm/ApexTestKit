@@ -1,7 +1,7 @@
 @isTest
 public with sharing class SampleTestDataFactory {
-    public static ATKWizard.Bag createAccountWithContact(Integer accountTotal, Integer contactTotal) {
-        return ATKWizard.I().wantMany(Account.SObjectType)
+    public static ATKCommand.ResultMap createAccountWithContact(Integer accountTotal, Integer contactTotal) {
+        return ATKCommand.prepare(Account.SObjectType)
             .useTemp(SampleTestTempFactory.class, SampleTestTempFactory.ACCOUNT_WITH_FAX)
             .total(accountTotal)
             .fields()

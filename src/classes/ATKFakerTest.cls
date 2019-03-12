@@ -809,7 +809,7 @@ private with sharing class ATKFakerTest {
     }
 
     class TestParamEvaluator implements ATKCommon.IParamEvaluator {
-        public Object evaluateParam(String fieldName, Integer recordIndex, Integer level ) {
+        public Object evaluateParam(String fieldName, Integer level ) {
             Object value;
             if (fieldName == 'param0') value = 'A';
             if (fieldName == 'param1') value = 'B';
@@ -833,10 +833,10 @@ private with sharing class ATKFakerTest {
         ATKCommon.XrefMethod method = new ATKCommon.XrefMethod(xrefParams);
         method.helperName = 'helper';
         method.name = 'name';
-        method.paramEvaluator = paramEvaluator;
         method.params = params;
 
-        System.assertEquals('AB', method.evaluate(helpers, 2));
+        method.loadParams(paramEvaluator);
+        System.assertEquals('AB', method.evaluate(helpers));
         System.assertEquals('A', method.params[0]);
         System.assertEquals('B', method.params[1]);
     }

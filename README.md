@@ -1,6 +1,6 @@
 # Apex Test Kit 2.0
 
-![](https://img.shields.io/badge/version-2.1.1-brightgreen.svg) ![](https://img.shields.io/badge/build-passing-brightgreen.svg) ![](https://img.shields.io/badge/coverage-%3E95%25-brightgreen.svg)
+![](https://img.shields.io/badge/version-2.1.2-brightgreen.svg) ![](https://img.shields.io/badge/build-passing-brightgreen.svg) ![](https://img.shields.io/badge/coverage-%3E95%25-brightgreen.svg)
 
 Apex Test Kit is a Salesforce library to help generate testing data for Apex test classes. It has the following features:
 
@@ -10,7 +10,7 @@ Apex Test Kit is a Salesforce library to help generate testing data for Apex tes
 
 ```java
 // Create 10 accounts each with 2 contacts
-ATKWizard.I().wantMany(Account.SObjectType)
+ATKCommand.prepare(Account.SObjectType)
     .total(10)
     .fields()
         .eval(Account.Name).index('Name-{0}')           // Name-0, Name-1, Name-2 ...
@@ -60,7 +60,7 @@ Underneath, the data are automatically guessed with appropriate values according
 2. The current field generation capacity is around 15000 in 15 seconds. If there are 30 generated fields (not fixed values) per record, the max record generation capacity is around 500. And consider any trigger and process builder, the actually record capacity should be less than 500. If more are created, it will hit the CPU limit.
 3. If record type is activated and there are picklist values depending on them, please try to declare the picklist values in the `fields()` explicitly for that record type.
 
-## Usage of ATKWizard
+## Usage of ATKCommand
 
 All examples in `src/classes/SampleTest.cls` can be successfully run in a clean Salesforce CRM organization. Please also reference it as more examples for how to use this library.
 
@@ -71,7 +71,7 @@ All examples in `src/classes/SampleTest.cls` can be successfully run in a clean 
 **Note**: the following `referenceBy()` keyword can be omitted, because there is only one Contact->Account relationship field on Contact sObject.
 
 ```java
-ATKWizard.I().wantMany(Account.SObjectType)
+ATKCommand.prepare(Account.SObjectType)
     .total(10)
     .haveMany(Contact.SObjectType)
         .referenceBy(Contact.AccountId)             // can be omitted
@@ -82,7 +82,7 @@ ATKWizard.I().wantMany(Account.SObjectType)
 #### 1.2 Many to One
 
 ```java
-ATKWizard.I().wantMany(Contact.SObjectType)
+ATKCommand.prepare(Contact.SObjectType)
     .total(40)
     .belongTo(Account.SObjectType)
         .referenceBy(Contact.AccountId)             // can be omitted
@@ -95,7 +95,7 @@ ATKWizard.I().wantMany(Contact.SObjectType)
 ```java
 Id pricebook2Id = Test.getStandardPricebookId();
 
-ATKWizard.Bag bag = ATKWizard.I().wantMany(Product2.SObjectType)
+ATKCommand.ResultMap results = ATKCommand.prepare(Product2.SObjectType)
     .total(5)
     .haveMany(PricebookEntry.SObjectType)
         .referenceBy(PricebookEntry.Product2Id)     // can be omitted
@@ -107,7 +107,7 @@ ATKWizard.Bag bag = ATKWizard.I().wantMany(Product2.SObjectType)
         .end()
     .generate();
 
-ATKWizard.I().wantMany(Pricebook2.SObjectType)
+ATKCommand.prepare(Pricebook2.SObjectType)
     .total(5)
     .haveMany(PricebookEntry.SObjectType)
         .referenceBy(PricebookEntry.Pricebook2Id)   // can be omitted
@@ -118,7 +118,7 @@ ATKWizard.I().wantMany(Pricebook2.SObjectType)
         .end()
         .belongTo(Product2.SObjectType)
             .referenceBy(PricebookEntry.Product2Id) // can be omitted
-            .useList(bag.get(Product2.SObjectType))
+            .useList(results.get(Product2.SObjectType))
     .generate();
 ```
 
@@ -129,7 +129,7 @@ ATKWizard.I().wantMany(Pricebook2.SObjectType)
 Each of them will start a new sObject context. And it is advised to use the following indentation for clarity.
 
 ```java
-ATKWizard.I().wantMany(A__c.SObjectType)
+ATKCommand.prepare(A__c.SObjectType)
     .haveMany(B__c.SObjectType)
         .belongTo(C__c.SObjectType)
             .haveMany(D__c.SObjectType)
@@ -138,7 +138,7 @@ ATKWizard.I().wantMany(A__c.SObjectType)
 
 | Keyword     | Param  | Description                                                  |
 | ----------- | ------ | ------------------------------------------------------------ |
-| wantMany()  | SObjectType | Always start chain with wantMany keyword. It is the root sObject to start relationship with. |
+| prepare()  | SObjectType | Always start chain with prepare keyword. It is the root sObject to start relationship with. |
 | haveMany()   | SObjectType | Establish one to many relationship between the previous working on sObject and the current sObject. |
 | belongTo() | SObjectType | Establish many to one relationship between the previous working on sObject and the current sObject. |
 
@@ -149,7 +149,7 @@ Here is an example to demo the use of all entity decoration keywords. Although s
 ```java
 // create 10 A, each has 2 B.
 List<A__c> aList = [SELECT Id FROM A__c Limit 10];
-ATKWizard.I().wantMany(A__c.SObjectType)
+ATKCommand.prepare(A__c.SObjectType)
     .useList(aList);
     .haveMany(B__c.SObjectType)
         .referenceBy(B__C.A_ID__c)
@@ -177,7 +177,7 @@ ATKWizard.I().wantMany(A__c.SObjectType)
 The following is an example to demo how to use `also()` keyword:
 
 ```java
-ATKWizard.I().wantMany(A__c.SObjectType)
+ATKCommand.prepare(A__c.SObjectType)
     .haveMany(B__c.SObjectType)
     .also() // go back 1 sObject (B) to sObject (A)
     .haveMany(C__c.SObjectType)
@@ -262,7 +262,7 @@ With `xref()`, we can perform arithmetic calculations according to fields on pre
 
 ```java
 Datetime currentDatetime = Datetime.now();
-ATKWizard.I().wantMany(Event.SObjectType)
+ATKCommand.prepare(Event.SObjectType)
     .total(10)
     .fields()
     	.guard(false)
@@ -277,7 +277,7 @@ ATKWizard.I().wantMany(Event.SObjectType)
 
 ## Usage of ATKFaker
 
-ATKWizard is built on top of the ATKFaker, which can also be used standalone. It is ported from [faker.js](https://github.com/marak/Faker.js/).
+ATKCommand is built on top of the ATKFaker, which can also be used standalone. It is ported from [faker.js](https://github.com/marak/Faker.js/).
 
 ### 1 Interpolation
 
