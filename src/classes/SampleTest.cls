@@ -148,8 +148,8 @@ private with sharing class SampleTest {
     static void testRelationshipHaveMany() {
         Long startTime = System.currentTimeMillis();
 
-        Integer accountTotal = 500;
-        Integer contactTotal = 1000;
+        Integer accountTotal = 450;
+        Integer contactTotal = 900;
         ATKCommand.ResultMap results = ATKCommand.prepare(Account.SObjectType)
             .total(accountTotal)
             .fields()
@@ -466,7 +466,7 @@ private with sharing class SampleTest {
     static void testCrossFieldReference() {
         Date current = Date.today();
         ATKCommand.ResultMap results = ATKCommand.prepare(Contact.SObjectType)
-            .total(10)
+            .total(2)
             .fields()
                 .eval(Contact.Birthdate).value(current.addDays(100))
                 .eval(Contact.Birthdate).value(current)

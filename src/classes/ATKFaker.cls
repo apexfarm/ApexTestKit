@@ -830,32 +830,91 @@ public with sharing class ATKFaker {
             }
 
             Object output;
-            Datetime dt = ATKCommon.converter.toDatetime(param0);
-            Integer add = ATKCommon.converter.toInteger(param1);
-            switch on method {
-                when 'addDays' {
-                    output = addDays(dt, add);
-                }
-                when 'addHours' {
-                    output = addHours(dt, add);
-                }
-                when 'addMinutes' {
-                    output = addMinutes(dt, add);
-                }
-                when 'addMonths' {
-                    output = addMonths(dt, add);
-                }
-                when 'addSeconds' {
-                    output = addSeconds(dt, add);
-                }
-                when 'addYears' {
-                    output = addYears(dt, add);
-                }
-                when else {
+            if (param0 instanceOf Date) {
+                Date dt = ATKCommon.converter.toDate(param0);
+                Integer add = ATKCommon.converter.toInteger(param1);
+                switch on method {
+                    when 'addDays' {
+                        output = addDays(dt, add);
+                    }
+                    when 'addMonths' {
+                        output = addMonths(dt, add);
+                    }
+                    when 'addYears' {
+                        output = addYears(dt, add);
+                    }
+                    when else {
 
+                    }
+                }
+            } else {
+                Datetime dt = ATKCommon.converter.toDatetime(param0);
+                Integer add = ATKCommon.converter.toInteger(param1);
+                switch on method {
+                    when 'addDays' {
+                        output = addDays(dt, add);
+                    }
+                    when 'addHours' {
+                        output = addHours(dt, add);
+                    }
+                    when 'addMinutes' {
+                        output = addMinutes(dt, add);
+                    }
+                    when 'addMonths' {
+                        output = addMonths(dt, add);
+                    }
+                    when 'addSeconds' {
+                        output = addSeconds(dt, add);
+                    }
+                    when 'addYears' {
+                        output = addYears(dt, add);
+                    }
+                    when else {
+
+                    }
                 }
             }
             return output;
+        }
+
+        @TestVisible
+        private Date addYears(Date dt, Integer additionalYears) {
+            if (dt == null) {
+                return null;
+            }
+            return dt.addYears(additionalYears);
+        }
+
+        @TestVisible
+        private Date addMonths(Date dt, Integer additionalMonths) {
+            if (dt == null) {
+                return null;
+            }
+            return dt.addMonths(additionalMonths);
+        }
+
+        @TestVisible
+        private Date addDays(Date dt, Integer additionalDays) {
+            if (dt == null) {
+                return null;
+            }
+            return dt.addDays(additionalDays);
+        }
+
+        @TestVisible
+        private Datetime addYears(Datetime dt, Integer additionalYears) {
+            if (dt == null) {
+                return null;
+            }
+            return dt.addYears(additionalYears);
+        }
+
+        @TestVisible
+        private Datetime addMonths(Datetime dt, Integer additionalMonths) {
+            if (dt == null) {
+                return null;
+            }
+            return dt.addMonths(additionalMonths);
         }
 
         @TestVisible
@@ -883,27 +942,11 @@ public with sharing class ATKFaker {
         }
 
         @TestVisible
-        private Datetime addMonths(Datetime dt, Integer additionalMonths) {
-            if (dt == null) {
-                return null;
-            }
-            return dt.addMonths(additionalMonths);
-        }
-
-        @TestVisible
         private Datetime addSeconds(Datetime dt, Integer additionalSeconds) {
             if (dt == null) {
                 return null;
             }
             return dt.addSeconds(additionalSeconds);
-        }
-
-        @TestVisible
-        private Datetime addYears(Datetime dt, Integer additionalYears) {
-            if (dt == null) {
-                return null;
-            }
-            return dt.addYears(additionalYears);
         }
     }
 }

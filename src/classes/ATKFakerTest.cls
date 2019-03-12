@@ -583,7 +583,8 @@ private with sharing class ATKFakerTest {
         {
             DateTime d = (DateTime) ATKFaker.fake('{!dates.addDays(' + nowIso + ', 1)}');
             System.assertEquals(now.addDays(1), d);
-            d = (DateTime) ATKFaker.dates.addDays(null, 1);
+            d = null;
+            d = (DateTime) ATKFaker.dates.addDays(d, 1);
             System.assertEquals(null, d);
         }
 
@@ -604,7 +605,8 @@ private with sharing class ATKFakerTest {
         {
             DateTime d = (DateTime) ATKFaker.fake('{!dates.addMonths(' + nowIso + ', 1)}');
             System.assertEquals(now.addMonths(1), d);
-            d = (DateTime) ATKFaker.dates.addMonths(null, 1);
+            d = null;
+            d = (DateTime) ATKFaker.dates.addMonths(d, 1);
             System.assertEquals(null, d);
         }
 
@@ -618,7 +620,8 @@ private with sharing class ATKFakerTest {
         {
             DateTime d = (DateTime) ATKFaker.fake('{!dates.addYears(' + nowIso + ', 1)}');
             System.assertEquals(now.addYears(1), d);
-            d = (DateTime) ATKFaker.dates.addYears(null, 1);
+            d = null;
+            d = (DateTime) ATKFaker.dates.addYears(d, 1);
             System.assertEquals(null, d);
         }
     }

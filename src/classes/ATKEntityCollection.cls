@@ -252,13 +252,16 @@ public with sharing class ATKEntityCollection implements Iterable<EntityNode> {
         }
 
         public override Object getValue(EntityNode entityNode, Integer recordIndex) {
+            Object value;
             if (recordIndex < method.level) {
-                return origin.getValue(entityNode, recordIndex);
+                value = origin.getValue(entityNode, recordIndex);
+            } else {
+                PARAM_EVALUATOR.entityNode = entityNode;
+                PARAM_EVALUATOR.recordIndex = recordIndex;
+                method.loadParams(PARAM_EVALUATOR);
+                value = method.evaluate(ATKFaker.helpers);
             }
-            PARAM_EVALUATOR.entityNode = entityNode;
-            PARAM_EVALUATOR.recordIndex = recordIndex;
-            method.loadParams(PARAM_EVALUATOR);
-            return method.evaluate(ATKFaker.helpers);
+            return value;
         }
 
         public Integer compareTo(Object toObj) {
