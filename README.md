@@ -171,8 +171,8 @@ ATKCommand.prepare(A__c.SObjectType)
 | total()       | Integer         | **Required***, only if `useList()` is not used. It defines number of records to create for the attached sObject context. |
 | useList()     | List\<sObject\> | **Required***, only if `total()` is not used. This tells the wizard to use the previously created sObject list, rather than to create the records from scratch. |
 | useTemp()     | Type, String    | **Optional**. The first param is a class implements `IEntityTemplate`. The second param serves as hint for your implementation. Please reference `src/classes/SampleTestTempFactory` and `src/classes/SampleTestDataFactory` for detail. |
-| referenceBy() | SObjectField    | **Optional**. Only use this keyword if there are multiple fields on the entity referencing the same sObject. |
-| also()        | Integer         | It can be used to switch back to any previous sObject context. |
+| referenceBy() | SObjectField    | **Optional**. Only use this keyword if there are multiple fields on the entity referencing to the same sObject types, i.e. two contact relationship fields on account. |
+| also()        | Integer         | It can be used to switch back to any previous sObject context. Note: also must follow with `haveMany()` not `belongTo()` currently. |
 
 The following is an example to demo how to use `also()` keyword:
 
@@ -193,9 +193,9 @@ Only use `guard()`, `eval()`, `xref()`, between `fields()` and `end()` keywords.
 
 ```java
 .fields()
-    .guard()
-    .eval().value()
-    .xref().value()
+    .guard(false)
+    .eval(ObjectA__c.Counter__c).value(1)                // Counter_c starts with 1
+    .xref(ObjectA__c.Counter__c).add('$1.Counter__c', 1) // compute previous Counter_c + 1
 .end()
 ```
 
@@ -203,9 +203,9 @@ Only use `guard()`, `eval()`, `xref()`, between `fields()` and `end()` keywords.
 | --------- | ------------------------------ | ------------------------------------------------------------ |
 | fields()  | N/A                            | **Optional**. Start of declaring field generation logic.     |
 | end()     | N/A                            | **Required***, only if `fields()` is used. End of declaring field generation logic. |
-| guard()   | [Boolean]                      | **Optional**. Turn on guard for `REQUIRED_FIELD_MISSING` exceptions by implicitly guessing fields not defined in `eval()` and `xref()`. 80% of the time, implicit guessing is useful, so guard is tuned on by default. But you would like to disable it for sObjects having many required fields, i.e. User and Event etc. |
-| eval() | SObjectField, [Object]         | **Optional**. Use this keyword to tailor the field values, either to bypass validation rules, or fulfill assertion logics. |
-| xref() | SObjectField, String, [Object] | **Optional**. Use this keyword if need cross record arithmetic. More will be explained in the following section. |
+| guard()   | [Boolean]                      | **Optional**. Turn on guard for `REQUIRED_FIELD_MISSING` exceptions by implicitly guessing values for fields not defined in `eval()` and `xref()`. 80% of the time, implicit guessing is useful, so guard is tuned on by default. But you would like to disable it for sObjects having many required fields, i.e. User and Event etc. |
+| eval() | SObjectField        | **Optional**. Use this keyword to tailor the field values, either to bypass validation rules, or fulfill assertion logics. |
+| xref() | SObjectField | **Optional**. Use this keyword if need cross record arithmetic. More will be explained in the following section. |
 
 #### 2.4 Eval Decoration Keywords
 
@@ -214,8 +214,8 @@ Users can have great control over the following keyword evaluation. Please use `
 ```java
 eval().fake('{!name.firstName} {{####}}'); // use two ATKFaker expressions
 eval().index('Name-{0}');                  // Name-0, Name-1, Name-2 etc.
-eval().value(Object value);                // any value of the field type
-eval().repeat(List<Object> values);        // a list of values of the field type
+eval().value(Object value);                // any value of the field data type
+eval().repeat(List<Object> values);        // a list of values of the field data type
 eval().repeat(Object value1, Object value2);
 eval().repeat(Object value1, Object value2, Object value3);
 ```
@@ -223,7 +223,7 @@ eval().repeat(Object value1, Object value2, Object value3);
 Users cannot control the following keyword evaluation, and the values are produced randomly.
 
 ```java
-eval().guess()                          // guess value based on field type
+eval().guess()                          // guess value based on field data type
 eval().userName()
 eval().email()
 eval().url()
@@ -246,7 +246,7 @@ eval().paragraphs()                     // generate 3 paragraph
 
 ```java
 xref().value('$0.StartDate')            // use the StartDate of current record
-xref().add('$1.Counter__c', 1)          // subsract 1 from Counter__C of previous record
+xref().add('$1.Counter__c', 1)          // add 1 from Counter__C of previous record
 xref().substract('$1.Counter__c', 1)    // subsract 1 from Counter__C of previous record
 xref().divide(String field, Object value)
 xref().multiply(String field, Object value)
