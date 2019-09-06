@@ -45,7 +45,7 @@ Underneath, the data are automatically guessed with appropriate values according
   * Use method instead of faker generation expression
 * Put functional programming into extreme. It becomes a delightful experience to code.
 * Performance tuning. Have to make trade-offs between "good-looking names" and performance, and `index()` and `repeat()` keywords are introduced for performance considerations.
-* (v2.1.1) Decompose generation logic into reusable templates, and reuse them with the  `useTemp()` keyword.
+* ~~(v2.1.1) Decompose generation logic into reusable templates, and reuse them with the  `useTemp()` keyword.~~
 
 ### Roadmap
 
@@ -168,11 +168,11 @@ ATKCommand.prepare(A__c.SObjectType)
 
 | Keyword       | Param           | Description                                                  |
 | ------------- | --------------- | ------------------------------------------------------------ |
-| total()       | Integer         | **Required***, only if `useList()` is not used. It defines number of records to create for the attached sObject context. |
 | useList()     | List\<sObject\> | **Required***, only if `total()` is not used. This tells the wizard to use the previously created sObject list, rather than to create the records from scratch. |
-| useTemp()     | Type, String    | **Optional**. The first param is a class implements `IEntityTemplate`. The second param serves as hint for your implementation. Please reference `src/classes/SampleTestTempFactory` and `src/classes/SampleTestDataFactory` for detail. |
+| total()       | Integer         | **Required***, only if `useList()` is not used. It defines number of records to create for the attached sObject context. |
 | referenceBy() | SObjectField    | **Optional**. Only use this keyword if there are multiple fields on the entity referencing to the same sObject types, i.e. two contact relationship fields on account. |
 | also()        | Integer         | It can be used to switch back to any previous sObject context. Note: also must follow with `haveMany()` not `belongTo()` currently. |
+| fields()      | N/A             | **Optional**. Start of declaring field generation logic. More will be explained in next section. |
 
 The following is an example to demo how to use `also()` keyword:
 
@@ -201,7 +201,7 @@ Only use `guard()`, `eval()`, `xref()`, between `fields()` and `end()` keywords.
 
 | Keyword   | Param                          | Description                                                  |
 | --------- | ------------------------------ | ------------------------------------------------------------ |
-| fields()  | N/A                            | **Optional**. Start of declaring field generation logic.     |
+|         |              |                                                              |
 | end()     | N/A                            | **Required***, only if `fields()` is used. End of declaring field generation logic. |
 | guard()   | [Boolean]                      | **Optional**. Turn on guard for `REQUIRED_FIELD_MISSING` exceptions by implicitly guessing values for fields not defined in `eval()` and `xref()`. 80% of the time, implicit guessing is useful, so guard is tuned on by default. But you would like to disable it for sObjects having many required fields, i.e. User and Event etc. |
 | eval() | SObjectField        | **Optional**. Use this keyword to tailor the field values, either to bypass validation rules, or fulfill assertion logics. |

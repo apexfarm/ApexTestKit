@@ -124,9 +124,7 @@ public with sharing class ATKEntityCollection implements Iterable<EntityNode> {
         }
     }
 
-    /*
-    * ENTITY NODE
-    */
+    // #region ENTITY NODE
     public enum EntityNodeType {
         Prepare,
         BelongTo,
@@ -135,7 +133,6 @@ public with sharing class ATKEntityCollection implements Iterable<EntityNode> {
     }
 
     public class EntityNode {
-        // Graph Properties
         Integer rowIndex { get; set; }
         Integer colIndex { get; set; }
         EntityNodeType nodeType { get; set; }
@@ -186,17 +183,14 @@ public with sharing class ATKEntityCollection implements Iterable<EntityNode> {
             this.xrefFieldCache = new List<XrefEntityField>();
         }
     }
+    // #endregion
 
-    /*
-     * ENTITY FIELD
-     */
-
+    // #region ENTITY FIELD
     public abstract class EntityField  {
         public Schema.SObjectField field { get; set; }
         public Schema.DescribeFieldResult dfr { get; set; }
         public String name { get; set; }
         public Boolean needGuess { get; set; }
-        protected ATKCommon.Method method { get; set; }
 
         {
             needGuess = false;
@@ -214,10 +208,11 @@ public with sharing class ATKEntityCollection implements Iterable<EntityNode> {
     }
 
     public class EvalEntityField extends EntityField {
-        Object value { get; set; }
-        String indexFormat { get; set; }
-        String fakerRule { get; set; }
-        List<Object> repeatValues { get; set; }
+        private Object value { get; set; }
+        private String indexFormat { get; set; }
+        private String fakerRule { get; set; }
+        private List<Object> repeatValues { get; set; }
+        private ATKReflect.IMethodEval method { get; set; }
 
         EvalEntityField(Schema.SObjectField field) {
             super(field);
@@ -244,7 +239,7 @@ public with sharing class ATKEntityCollection implements Iterable<EntityNode> {
     }
 
     public class XrefEntityField extends EntityField implements Comparable {
-        public ATKCommon.XrefMethod method { get; set; }
+        public ATKReflect.IMethodXref method { get; set; }
         public EvalEntityField origin { get; set; }
 
         XrefEntityField(Schema.SObjectField field) {
@@ -253,7 +248,7 @@ public with sharing class ATKEntityCollection implements Iterable<EntityNode> {
 
         public override Object getValue(EntityNode entityNode, Integer recordIndex) {
             Object value;
-            if (recordIndex < method.level) {
+            if (recordIndex < method.level()) {
                 value = origin.getValue(entityNode, recordIndex);
             } else {
                 PARAM_EVALUATOR.entityNode = entityNode;
@@ -268,17 +263,18 @@ public with sharing class ATKEntityCollection implements Iterable<EntityNode> {
             XrefEntityField field = this;
             XrefEntityField toField = (XrefEntityField)toObj;
 
-            Integer returnValue = 0; // The return value of 0 indicates that both elements are equal.
-            if (field.method.level < toField.method.level) {
+            // The return value of 0 indicates that both elements are equal.
+            Integer returnValue = 0; 
+            if (field.method.level() < toField.method.level()) {
                 returnValue = 1;
-            } else if (field.method.level > toField.method.level) {
+            } else if (field.method.level() > toField.method.level()) {
                 returnValue = -1;
             }
             return returnValue;
         }
     }
 
-    class ParamEvaluator implements ATKCommon.IParamEvaluator {
+    class ParamEvaluator implements ATKReflect.IParamEvaluator {
         EntityNode entityNode { get; set; }
         Integer recordIndex { get; set; }
 
@@ -294,11 +290,9 @@ public with sharing class ATKEntityCollection implements Iterable<EntityNode> {
             return null;
         }
     }
+    // #endregion
 
-    /*
-     * ATTRIBUTES
-     */
-
+    // #region ATTRIBUTES
     public interface IAttribute {
 
     }
@@ -501,11 +495,7 @@ public with sharing class ATKEntityCollection implements Iterable<EntityNode> {
         }
 
         public void apply(EntityNode entityNode, EvalEntityField entityField) {
-            ATKCommon.Method method = new ATKCommon.Method();
-            method.helperName = this.helperName;
-            method.name = this.methodName;
-            method.params = this.params;
-            entityField.method = method;
+            entityField.method = ATKReflect.METHOD_BUILDER.buildEval(helperName, methodName, params);
         }
     }
 
@@ -524,32 +514,8 @@ public with sharing class ATKEntityCollection implements Iterable<EntityNode> {
         }
 
         public void apply(EntityNode entityNode, XrefEntityField entityField) {
-            List<ATKCommon.XrefParam> xrefParams = new List<ATKCommon.XrefParam>();
-            List<Object> newParams = new List<Object>();
-            for (Integer i = 0; i < this.params.size(); i++) {
-                Object param = this.params[i];
-                if (param instanceOf String) {
-                    String input = (String)param;
-                    if (input.startsWith('$')) {
-                        String fieldName = input.substring(3).toUpperCase();
-                        Integer level = ATKCommon.converter.toInteger(input.substring(1, 2));
-                        ATKCommon.XrefParam xrefParam = new ATKCommon.XrefParam(fieldName, i, level);
-
-                        xrefParams.add(xrefParam);
-                        newParams.add(null);
-                    } else {
-                        newParams.add(param);
-                    }
-                } else {
-                    newParams.add(param);
-                }
-            }
-
-            ATKCommon.XrefMethod method = new ATKCommon.XrefMethod(xrefParams);
-            method.helperName = this.helperName;
-            method.name = this.methodName;
-            method.params = newParams;
-            entityField.method = method;
+            entityField.method = ATKReflect.METHOD_BUILDER.buildXref(helperName, methodName, params);
         }
     }
+    // #endregion
 }

@@ -2,7 +2,7 @@
  * Apex Test Kit
  */
 public with sharing class ATKFaker {
-    public static Map<String, ATKCommon.IProvider> helpers { get; set; }
+    public static Map<String, ATKReflect.IValueProvider> helpers { get; set; }
     public static Internet internet { get; set; }
     public static Phone phone { get; set; }
     public static Name name { get; set; }
@@ -18,7 +18,6 @@ public with sharing class ATKFaker {
 
     @TestVisible
     private static ATKFakerDefinition definition = new ATKFakerDefinition();
-    public static final ATKCommon.MethodParser METHOD_PARSER = ATKCommon.METHOD_PARSER;
 
     static {
         internet = new Internet();
@@ -32,7 +31,7 @@ public with sharing class ATKFaker {
         numbers = new NumberArithmeticHelper();
         value = new ValueArithmeticHelper();
 
-        helpers = new Map<String, ATKCommon.IProvider>();
+        helpers = new Map<String, ATKReflect.IValueProvider>();
         helpers.put('internet', internet);
         helpers.put('phone', phone);
         helpers.put('random', random);
@@ -46,7 +45,7 @@ public with sharing class ATKFaker {
     }
 
     public static Object fake(String input) {
-        ATKCommon.MethodGroup methodGroup = METHOD_PARSER.parse(input);
+        ATKReflect.IMethodEval methodGroup = ATKReflect.METHOD_PARSER.parse(input);
         return methodGroup.evaluate(helpers);
     }
 
@@ -54,7 +53,7 @@ public with sharing class ATKFaker {
      * PROVIDERS
      */
     @TestVisible
-    public class Helper implements ATKCommon.IDataProvider {
+    public class Helper implements ATKReflect.IValueProvider {
         public Object call(String method, List<Object> params) {
             Object param0;
             if (params != null) {
@@ -65,7 +64,7 @@ public with sharing class ATKFaker {
             Object output;
             switch on method {
                 when 'replaceSymbols' {
-                    output = replaceSymbols(ATKCommon.converter.toString(param0));
+                    output = replaceSymbols(ATKCommon.CONVERTER.toString(param0));
                 }
                 when else {
 
@@ -138,7 +137,7 @@ public with sharing class ATKFaker {
         }
     }
 
-    public class Random implements ATKCommon.IDataProvider {
+    public class Random implements ATKReflect.IValueProvider {
         private Integer RANDOM_NUMBER_CACHE_SIZE = -1; // disable random number cache
         private List<Double> randomNumberCache = new List<Double>();
         private Integer randomNumberIndex = 0;
@@ -167,16 +166,16 @@ public with sharing class ATKFaker {
                 when 'number' {
                     if (params != null) {
                         if (params.size() == 1) {
-                            Decimal max = ATKCommon.converter.toDecimal(param0);
+                            Decimal max = ATKCommon.CONVERTER.toDecimal(param0);
                             output = number(max);
                         } else if (params.size() == 2) {
-                            Integer precision = ATKCommon.converter.toInteger(param0);
-                            Integer scale = ATKCommon.converter.toInteger(param1);
+                            Integer precision = ATKCommon.CONVERTER.toInteger(param0);
+                            Integer scale = ATKCommon.CONVERTER.toInteger(param1);
                             output = number(precision, scale);
                         } else {
-                            Decimal min = ATKCommon.converter.toDecimal(param0);
-                            Decimal max = ATKCommon.converter.toDecimal(param1);
-                            Integer scale = ATKCommon.converter.toInteger(param2);
+                            Decimal min = ATKCommon.CONVERTER.toDecimal(param0);
+                            Decimal max = ATKCommon.CONVERTER.toDecimal(param1);
+                            Integer scale = ATKCommon.CONVERTER.toInteger(param2);
                             output = number(min, max, scale);
                         }
                     }
@@ -304,7 +303,7 @@ public with sharing class ATKFaker {
         }
     }
 
-    public class DateHelper extends DateArithmeticHelper implements ATKCommon.IDataProvider {
+    public class DateHelper extends DateArithmeticHelper implements ATKReflect.IValueProvider {
         public override Object call(String method, List<Object> params) {
             Object param0;
             Object param1;
@@ -320,18 +319,18 @@ public with sharing class ATKFaker {
             Object output;
             switch on method {
                 when 'past' {
-                    Integer years = ATKCommon.converter.toInteger(param0);
-                    String dt = ATKCommon.converter.toString(param1);
+                    Integer years = ATKCommon.CONVERTER.toInteger(param0);
+                    String dt = ATKCommon.CONVERTER.toString(param1);
                     output = past(years, dt);
                 }
                 when 'future' {
-                    Integer years = ATKCommon.converter.toInteger(param0);
-                    String dt = ATKCommon.converter.toString(param1);
+                    Integer years = ATKCommon.CONVERTER.toInteger(param0);
+                    String dt = ATKCommon.CONVERTER.toString(param1);
                     output = future(years, dt);
                 }
                 when 'between' {
-                    String dt1 = ATKCommon.converter.toString(param0);
-                    String dt2 = ATKCommon.converter.toString(param1);
+                    String dt1 = ATKCommon.CONVERTER.toString(param0);
+                    String dt2 = ATKCommon.CONVERTER.toString(param1);
                     output = between(dt1, dt2);
                 }
                 when else {
@@ -346,7 +345,7 @@ public with sharing class ATKFaker {
         }
 
         public Datetime past(Integer years, String refDate) {
-            Datetime d = ATKCommon.converter.toDatetime(refDate);
+            Datetime d = ATKCommon.CONVERTER.toDatetime(refDate);
             d = d == null ? Datetime.now() : d;
             years = years == null ? 1 : years;
             return d.addSeconds(-Integer.valueOf(random.number(1, years * 365 * 24 * 3600, 0)));
@@ -357,21 +356,21 @@ public with sharing class ATKFaker {
         }
 
         public Datetime future(Integer years, String refDate) {
-            Datetime d = ATKCommon.converter.toDatetime(refDate);
+            Datetime d = ATKCommon.CONVERTER.toDatetime(refDate);
             d = d == null ? Datetime.now() : d;
             years = years == null ? 1 : years;
             return d.addSeconds(Integer.valueOf(random.number(1, years * 365 * 24 * 3600, 0)));
         }
 
         public Datetime between(String fo, String to) {
-            Datetime fromDatetime = ATKCommon.converter.toDatetime(fo);
-            Datetime toDatetime = ATKCommon.converter.toDatetime(to);
+            Datetime fromDatetime = ATKCommon.CONVERTER.toDatetime(fo);
+            Datetime toDatetime = ATKCommon.CONVERTER.toDatetime(to);
             Integer dateOffset = Integer.valueOf(random.number(toDatetime.getTime() - fromDatetime.getTime())/1000);
             return fromDatetime.addSeconds(dateOffset);
         }
     }
 
-    public class Internet implements ATKCommon.IDataProvider {
+    public class Internet implements ATKReflect.IValueProvider {
         public Object call(String method, List<Object> params) {
             Object output;
             switch on method {
@@ -427,7 +426,7 @@ public with sharing class ATKFaker {
         }
     }
 
-    public class Phone implements ATKCommon.IDataProvider {
+    public class Phone implements ATKReflect.IValueProvider {
         public Object call(String method, List<Object> params) {
             Object param0;
             if (params != null) {
@@ -440,7 +439,7 @@ public with sharing class ATKFaker {
             switch on method {
                 when 'phoneNumber' {
                     output = phoneNumber(
-                        ATKCommon.converter.toString(param0)
+                        ATKCommon.CONVERTER.toString(param0)
                     );
                 }
                 when else {
@@ -465,7 +464,7 @@ public with sharing class ATKFaker {
         }
     }
 
-    public class Name implements ATKCommon.IDataProvider {
+    public class Name implements ATKReflect.IValueProvider {
         public Object call(String method, List<Object> params) {
             Object output;
             switch on method {
@@ -492,7 +491,7 @@ public with sharing class ATKFaker {
         }
     }
 
-    public class Finance implements ATKCommon.IDataProvider {
+    public class Finance implements ATKReflect.IValueProvider {
         public Object call(String method, List<Object> params) {
             Object param0;
             Object param1;
@@ -508,8 +507,8 @@ public with sharing class ATKFaker {
             Object output;
             switch on method {
                 when 'amount' {
-                    Integer precision = ATKCommon.converter.toInteger(param0);
-                    Integer scale = ATKCommon.converter.toInteger(param1);
+                    Integer precision = ATKCommon.CONVERTER.toInteger(param0);
+                    Integer scale = ATKCommon.CONVERTER.toInteger(param1);
                     output = amount(precision, scale);
                 }
                 when else {
@@ -528,7 +527,7 @@ public with sharing class ATKFaker {
         }
     }
 
-    public class Lorem implements ATKCommon.IDataProvider {
+    public class Lorem implements ATKReflect.IValueProvider {
         public Object call(String method, List<Object> params) {
             Object param0;
             Object param1;
@@ -542,8 +541,8 @@ public with sharing class ATKFaker {
             }
 
             Object output;
-            Integer count = ATKCommon.converter.toInteger(param0);
-            String separator = ATKCommon.converter.toString(param1);
+            Integer count = ATKCommon.CONVERTER.toInteger(param0);
+            String separator = ATKCommon.CONVERTER.toString(param1);
             switch on method {
                 when 'word' {
                     output = word();
@@ -707,7 +706,7 @@ public with sharing class ATKFaker {
         }
     }
 
-    public class Address implements ATKCommon.IDataProvider {
+    public class Address implements ATKReflect.IValueProvider {
         public Object call(String method, List<Object> params) {
             Object output;
             switch on method {
@@ -724,7 +723,7 @@ public with sharing class ATKFaker {
     /*
      * Arithmetic Provider
      */
-    private virtual class ValueArithmeticHelper implements ATKCommon.IArithmeticProvider {
+    private virtual class ValueArithmeticHelper implements ATKReflect.IValueProvider {
         public virtual Object call(String method, List<Object> params) {
             Object param0;
             if (params != null) {
@@ -747,7 +746,7 @@ public with sharing class ATKFaker {
     }
 
     @TestVisible
-    private virtual class NumberArithmeticHelper implements ATKCommon.IArithmeticProvider {
+    private virtual class NumberArithmeticHelper implements ATKReflect.IValueProvider {
         public virtual Object call(String method, List<Object> params) {
             Object param0;
             Object param1;
@@ -761,8 +760,8 @@ public with sharing class ATKFaker {
             }
 
             Object output;
-            Decimal a = ATKCommon.converter.toDecimal(param0);
-            Decimal b = ATKCommon.converter.toDecimal(param1);
+            Decimal a = ATKCommon.CONVERTER.toDecimal(param0);
+            Decimal b = ATKCommon.CONVERTER.toDecimal(param1);
             switch on method {
                 when 'add' {
                     output = add(a, b);
@@ -816,7 +815,7 @@ public with sharing class ATKFaker {
         }
     }
 
-    private virtual class DateArithmeticHelper implements ATKCommon.IArithmeticProvider {
+    private virtual class DateArithmeticHelper implements ATKReflect.IValueProvider {
         public virtual Object call(String method, List<Object> params) {
             Object param0;
             Object param1;
@@ -831,8 +830,8 @@ public with sharing class ATKFaker {
 
             Object output;
             if (param0 instanceOf Date) {
-                Date dt = ATKCommon.converter.toDate(param0);
-                Integer add = ATKCommon.converter.toInteger(param1);
+                Date dt = ATKCommon.CONVERTER.toDate(param0);
+                Integer add = ATKCommon.CONVERTER.toInteger(param1);
                 switch on method {
                     when 'addDays' {
                         output = addDays(dt, add);
@@ -848,8 +847,8 @@ public with sharing class ATKFaker {
                     }
                 }
             } else {
-                Datetime dt = ATKCommon.converter.toDatetime(param0);
-                Integer add = ATKCommon.converter.toInteger(param1);
+                Datetime dt = ATKCommon.CONVERTER.toDatetime(param0);
+                Integer add = ATKCommon.CONVERTER.toInteger(param1);
                 switch on method {
                     when 'addDays' {
                         output = addDays(dt, add);

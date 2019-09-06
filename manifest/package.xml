@@ -5,9 +5,9 @@
         <members>ATKFaker</members>
         <members>ATKFakerDefinition</members>
         <members>ATKFakerTest</members>
-        <members>ATKEntityGenerator</members>
         <members>ATKEntityCollection</members>
-        <members>ATKGeneratorTest</members>
+        <members>ATKEntityGenerator</members>
+        <members>ATKEntityGeneratorTest</members>
         <members>ATKCommand</members>
         <name>ApexClass</name>
     </types>

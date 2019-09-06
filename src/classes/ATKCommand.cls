@@ -46,17 +46,6 @@ public with sharing class ATKCommand implements IEntityKeywords, IEndedFieldKeyw
     }
 
     /*
-     * Template Interfaces
-     */
-    public interface EntityTemplateInterface {
-        void build(IEntityKeywords entity, String templateName);
-    }
-
-    public interface IEntityTemplate extends EntityTemplateInterface {
-
-    }
-
-    /*
      * Keyword Interfaces
      */
 
@@ -76,8 +65,6 @@ public with sharing class ATKCommand implements IEntityKeywords, IEndedFieldKeyw
         IEntityKeywords total(Integer count);
 
         // keywords to build data
-        IEntityKeywords useTemp(Type templateClass, String templateName);
-        IEntityKeywords useCSV(String fileName);
         IEntityKeywords useList(List<SObject> repository);
         IFieldKeywords fields();
     }
@@ -213,25 +200,8 @@ public with sharing class ATKCommand implements IEntityKeywords, IEndedFieldKeyw
         return also(1);
     }
 
-    // keywords to control data
-    public IEntityKeywords useCSV(String fileName) {
-        // entityCollection.apply(new ATKEntityCollection.UseListAttribute(repository));
-        return sharedCommand;
-    }
-
     public IEntityKeywords useList(List<SObject> repository) {
         entityCollection.apply(new ATKEntityCollection.UseListAttribute(repository));
-        return sharedCommand;
-    }
-
-    public IEntityKeywords useTemp(Type templateClass, String templateName) {
-        if (templateClass != null) {
-            Object instance = templateClass.newInstance();
-            if (instance instanceOf EntityTemplateInterface) {
-                EntityTemplateInterface template = (EntityTemplateInterface)instance;
-                template.build(sharedCommand, templateName);
-            }
-        }
         return sharedCommand;
     }
 

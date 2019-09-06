@@ -225,8 +225,8 @@ public with sharing class ATKEntityGenerator {
         @TestVisible
         void validateXrefFields(ATKEntityCollection.EntityNode entityNode) {
             for (ATKEntityCollection.XrefEntityField field : entityNode.xrefFieldCache) {
-                if (0 < field.method.level) {
-                    for (ATKCommon.XrefParam param : field.method.xrefParams) {
+                if (0 < field.method.level()) {
+                    for (ATKReflect.XrefParam param : field.method.xrefParams()) {
                         if (0 < param.level && field.origin == null) {
                             throw new ATKCommon.NotFoundException(
                                 String.format('The cross reference field {0}.{1} must have a corresponding'
@@ -402,13 +402,13 @@ public with sharing class ATKEntityGenerator {
 
             switch on dfr.getType() {
                 when DATE {
-                    value = ATKCommon.converter.toDate(value);
+                    value = ATKCommon.CONVERTER.toDate(value);
                 }
                 when TIME {
-                    value = ATKCommon.converter.toTime(value);
+                    value = ATKCommon.CONVERTER.toTime(value);
                 }
                 when INTEGER {
-                    value = ATKCommon.converter.toInteger(value);
+                    value = ATKCommon.CONVERTER.toInteger(value);
                 }
             }
             return value;

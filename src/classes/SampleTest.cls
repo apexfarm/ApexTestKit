@@ -4,28 +4,6 @@
 @isTest
 private with sharing class SampleTest {
     @isTest
-    static void testDataFactory() {
-        Integer accountTotal = 5;
-        Integer contactTotal = 10;
-        SampleTestDataFactory.createAccountWithContact(accountTotal, contactTotal);
-
-        List<Account> accountList = [SELECT Id, Name, NumberOfEmployees, Fax, Industry FROM Account];
-        System.assertEquals(accountTotal, accountList.size());
-        for (Account account : accountList) {
-            System.assert(account.Fax != null);
-            System.assert(account.Fax.startsWith('555'));
-            System.assert(account.Name != null);
-            System.assert(account.Industry != null);
-            System.assert(account.NumberOfEmployees != null);
-        }
-        List<Contact> contactList = [SELECT Id, LastName FROM Contact];
-        System.assertEquals(contactTotal, contactList.size());
-        for (Contact contact : contactList) {
-            System.assert(contact.LastName != null);
-        }
-    }
-
-    @isTest
     static void testFieldGuessValue() {
         Integer accountTotal = 5;
         Integer contactTotal = 10;
