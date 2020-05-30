@@ -3,16 +3,18 @@
 ![](https://img.shields.io/badge/version-3.0-brightgreen.svg) ![](https://img.shields.io/badge/build-passing-brightgreen.svg) ![](https://img.shields.io/badge/coverage-%3E95%25-brightgreen.svg)
 
 
-Apex Test Kit is a Salesforce library to help generate massive records for either Apex test classes, or sandboxes. It solves two pain points during records creation:
+Apex Test Kit is a Salesforce library to help generate massive records for either Apex test classes, or sandboxes. It solves two pain points during record creation:
 
 1. Establish arbitrary levels of many-to-one, one-to-many relationships.
 2. Generate field values based on simple rules.
 
 Imagine the complexity to generate the following sObjects to establish all the relationships in the diagram.
 
+<p align="center">
 <img src="docs/images/sales-object-graph.png" width="400" alt="Sales Object Graph">
+</p>
 
-However, with ATK we can create them within one Apex statement. Here, we are generating:
+With ATK we can create them within just one Apex statement. Here, we are generating:
 
 1. 200 accounts.
 2. Each of the account have 2 contacts.
@@ -22,7 +24,7 @@ However, with ATK we can create them within one Apex statement. Here, we are gen
 
 ```java
 ATK.SaveResult result = ATK.prepare(Account.SObjectType, 200)
-    .field(Account.Name).index('Name-{0000}')
+    .field(Account.Name).index('Name-{0000}') // Name-0001, Name-0002, Name-0003...
     .withChildren(Contact.SObjectType, Contact.AccountId, 400)
         .field(Contact.LastName).index('Name-{0000}')
         .field(Contact.Email).index('test.user+{0000}@email.com')
@@ -32,7 +34,8 @@ ATK.SaveResult result = ATK.prepare(Account.SObjectType, 200)
             .withParents(Opportunity.SObjectType, OpportunityContactRole.OpportunityId, 400)
                 .field(Opportunity.Name).index('Name-{0000}')
                 .field(Opportunity.ForecastCategoryName).repeat('Pipeline')
-                .field(Opportunity.Probability).repeat(0.9, 0.8, 0.7)
+
+                .field(Opportunity.Probability).repeat(0.9, 0.8)
                 .field(Opportunity.StageName).repeat('Prospecting')
                 .field(Opportunity.CloseDate).addDays(Date.newInstance(2020, 1, 1), 1)
                 .field(Opportunity.TotalOpportunityQuantity).add(1000, 10)
@@ -63,13 +66,13 @@ There are four demos under the `scripts/apex` folder, they can be successfully r
 | Sales    | `scripts/apex/demo-sales.apex`    | You've already seen it in the above paragraph.               |
 | Users    | `scripts/apex/demo-users.apex`    | How to generate community users in one goal.                 |
 
-## Setup Relationship
+## Relationship
 
 ### One to Many
 
 ```java
 ATK.prepare(Account.SObjectType, 10)
-  	.field(Account.Name).index('Name-{0000}')
+    .field(Account.Name).index('Name-{0000}')
     .withChildren(Contact.SObjectType, Contact.AccountId, 20)
         .field(Contact.LastName).index('Name-{0000}')
         .field(Contact.Email).index('test.user+{0000}@email.com')
@@ -77,7 +80,7 @@ ATK.prepare(Account.SObjectType, 10)
     .save(true);
 ```
 
-Here is how the relationship going to be mapped:
+Here is how the relationship going to be mapped. Children are evenly distributed among parents.
 
 | Account Name | Contact Name |
 | ------------ | ------------ |
@@ -91,11 +94,11 @@ Here is how the relationship going to be mapped:
 
 ```java
 ATK.prepare(Contact.SObjectType, 20)
-   	.field(Contact.LastName).index('Name-{0000}')
+    .field(Contact.LastName).index('Name-{0000}')
     .field(Contact.Email).index('test.user+{0000}@email.com')
     .field(Contact.MobilePhone).index('+86 186 7777 {0000}')
     .withParents(Account.SObjectType, Contact.AccountId, 10)
-  			.field(Account.Name).index('Name-{0000}')
+        .field(Account.Name).index('Name-{0000}')
     .save(true);
 ```
 
@@ -103,19 +106,19 @@ ATK.prepare(Contact.SObjectType, 20)
 
 ```java
 ATK.prepare(Contact.SObjectType, 40)
-        .field(Contact.LastName).index('Name-{0000}')
-        .field(Contact.Email).index('test.user+{0000}@email.com')
-        .field(Contact.MobilePhone).index('+86 186 7777 {0000}')
-        .withChildren(OpportunityContactRole.SObjectType, OpportunityContactRole.ContactId, 40)
-            .field(OpportunityContactRole.Role).repeat('Business User', 'Decision Maker')
-            .withParents(Opportunity.SObjectType, OpportunityContactRole.OpportunityId, 40)
-                .field(Opportunity.Name).index('Name-{0000}')
-                .field(Opportunity.CloseDate).addDays(Date.newInstance(2020, 1, 1), 1)
-                .field(Opportunity.StageName).repeat('Prospecting')
+    .field(Contact.LastName).index('Name-{0000}')
+    .field(Contact.Email).index('test.user+{0000}@email.com')
+    .field(Contact.MobilePhone).index('+86 186 7777 {0000}')
+    .withChildren(OpportunityContactRole.SObjectType, OpportunityContactRole.ContactId, 40)
+        .field(OpportunityContactRole.Role).repeat('Business User', 'Decision Maker')
+        .withParents(Opportunity.SObjectType, OpportunityContactRole.OpportunityId, 40)
+            .field(Opportunity.Name).index('Name-{0000}')
+            .field(Opportunity.CloseDate).addDays(Date.newInstance(2020, 1, 1), 1)
+            .field(Opportunity.StageName).repeat('Prospecting')
     .save(true);
 ```
 
-## Keyword And APIs
+## Keywords And APIs
 
 There are only two keyword categories Entity keyword and Field keyword. They are used to solve the two pain points we addressed at the beginning:
 
@@ -131,14 +134,14 @@ ATK.prepare(A__c.SObjectType, 10)
     .withChildren(B__c.SObjectType, B__c.A_ID__c, 10)
         .withParents(C__c.SObjectType, B__c.C_ID__c, 10)
             .withChildren(D__c.SObjectType, D__c.C_ID__c, 10)
-            .also() // go back 1 depth to C__c
-  					.withChildren(E__c.SObjectType, E__c.C_ID__c, 10)
-        .also(2)    // go back 2 depth to B__c
+            .also() // Go back 1 depth to C__c
+            .withChildren(E__c.SObjectType, E__c.C_ID__c, 10)
+        .also(2)    // Go back 2 depth to B__c
         .withChildren(F__c.SObjectType, F__c.B_ID__c, 10)
     .save(true);
 ```
 
-The following APIs with a size param at the last, indicate the associated sObjects will be created on the fly.
+The following APIs with a size param at the last, indicate the associated sObjects will be created with the size specified on the fly.
 | Keyword API | Description                                                  |
 | ----------- | ------------------------------------------------------------ |
 | prepare(SObjectType objectType, Integer size) | Always start chain with `prepare()` keyword. It is the root sObject to start relationship with. |
@@ -153,7 +156,7 @@ The following APIs without a third param at the last, indicate the associated sO
 
 ### Field Keywords
 
-Here is an dummy example to demo the use of entity decoration keywords. 
+Here is an dummy example to demo the use of entity decoration keywords.
 
 ```java
 ATK.prepare(A__c.SObjectType, 10)
@@ -193,6 +196,56 @@ These keywords will increase/decrease the init values by the provided step value
 | addHours(Object init, Integer step)   | Must be applied to a Time type field.   |
 | addMinutes(Object init, Integer step) | Must be applied to a Time type field.   |
 | addSeconds(Object init, Integer step) | Must be applied to a Time type field.   |
+
+## Field Builder Factory
+
+It is recommended to keep how the sObject relationship established in the `@TestSetup` method. So in order to increase the reusability, let's introduce the field builder factory.
+
+```java
+@IsTest
+public with sharing class FieldBuilderFactory {
+    public static CampaignFieldBuilder campaignField = new CampaignFieldBuilder();
+    public static LeadFieldBuilder leadField = new LeadFieldBuilder();
+
+    // Inner class implements ATK.FieldBuilder
+    public class CampaignFieldBuilder implements ATK.FieldBuilder {
+        public void build(ATK.Entity campaignEntity, Integer size) {
+            campaignEntity
+                .field(Campaign.Type).repeat('Partners')
+                .field(Campaign.Name).index('Name-{0000}')
+                .field(Campaign.StartDate).repeat(Date.newInstance(2020, 1, 1))
+                .field(Campaign.EndDate).repeat(Date.newInstance(2020, 1, 1).addMonths(1))
+        }
+    }
+
+    // Inner class implements ATK.FieldBuilder
+    public class LeadFieldBuilder implements ATK.FieldBuilder {
+        public void build(ATK.Entity leadEntity, Integer size) {
+            leadEntity
+                .field(Lead.Company).index('Name-{0000}')
+                .field(Lead.LastName).index('Name-{0000}')
+                .field(Lead.Email).index('test.user+{0000}@email.com')
+                .field(Lead.MobilePhone).index('+86 186 7777 {0000}')
+        }
+    }
+}
+```
+Here is how the Field Builder Factory can be used:
+```java
+@IsTest
+public with sharing class FieldBuilderFactory {
+    @TestSetup
+    static void setup() {
+        ATK.SaveResult result = ATK.prepare(Campaign.SObjectType, 4)
+            .field(FieldBuilderFactory.campaignField)        // Reference to Field Builder
+            .withChildren(CampaignMember.SObjectType, CampaignMember.CampaignId, 8)
+                .withParents(Lead.SObjectType, CampaignMember.LeadId, 8)
+                    .field(FieldBuilderFactory.leadField)    // Reference to Field Builder
+            .save(true); 
+    }
+}
+```
+
 
 ## License
 
