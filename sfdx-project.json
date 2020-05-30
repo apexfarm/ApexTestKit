@@ -1,11 +1,17 @@
 {
-  "packageDirectories": [
-    {
-      "path": "src",
-      "default": true
+    "packageDirectories": [
+        {
+            "path": "apex-test-kit",
+            "package": "ApexTestKit",
+            "versionName": "ver 0.1",
+            "versionNumber": "0.1.0.NEXT",
+            "default": true
+        }
+    ],
+    "namespace": "",
+    "sfdcLoginUrl": "https://login.salesforce.com",
+    "sourceApiVersion": "48.0",
+    "packageAliases": {
+        "ApexTestKit": "0Ho2v00000000FfCAI"
     }
-  ],
-  "namespace": "",
-  "sfdcLoginUrl": "https://login.salesforce.com",
-  "sourceApiVersion": "45.0"
 }

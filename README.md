@@ -372,4 +372,4 @@ ATKFaker.dates.between('2017-08-13', '2018-08-13');
 
 ## License
 
-MIT License
+Apache 2.0
