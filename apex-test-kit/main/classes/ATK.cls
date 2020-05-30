@@ -1,5 +1,5 @@
 /**
- * Copyright 2020 Jeff Jin
+ * Copyright 2018 Jeff Jin
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -124,12 +124,12 @@ public with sharing class ATK implements Entity, Field {
 
     public Field field(SObjectField field) {
         this.matrix.currEntityNode.addField(field);
-
         return sharedCommand;
     }
 
     public Entity field(ATK.FieldBuilder builder) {
-        return builder.build(sharedCommand, sharedCommand.matrix.currEntityNode.size);
+        builder.build(sharedCommand, sharedCommand.matrix.currEntityNode.size);
+        return sharedCommand;
     }
 
     // #endregion
@@ -198,6 +198,13 @@ public with sharing class ATK implements Entity, Field {
 
     public Entity index(String format) {
         this.matrix.currEntityNode.currEntityField.indexFormat = format;
+        this.matrix.currEntityNode.currEntityField.uniqueIndex = true;
+        return sharedCommand;
+    }
+
+    public Entity index(String format, Boolean unique) {
+        this.matrix.currEntityNode.currEntityField.indexFormat = format;
+        this.matrix.currEntityNode.currEntityField.uniqueIndex = unique;
         return sharedCommand;
     }
 
@@ -336,6 +343,7 @@ public with sharing class ATK implements Entity, Field {
 
         // Fixed Values
         Entity index(String format);
+        Entity index(String format, Boolean unique);
         Entity repeat(Object value);
         Entity repeat(Object value1, Object value2);
         Entity repeat(Object value1, Object value2, Object value3);
@@ -357,7 +365,7 @@ public with sharing class ATK implements Entity, Field {
     }
 
     public interface FieldBuilder {
-        Entity build(Entity entity, Integer size);
+        void build(Entity entity, Integer size);
     }
     // #endregion
     // ******************

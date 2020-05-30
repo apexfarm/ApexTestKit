@@ -3,8 +3,8 @@
         {
             "path": "apex-test-kit",
             "package": "ApexTestKit",
-            "versionName": "ver 0.1",
-            "versionNumber": "0.1.0.NEXT",
+            "versionName": "ver 3.0",
+            "versionNumber": "3.0.0.NEXT",
             "default": true
         }
     ],
@@ -12,6 +12,7 @@
     "sfdcLoginUrl": "https://login.salesforce.com",
     "sourceApiVersion": "48.0",
     "packageAliases": {
-        "ApexTestKit": "0Ho2v00000000FfCAI"
+        "ApexTestKit": "0Ho2v00000000FfCAI",
+        "ApexTestKit@3.0.0-2": "04t2v000007X2zHAAS"
     }
 }

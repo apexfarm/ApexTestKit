@@ -1,5 +1,5 @@
 /**
- * Copyright 2020 Jeff Jin
+ * Copyright 2018 Jeff Jin
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -75,7 +75,6 @@ public with sharing class ATKCoreTest {
         System.assertEquals(null, matrix.next());
 
         matrix.pop(3);
-        System.debug(matrix.currEntityNode.objectType);
         System.assertEquals(2, matrix.rowIndex);
         System.assertEquals(1, matrix.colIndex);
         System.assertEquals(Opportunity.SObjectType, matrix.currEntityNode.objectType);
@@ -120,9 +119,9 @@ public with sharing class ATKCoreTest {
         {
             ATKCore.EntityField field = new ATKCore.EntityField(Account.Name);
             field.indexFormat = 'Name-{000}';
-            System.assertEquals('Name-000', field.getValue(0));
-            System.assertEquals('Name-001', field.getValue(1));
-            System.assertEquals('Name-002', field.getValue(2));
+            System.assertEquals('Name-001', field.getValue(0));
+            System.assertEquals('Name-002', field.getValue(1));
+            System.assertEquals('Name-003', field.getValue(2));
         }
 
         {

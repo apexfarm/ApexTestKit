@@ -1,5 +1,5 @@
 /**
- * Copyright 2020 Jeff Jin
+ * Copyright 2018 Jeff Jin
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -114,8 +114,11 @@ public with sharing class ATKCore {
         public void moveParentAboveChild(
             EntityNode parentNode, Integer parentRow, Integer parentCol,
             EntityNode childNode, Integer childRow, Integer childCol) {
-            System.debug(String.format('{0}({1}, {2})', new List<Object>{ parentNode.objectType, parentRow, parentCol }));
-            System.debug(String.format('{0}({1}, {2})', new List<Object>{ childNode.objectType, childRow, childCol }));
+
+            // Open comment for debug purpose
+            // System.debug(String.format('{0}({1}, {2})', new List<Object>{ parentNode.objectType, parentRow, parentCol }));
+            // System.debug(String.format('{0}({1}, {2})', new List<Object>{ childNode.objectType, childRow, childCol }));
+
             if (childRow == parentRow && childCol < parentCol) {
                 entityNodeMatrix.get(parentRow).remove(parentCol);
                 entityNodeMatrix.add(parentRow, new List<EntityNode> { parentNode });
@@ -253,6 +256,7 @@ public with sharing class ATKCore {
         // Fixed Value
         public Object fixedValue { get; set; }
         public Integer indexLength { get; set; }
+        public Boolean uniqueIndex { get; set; }
         public String indexFormat { get;
             set {
                 indexFormat = value;
@@ -273,6 +277,7 @@ public with sharing class ATKCore {
         public EntityField(Schema.SObjectField field) {
             this.field = field;
             this.dfr = this.field.getDescribe();
+            this.uniqueIndex = true;
         }
 
         Boolean isIndexed {
@@ -297,7 +302,7 @@ public with sharing class ATKCore {
         public Object getValue(Integer rowIndex) {
             if (isIndexed) {
                 return String.format(this.indexFormat, new List<Object> {
-                    String.valueOf(rowIndex).leftPad(indexLength, '0')
+                    String.valueOf(rowIndex + 1).leftPad(indexLength, '0')
                 });
             } else if (isRepeated) {
                 return this.repeatValues[Math.mod(rowIndex, this.repeatValues.size())];
@@ -395,6 +400,12 @@ public with sharing class ATKCore {
     // ************************
 
     public class Generator {
+        public Map<Schema.SObjectType, Map<Schema.SObjectField, Integer>> indexes { get; set; }
+
+        {
+            indexes = new Map<Schema.SObjectType, Map<Schema.SObjectField, Integer>>();
+        }
+
         public void generate(EntityNodeMatrix iterator, Boolean doInsert) {
             iterator.reset();
             while (iterator.hasNext()) {
@@ -403,7 +414,7 @@ public with sharing class ATKCore {
                 if (entityNode.objects.size() == 0) {
                     needUpsert = false;
                     Schema.SObjectType objectType = entityNode.objectType;
-                    for (Integer i = 0; i < entityNode.size; i++) {
+                    for (Integer i = 0; i < entityNode.size; ++i) {
                         SObject obj = objectType.newSObject();
                         entityNode.objects.add(obj);
                     }
@@ -441,8 +452,7 @@ public with sharing class ATKCore {
             }
         }
 
-        @TestVisible
-        void assignFields(EntityNode entityNode) {
+        public void assignFields(EntityNode entityNode) {
             List<SObject> objects = entityNode.objects;
             Integer size = objects.size();
 
@@ -452,36 +462,49 @@ public with sharing class ATKCore {
                         when DATE {
                             Date init = Converter.toDate(entityField.initValue);
                             Integer step = Converter.toInteger(entityField.stepVAlue);
-                            for (Integer i = 0; i < size; i++) {
+                            for (Integer i = 0; i < size; ++i) {
                                 objects[i].put(entityField.field, entityField.getValue(init, step, i));
                             }
                         }
                         when DATETIME {
                             Datetime init = Converter.toDatetime(entityField.initValue);
                             Integer step = Converter.toInteger(entityField.stepVAlue);
-                            for (Integer i = 0; i < size; i++) {
+                            for (Integer i = 0; i < size; ++i) {
                                 objects[i].put(entityField.field, entityField.getValue(init, step, i));
                             }
                         }
                         when TIME {
                             Time init = Converter.toTime(entityField.initValue);
                             Integer step = Converter.toInteger(entityField.stepVAlue);
-                            for (Integer i = 0; i < size; i++) {
+                            for (Integer i = 0; i < size; ++i) {
                                 objects[i].put(entityField.field, entityField.getValue(init, step, i));
                             }
                         }
                         when DOUBLE, INTEGER, PERCENT, CURRENCY {
                             Decimal init = Converter.toDecimal(entityField.initValue);
                             Decimal step = Converter.toDecimal(entityField.stepVAlue);
-                            for (Integer i = 0; i < size; i++) {
+                            for (Integer i = 0; i < size; ++i) {
                                 objects[i].put(entityField.field, entityField.getValue(init, step, i));
                             }
                         }
                     }
                 } else {
-                    for (Integer i = 1; i <= size; i++) {
-                        Object value = entityField.getValue(i);
-                        objects[i-1].put(entityField.field, value);
+                    Integer index = 0;
+                    if (entityField.uniqueIndex) {
+                        if(!indexes.containsKey(entityNode.objectType)) {
+                            indexes.put(entityNode.objectType, new Map<Schema.SObjectField, Integer> {
+                                entityField.field => 0
+                            });
+                        } else if (!indexes.get(entityNode.objectType).containsKey(entityField.field)) {
+                            indexes.get(entityNode.objectType).put(entityField.field, 0);
+                        }
+                        index = indexes.get(entityNode.objectType).get(entityField.field);
+                        indexes.get(entityNode.objectType).put(entityField.field, index + size);
+                    }
+
+                    for (Integer i = 0; i < size; ++i) {
+                        Object value = entityField.getValue(i + index);
+                        objects[i].put(entityField.field, value);
                     }
                 }
             }
@@ -499,8 +522,9 @@ public with sharing class ATKCore {
                     String relationshipName = referenceField.getDescribe().getRelationshipName();
                     List<SObject> parentObjectList = entityNode.referenceToMap.get(referenceField).objects;
 
-                    System.debug(String.format('{0} -> {1}', new List<Object> { entityNode.objectType, relationshipName }));
-                    System.debug(String.format('{0} -> {1}', new List<Object> { childObjectList.size(), parentObjectList.size() }));
+                    // Open comment for debug purpose
+                    // System.debug(String.format('{0} -> {1}', new List<Object> { entityNode.objectType, relationshipName }));
+                    // System.debug(String.format('{0} -> {1}', new List<Object> { childObjectList.size(), parentObjectList.size() }));
 
                     for (List<SObject> pair : DISTRIBUTOR.distribute(childObjectList, parentObjectList)) {
                         // pair[0] = child
@@ -533,7 +557,7 @@ public with sharing class ATKCore {
              *                     i3 - j1
              *                     i4 - j1
              */
-            for (Integer i = 0, j = 0; i < l; i++) {
+            for (Integer i = 0, j = 0; i < l; ++i) {
                 if (j < remainder) {
                     j = i / (s + 1);
                 } else {
