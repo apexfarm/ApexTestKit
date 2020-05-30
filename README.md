@@ -24,7 +24,7 @@ With ATK we can create them within just one Apex statement. Here, we are generat
 
 ```java
 ATK.SaveResult result = ATK.prepare(Account.SObjectType, 200)
-    .field(Account.Name).index('Name-{0000}') // Name-0001, Name-0002, Name-0003...
+    .field(Account.Name).index('Name-{0000}')       // Name-0001, Name-0002, Name-0003...
     .withChildren(Contact.SObjectType, Contact.AccountId, 400)
         .field(Contact.LastName).index('Name-{0000}')
         .field(Contact.Email).index('test.user+{0000}@email.com')
@@ -34,7 +34,6 @@ ATK.SaveResult result = ATK.prepare(Account.SObjectType, 200)
             .withParents(Opportunity.SObjectType, OpportunityContactRole.OpportunityId, 400)
                 .field(Opportunity.Name).index('Name-{0000}')
                 .field(Opportunity.ForecastCategoryName).repeat('Pipeline')
-
                 .field(Opportunity.Probability).repeat(0.9, 0.8)
                 .field(Opportunity.StageName).repeat('Prospecting')
                 .field(Opportunity.CloseDate).addDays(Date.newInstance(2020, 1, 1), 1)
@@ -51,9 +50,11 @@ ATK.SaveResult result = ATK.prepare(Account.SObjectType, 200)
     .save(true);
 ```
 
+`withChildren()` and `withParents()` without a third size parameter indicate they will back reference the sObjects created previously in the statement. If the third size param is supplied, new sObjects will be created.
+
 ### Performance
 
-To genereate the above 2200 records and saving them into Salesforce, it will take less than 3000 CPU time. That's already 1/3 of the Maximum CPU time. However, if we use `.save(false)` without saving them, and just create them in the memory, it will take less than 700 CPU time, 4x faster.
+To generate the above 2200 records and saving them into Salesforce, it will take less than 3000 CPU time. That's already 1/3 of the Maximum CPU time. However, if we use `.save(false)` without saving them, and just create them in the memory, it will take less than 700 CPU time, 4x faster.
 
 ### Demos
 
@@ -61,10 +62,17 @@ There are four demos under the `scripts/apex` folder, they can be successfully r
 
 | Subject  | File Path                         | Description                                                  |
 | -------- | --------------------------------- | ------------------------------------------------------------ |
-| Campaign | `scripts/apex/demo-campaign.apex` | How to genereate campaigns with hierarchy relationships, and implement `ATK.FieldBuilder` to reuse the logic on how to populate the fields. |
+| Campaign | `scripts/apex/demo-campaign.apex` | How to genereate campaigns with hierarchy relationships. `ATK.FieldBuilder` is implemented to reuse the field population logic. |
 | Cases    | `scripts/apex/demo-cases.apex`    | How to generate Accounts, Contacts and Cases.                |
 | Sales    | `scripts/apex/demo-sales.apex`    | You've already seen it in the above paragraph.               |
 | Users    | `scripts/apex/demo-users.apex`    | How to generate community users in one goal.                 |
+
+## Installation
+
+| Environment           | Link                                                         | Installation Key/Password |
+| --------------------- | ------------------------------------------------------------ | ------------------------- |
+| Production, Developer | <a href="https://login.salesforce.com/packaging/installPackage.apexp?p0=04t2v000007X2zHAAS"><img src="docs/images/deploy.png"></a> | ApexTestKit               |
+| Sandbox               | <a href="https://test.salesforce.com/packaging/installPackage.apexp?p0=04t2v000007X2zHAAS"><img src="docs/images/deploy.png"></a> | ApexTestKit               |
 
 ## Relationship
 
@@ -148,7 +156,7 @@ The following APIs with a size param at the last, indicate the associated sObjec
 | withChildren(SObjectType objectType, SObjectField referenceField, Integer size) | Establish one to many relationship between the previous working on sObject and the current sObject. |
 | withParents(SObjectType objectType, SObjectField referenceField, Integer size) | Establish many to one relationship between the previous working on sObject and the current sObject. |
 
-The following APIs without a third param at the last, indicate the associated sObjects won't be created, rather it will look up the previously created sObjects with the same type. **Note**: Once these APIs are used, please make sure there are sObjects with the same type created previously, and only created once.
+The following APIs without a third param at the last, indicate they will back reference the previously created sObjects within the statement, and no new records will be created. **Note**: Once these APIs are used, please make sure there are sObjects with the same type created previously, and only created once.
 | Keyword API | Description                                                  |
 | ----------- | ------------------------------------------------------------ |
 | withChildren(SObjectType objectType, SObjectField referenceField) | Establish one to many relationship between the previous working on sObject and the current sObject. |
@@ -241,7 +249,7 @@ public with sharing class FieldBuilderFactory {
             .withChildren(CampaignMember.SObjectType, CampaignMember.CampaignId, 8)
                 .withParents(Lead.SObjectType, CampaignMember.LeadId, 8)
                     .field(FieldBuilderFactory.leadField)    // Reference to Field Builder
-            .save(true); 
+            .save(true);
     }
 }
 ```
