@@ -6,25 +6,26 @@
 Apex Test Kit is a Salesforce library to help generate massive records for either Apex test classes, or sandboxes. It solves two pain points during record creation:
 
 1. Establish arbitrary levels of many-to-one, one-to-many relationships.
-2. Generate field values based on simple rules.
+2. Generate field values based on simple rules automatically.
 
 Imagine the complexity to generate the following sObjects to establish all the relationships in the diagram.
 
 <p align="center">
-<img src="docs/images/sales-object-graph.png" width="400" alt="Sales Object Graph">
+<img src="docs/images/sales-objects.png#2020-5-31" width="400" alt="Sales Object Graph">
 </p>
+
 
 With ATK we can create them within just one Apex statement. Here, we are generating:
 
-1. 200 accounts.
-2. Each of the account have 2 contacts.
-3. Each of the contact has 1 opportunity linked with opptunity contact role.
-4. Also each of the account have 2 orders.
-5. Also each of the order belongs to 1 opportunity from the same account.
+1. *200* accounts with names: `Name-0001, Name-0002, Name-0003...`
+2. Each of the account have *2* contacts.
+3. Each of the contact has *1* opportunity via the OpportunityContactRole.
+4. Also each of the account have *2* orders.
+5. Also each of the order belongs to *1* opportunity from the same account.
 
 ```java
 ATK.SaveResult result = ATK.prepare(Account.SObjectType, 200)
-    .field(Account.Name).index('Name-{0000}')       // Name-0001, Name-0002, Name-0003...
+    .field(Account.Name).index('Name-{0000}')
     .withChildren(Contact.SObjectType, Contact.AccountId, 400)
         .field(Contact.LastName).index('Name-{0000}')
         .field(Contact.Email).index('test.user+{0000}@email.com')
@@ -56,6 +57,13 @@ ATK.SaveResult result = ATK.prepare(Account.SObjectType, 200)
 
 To generate the above 2200 records and saving them into Salesforce, it will take less than 3000 CPU time. That's already 1/3 of the Maximum CPU time. However, if we use `.save(false)` without saving them, and just create them in the memory, it will take less than 700 CPU time, 4x faster.
 
+### Installation
+
+| Environment           | Install Link                                                 | Installation Key/Password | Version |
+| --------------------- | ------------------------------------------------------------ | ------------------------- | ------- |
+| Production, Developer | <a target="_blank" href="https://login.salesforce.com/packaging/installPackage.apexp?p0=04t2v000007X2zHAAS"><img src="docs/images/deploy-button.png"></a> | ApexTestKit               | ver 3.0 |
+| Sandbox               | <a target="_blank" href="https://test.salesforce.com/packaging/installPackage.apexp?p0=04t2v000007X2zHAAS"><img src="docs/images/deploy-button.png"></a> | ApexTestKit               | ver 3.0 |
+
 ### Demos
 
 There are four demos under the `scripts/apex` folder, they can be successfully run in a clean Salesforce CRM organization. If not, please try to fix them with FLS, validation rules or duplicate rules etc.
@@ -66,13 +74,6 @@ There are four demos under the `scripts/apex` folder, they can be successfully r
 | Cases    | `scripts/apex/demo-cases.apex`    | How to generate Accounts, Contacts and Cases.                |
 | Sales    | `scripts/apex/demo-sales.apex`    | You've already seen it in the above paragraph.               |
 | Users    | `scripts/apex/demo-users.apex`    | How to generate community users in one goal.                 |
-
-## Installation
-
-| Environment           | Link                                                         | Installation Key/Password |
-| --------------------- | ------------------------------------------------------------ | ------------------------- |
-| Production, Developer | <a href="https://login.salesforce.com/packaging/installPackage.apexp?p0=04t2v000007X2zHAAS"><img src="docs/images/deploy.png"></a> | ApexTestKit               |
-| Sandbox               | <a href="https://test.salesforce.com/packaging/installPackage.apexp?p0=04t2v000007X2zHAAS"><img src="docs/images/deploy.png"></a> | ApexTestKit               |
 
 ## Relationship
 
@@ -88,7 +89,7 @@ ATK.prepare(Account.SObjectType, 10)
     .save(true);
 ```
 
-Here is how the relationship going to be mapped. Children are evenly distributed among parents.
+Children will be evenly distributed among parents, and here is how the relationship going to be mapped:
 
 | Account Name | Contact Name |
 | ------------ | ------------ |
@@ -135,7 +136,7 @@ There are only two keyword categories Entity keyword and Field keyword. They are
 
 ### Entity Keywords
 
-Each of them will start a new sObject context. And it is advised to use the following indentation for clarity.
+Here is a dummy example to demo the use of Entity keywords. Each of them will start a new sObject context. And it is advised to use the following indentation for clarity.
 
 ```java
 ATK.prepare(A__c.SObjectType, 10)
@@ -149,22 +150,30 @@ ATK.prepare(A__c.SObjectType, 10)
     .save(true);
 ```
 
-The following APIs with a size param at the last, indicate the associated sObjects will be created with the size specified on the fly.
-| Keyword API | Description                                                  |
-| ----------- | ------------------------------------------------------------ |
-| prepare(SObjectType objectType, Integer size) | Always start chain with `prepare()` keyword. It is the root sObject to start relationship with. |
-| withChildren(SObjectType objectType, SObjectField referenceField, Integer size) | Establish one to many relationship between the previous working on sObject and the current sObject. |
-| withParents(SObjectType objectType, SObjectField referenceField, Integer size) | Establish many to one relationship between the previous working on sObject and the current sObject. |
+#### Create by Size
 
-The following APIs without a third param at the last, indicate they will back reference the previously created sObjects within the statement, and no new records will be created. **Note**: Once these APIs are used, please make sure there are sObjects with the same type created previously, and only created once.
-| Keyword API | Description                                                  |
-| ----------- | ------------------------------------------------------------ |
-| withChildren(SObjectType objectType, SObjectField referenceField) | Establish one to many relationship between the previous working on sObject and the current sObject. |
-| withParents(SObjectType objectType, SObjectField referenceField) | Establish many to one relationship between the previous working on sObject and the current sObject. |
+All the following APIs with a third size param at the last, indicate how many of the associated sObject type will be created on the fly.
+
+| Keyword API                                                  | Description                                                  |
+| ------------------------------------------------------------ | ------------------------------------------------------------ |
+| prepare(SObjectType *objectType*, Integer *size*)            | Always start chain with `prepare()` keyword. It is the root sObject to start relationship with. |
+| withChildren(SObjectType *objectType*, SObjectField *referenceField*, Integer *size*) | Establish one to many relationship between the previous working on sObject and the current sObject. |
+| withParents(SObjectType *objectType*, SObjectField *referenceField*, Integer *size*) | Establish many to one relationship between the previous working on sObject and the current sObject. |
+
+#### Back Reference
+
+All the following APIs without a third param at the last, indicate a back reference to the previously created sObjects within the statement. Thus, no new records will be created with the following statements.
+
+| Keyword API                                                  | Description                                                  |
+| ------------------------------------------------------------ | ------------------------------------------------------------ |
+| withChildren(SObjectType *objectType*, SObjectField *referenceField*) | Establish one to many relationship between the previous working on sObject and the current sObject. |
+| withParents(SObjectType *objectType*, SObjectField *referenceField*) | Establish many to one relationship between the previous working on sObject and the current sObject. |
+
+**Note**: Once these APIs are used, please make sure there are sObjects with the same type created previously, and only created once.
 
 ### Field Keywords
 
-Here is an dummy example to demo the use of entity decoration keywords.
+Here is a dummy example to demo the use of field keywords.
 
 ```java
 ATK.prepare(A__c.SObjectType, 10)
@@ -178,36 +187,53 @@ ATK.prepare(A__c.SObjectType, 10)
     .save(true);
 ```
 
-| Keyword API                                         | Description                                                  |
-| --------------------------------------------------- | ------------------------------------------------------------ |
-| index(String format)                                | Formated string with `{0000}`, can recogonize left padding. For example: 0001, 0002, 0003 etc. |
-| repeat(Object value)                                | Repeat with a fixed value.                                   |
-| repeat(Object value1, Object value2)                | Repeat with the provided values alternatively.               |
-| repeat(Object value1, Object value2, Object value3) | Repeat with the provided values alternatively.               |
-| repeat(List\<Object\> values)                       | Repeat with the provided values alternatively.               |
-| recordType(String name)                             | Look up record type ID by record type name or developer name. |
-| profile(String name)                                | Look up profile ID by profile name.                          |
+| Keyword API                                               | Description                                                  |
+| --------------------------------------------------------- | ------------------------------------------------------------ |
+| index(String *format*)                                    | Formated string with `{0000}`, can recogonize left padding. For example: 0001, 0002, 0003 etc. |
+| repeat(Object *value*)                                    | Repeat with a fixed value.                                   |
+| repeat(Object *value1*, Object *value2*)                  | Repeat with the provided values alternatively.               |
+| repeat(Object *value1*, Object *value2*, Object *value3*) | Repeat with the provided values alternatively.               |
+| repeat(List\<Object\> *values*)                           | Repeat with the provided values alternatively.               |
+| recordType(String *name*)                                 | Look up record type ID by record type name or developer name. |
+| profile(String *name*)                                    | Look up profile ID by profile name.                          |
 
 #### Arithmetic Field Keywords
 
-These keywords will increase/decrease the init values by the provided step values. They must be applied to the correct feild data types that support them.
+These keywords will increase/decrease the init values by the provided step values. They must be applied to the correct field data types that support them.
 
-| Keyword API                           | Description                             |
-| ------------------------------------- | --------------------------------------- |
-| add(Object init, Object step)         | Must be applied to a number type field. |
-| substract(Object init, Object step)   | Must be applied to a number type field. |
-| divide(Object init, Object step)      | Must be applied to a number type field. |
-| multiply(Object init, Object step)    | Must be applied to a number type field. |
-| addYears(Object init, Integer step)   | Must be applied to a Date type field.   |
-| addMonths(Object init, Integer step)  | Must be applied to a Date type field.   |
-| addDays(Object init, Integer step)    | Must be applied to a Date type field.   |
-| addHours(Object init, Integer step)   | Must be applied to a Time type field.   |
-| addMinutes(Object init, Integer step) | Must be applied to a Time type field.   |
-| addSeconds(Object init, Integer step) | Must be applied to a Time type field.   |
+| Keyword API                               | Description                             |
+| ----------------------------------------- | --------------------------------------- |
+| add(Object *init*, Object *step*)         | Must be applied to a number type field. |
+| substract(Object *init*, Object *step*)   | Must be applied to a number type field. |
+| divide(Object *init*, Object *factor*)    | Must be applied to a number type field. |
+| multiply(Object *init*, Object *factor*)  | Must be applied to a number type field. |
+| addYears(Object *init*, Integer *step*)   | Must be applied to a Date type field.   |
+| addMonths(Object *init*, Integer *step*)  | Must be applied to a Date type field.   |
+| addDays(Object *init*, Integer *step*)    | Must be applied to a Date type field.   |
+| addHours(Object *init*, Integer *step*)   | Must be applied to a Time type field.   |
+| addMinutes(Object *init*, Integer *step*) | Must be applied to a Time type field.   |
+| addSeconds(Object *init*, Integer *step*) | Must be applied to a Time type field.   |
 
 ## Field Builder Factory
 
-It is recommended to keep how the sObject relationship established in the `@TestSetup` method. So in order to increase the reusability, let's introduce the field builder factory.
+It is recommended to keep how the sObject relationship is established in the test class. Because they are less subject to change, and clearer to the developers. In order to increase the reusability, let's introduce the field builder factory. Here is how the Field Builder Factory can be used:
+
+```java
+@IsTest
+public with sharing class CampaignServiceTest {
+    @TestSetup
+    static void setup() {
+        ATK.SaveResult result = ATK.prepare(Campaign.SObjectType, 4)
+            .field(FieldBuilderFactory.campaignField)        // Reference to Field Builder
+            .withChildren(CampaignMember.SObjectType, CampaignMember.CampaignId, 8)
+                .withParents(Lead.SObjectType, CampaignMember.LeadId, 8)
+                    .field(FieldBuilderFactory.leadField)    // Reference to Field Builder
+            .save(true);
+    }
+}
+```
+
+A field builder factory example:
 
 ```java
 @IsTest
@@ -238,22 +264,6 @@ public with sharing class FieldBuilderFactory {
     }
 }
 ```
-Here is how the Field Builder Factory can be used:
-```java
-@IsTest
-public with sharing class FieldBuilderFactory {
-    @TestSetup
-    static void setup() {
-        ATK.SaveResult result = ATK.prepare(Campaign.SObjectType, 4)
-            .field(FieldBuilderFactory.campaignField)        // Reference to Field Builder
-            .withChildren(CampaignMember.SObjectType, CampaignMember.CampaignId, 8)
-                .withParents(Lead.SObjectType, CampaignMember.LeadId, 8)
-                    .field(FieldBuilderFactory.leadField)    // Reference to Field Builder
-            .save(true);
-    }
-}
-```
-
 
 ## License
 

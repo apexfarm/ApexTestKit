@@ -251,17 +251,17 @@ public with sharing class ATK implements Entity, Field {
         return sharedCommand;
     }
 
-    public Entity divide(Object init, Object step) {
+    public Entity divide(Object init, Object factor) {
         this.matrix.currEntityNode.currEntityField.arithmetic = ATKCore.EntityFieldArithmetic.DIVIDE;
         this.matrix.currEntityNode.currEntityField.initValue = init;
-        this.matrix.currEntityNode.currEntityField.stepValue = step;
+        this.matrix.currEntityNode.currEntityField.stepValue = factor;
         return sharedCommand;
     }
 
-    public Entity multiply(Object init, Object step) {
+    public Entity multiply(Object init, Object factor) {
         this.matrix.currEntityNode.currEntityField.arithmetic = ATKCore.EntityFieldArithmetic.MULTIPLY;
         this.matrix.currEntityNode.currEntityField.initValue = init;
-        this.matrix.currEntityNode.currEntityField.stepValue = step;
+        this.matrix.currEntityNode.currEntityField.stepValue = factor;
         return sharedCommand;
     }
 
@@ -353,8 +353,8 @@ public with sharing class ATK implements Entity, Field {
         // Arithmetic
         Entity add(Object init, Object step);
         Entity substract(Object init, Object step);
-        Entity divide(Object init, Object step);
-        Entity multiply(Object init, Object step);
+        Entity divide(Object init, Object factor);
+        Entity multiply(Object init, Object factor);
 
         Entity addYears(Object init, Integer step);
         Entity addMonths(Object init, Integer step);
