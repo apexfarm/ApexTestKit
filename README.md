@@ -18,9 +18,9 @@ Imagine the complexity to generate the following sObjects to establish all the r
 With ATK we can create them within just one Apex statement. Here, we are generating:
 
 1. *200* accounts with names: `Name-0001, Name-0002, Name-0003...`
-2. Each of the account have *2* contacts.
+2. Each of the account has *2* contacts.
 3. Each of the contact has *1* opportunity via the OpportunityContactRole.
-4. Also each of the account have *2* orders.
+4. Also each of the account has *2* orders.
 5. Also each of the order belongs to *1* opportunity from the same account.
 
 ```java
@@ -150,9 +150,9 @@ ATK.prepare(A__c.SObjectType, 10)
     .save(true);
 ```
 
-#### Create by Size
+#### Entity Create Keywords
 
-All the following APIs with a third size param at the last, indicate how many of the associated sObject type will be created on the fly.
+All the following APIs with a third `Integer size` param at the last, indicate how many of the associated sObject type will be created on the fly.
 
 | Keyword API                                                  | Description                                                  |
 | ------------------------------------------------------------ | ------------------------------------------------------------ |
@@ -160,7 +160,34 @@ All the following APIs with a third size param at the last, indicate how many of
 | withChildren(SObjectType *objectType*, SObjectField *referenceField*, Integer *size*) | Establish one to many relationship between the previous working on sObject and the current sObject. |
 | withParents(SObjectType *objectType*, SObjectField *referenceField*, Integer *size*) | Establish many to one relationship between the previous working on sObject and the current sObject. |
 
-#### Back Reference
+#### Entity Update Keywords
+
+All the following APIs with a third `List<SObject> objects` param at the last, indicate the sObjects are created elsewhere, and ATK just updates them.
+
+```java
+ATK.prepare(A__c.SObjectType, [SELECT Id FROM A__c]) // Select existing sObjects
+  	.field(A__c.Name).index('Name-{0000}')           // Update existing sObjects
+    .withChildren(B__c.SObjectType, B__c.A_ID__c, new List<SObject> {
+      	new B__c(Name = 'Name-A'),                   // Manually assign field values
+      	new B__c(Name = 'Name-B'), 
+      	new B__c(Name = 'Name-C')
+    })
+    .also()
+  	.withParents(C__c.SObjectType, A__c.C_ID__c, new List<SObject> {
+      	new C__c(Name = 'Name-A'),                   // Manually assign field values
+      	new C__c(Name = 'Name-B'), 
+      	new C__c(Name = 'Name-C')
+    })
+    .save(true);
+```
+
+| Keyword API                                                  | Description                                                  |
+| ------------------------------------------------------------ | ------------------------------------------------------------ |
+| prepare(SObjectType *objectType*, List\<SObject\> *objects*) | Always start chain with `prepare()` keyword. It is the root sObject to start relationship with. |
+| withChildren(SObjectType *objectType*, SObjectField *referenceField*, List\<SObject\> *objects*) | Establish one to many relationship between the previous working on sObject and the current sObject. |
+| withParents(SObjectType *objectType*, SObjectField *referenceField*, List\<SObject\> *objects*) | Establish many to one relationship between the previous working on sObject and the current sObject. |
+
+#### Entity Reference Keywords
 
 All the following APIs without a third param at the last, indicate a back reference to the previously created sObjects within the statement. Thus, no new records will be created with the following statements.
 
@@ -186,7 +213,7 @@ ATK.prepare(A__c.SObjectType, 10)
         .field(B__C.StartDate__c).addDays(Date.newInstance(2020, 1, 1), 1)
     .save(true);
 ```
-
+#### Basic Field Keywords
 | Keyword API                                               | Description                                                  |
 | --------------------------------------------------------- | ------------------------------------------------------------ |
 | index(String *format*)                                    | Formated string with `{0000}`, can recogonize left padding. For example: 0001, 0002, 0003 etc. |
@@ -194,6 +221,11 @@ ATK.prepare(A__c.SObjectType, 10)
 | repeat(Object *value1*, Object *value2*)                  | Repeat with the provided values alternatively.               |
 | repeat(Object *value1*, Object *value2*, Object *value3*) | Repeat with the provided values alternatively.               |
 | repeat(List\<Object\> *values*)                           | Repeat with the provided values alternatively.               |
+
+#### Special Field Keywords
+
+| Keyword API                                               | Description                                                  |
+| --------------------------------------------------------- | ------------------------------------------------------------ |
 | recordType(String *name*)                                 | Look up record type ID by record type name or developer name. |
 | profile(String *name*)                                    | Look up profile ID by profile name.                          |
 
@@ -201,18 +233,18 @@ ATK.prepare(A__c.SObjectType, 10)
 
 These keywords will increase/decrease the init values by the provided step values. They must be applied to the correct field data types that support them.
 
-| Keyword API                               | Description                             |
-| ----------------------------------------- | --------------------------------------- |
-| add(Object *init*, Object *step*)         | Must be applied to a number type field. |
-| substract(Object *init*, Object *step*)   | Must be applied to a number type field. |
-| divide(Object *init*, Object *factor*)    | Must be applied to a number type field. |
-| multiply(Object *init*, Object *factor*)  | Must be applied to a number type field. |
-| addYears(Object *init*, Integer *step*)   | Must be applied to a Date type field.   |
-| addMonths(Object *init*, Integer *step*)  | Must be applied to a Date type field.   |
-| addDays(Object *init*, Integer *step*)    | Must be applied to a Date type field.   |
-| addHours(Object *init*, Integer *step*)   | Must be applied to a Time type field.   |
-| addMinutes(Object *init*, Integer *step*) | Must be applied to a Time type field.   |
-| addSeconds(Object *init*, Integer *step*) | Must be applied to a Time type field.   |
+| Keyword API                                | Description                                    |
+| ------------------------------------------ | ---------------------------------------------- |
+| add(Decimal *init*, Decimal *step*)        | Must be applied to a number type field.        |
+| substract(Decimal *init*, Decimal *step*)  | Must be applied to a number type field.        |
+| divide(Decimal *init*, Decimal *factor*)   | Must be applied to a number type field.        |
+| multiply(Decimal *init*, Decimal *factor*) | Must be applied to a number type field.        |
+| addYears(Object *init*, Integer *step*)    | Must be applied to a Datetime/Date type field. |
+| addMonths(Object *init*, Integer *step*)   | Must be applied to a Datetime/Date type field. |
+| addDays(Object *init*, Integer *step*)     | Must be applied to a Datetime/Date type field. |
+| addHours(Object *init*, Integer *step*)    | Must be applied to a Datetime/Time type field. |
+| addMinutes(Object *init*, Integer *step*)  | Must be applied to a Datetime/Time type field. |
+| addSeconds(Object *init*, Integer *step*)  | Must be applied to a Datetime/Time type field. |
 
 ## Field Builder Factory
 

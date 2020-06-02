@@ -237,28 +237,28 @@ public with sharing class ATK implements Entity, Field {
     //     return sharedCommand;
     // }
 
-    public Entity add(Object init, Object step) {
+    public Entity add(Decimal init, Decimal step) {
         this.matrix.currEntityNode.currEntityField.arithmetic = ATKCore.EntityFieldArithmetic.ADD;
         this.matrix.currEntityNode.currEntityField.initValue = init;
         this.matrix.currEntityNode.currEntityField.stepValue = step;
         return sharedCommand;
     }
 
-    public Entity substract(Object init, Object step) {
+    public Entity substract(Decimal init, Decimal step) {
         this.matrix.currEntityNode.currEntityField.arithmetic = ATKCore.EntityFieldArithmetic.SUBSTRACT;
         this.matrix.currEntityNode.currEntityField.initValue = init;
         this.matrix.currEntityNode.currEntityField.stepValue = step;
         return sharedCommand;
     }
 
-    public Entity divide(Object init, Object factor) {
+    public Entity divide(Decimal init, Decimal factor) {
         this.matrix.currEntityNode.currEntityField.arithmetic = ATKCore.EntityFieldArithmetic.DIVIDE;
         this.matrix.currEntityNode.currEntityField.initValue = init;
         this.matrix.currEntityNode.currEntityField.stepValue = factor;
         return sharedCommand;
     }
 
-    public Entity multiply(Object init, Object factor) {
+    public Entity multiply(Decimal init, Decimal factor) {
         this.matrix.currEntityNode.currEntityField.arithmetic = ATKCore.EntityFieldArithmetic.MULTIPLY;
         this.matrix.currEntityNode.currEntityField.initValue = init;
         this.matrix.currEntityNode.currEntityField.stepValue = factor;
@@ -351,10 +351,10 @@ public with sharing class ATK implements Entity, Field {
         // Entity lookup(String field);
 
         // Arithmetic
-        Entity add(Object init, Object step);
-        Entity substract(Object init, Object step);
-        Entity divide(Object init, Object factor);
-        Entity multiply(Object init, Object factor);
+        Entity add(Decimal init, Decimal step);
+        Entity substract(Decimal init, Decimal step);
+        Entity divide(Decimal init, Decimal factor);
+        Entity multiply(Decimal init, Decimal factor);
 
         Entity addYears(Object init, Integer step);
         Entity addMonths(Object init, Integer step);
