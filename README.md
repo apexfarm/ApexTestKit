@@ -132,7 +132,7 @@ ATK.prepare(Contact.SObjectType, 40)
 There are only two keyword categories Entity keyword and Field keyword. They are used to solve the two pain points we addressed at the beginning:
 
 1. **Entity Keyword**: Establish arbitrary levels of many-to-one, one-to-many relationships.
-2. **Field Keyword**: Generate field values based on simple rules.
+2. **Field Keyword**: Generate field values based on simple rules automatically.
 
 ### Entity Keywords
 
@@ -166,17 +166,17 @@ All the following APIs with a third `List<SObject> objects` param at the last, i
 
 ```java
 ATK.prepare(A__c.SObjectType, [SELECT Id FROM A__c]) // Select existing sObjects
-  	.field(A__c.Name).index('Name-{0000}')           // Update existing sObjects
+    .field(A__c.Name).index('Name-{0000}')           // Update existing sObjects
     .withChildren(B__c.SObjectType, B__c.A_ID__c, new List<SObject> {
-      	new B__c(Name = 'Name-A'),                   // Manually assign field values
-      	new B__c(Name = 'Name-B'), 
-      	new B__c(Name = 'Name-C')
+        new B__c(Name = 'Name-A'),                   // Manually assign field values
+        new B__c(Name = 'Name-B'),
+        new B__c(Name = 'Name-C')
     })
     .also()
-  	.withParents(C__c.SObjectType, A__c.C_ID__c, new List<SObject> {
-      	new C__c(Name = 'Name-A'),                   // Manually assign field values
-      	new C__c(Name = 'Name-B'), 
-      	new C__c(Name = 'Name-C')
+    .withParents(C__c.SObjectType, A__c.C_ID__c, new List<SObject> {
+        new C__c(Name = 'Name-A'),                   // Manually assign field values
+        new C__c(Name = 'Name-B'),
+        new C__c(Name = 'Name-C')
     })
     .save(true);
 ```
