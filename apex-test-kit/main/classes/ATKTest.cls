@@ -103,6 +103,19 @@ public with sharing class ATKTest {
     }
 
     @IsTest
+    static void test_OneToMany_List_Empty() {
+        ATK.SaveResult result = ATK.prepare(Account.SObjectType, new List<Account>())
+            .withChildren(Contact.SObjectType, Contact.AccountId, new List<Contact>())
+            .save(false);
+
+        List<Account> accounts = result.get(Account.SObjectType);
+        List<Contact> contacts = result.get(Contact.SObjectType);
+
+        System.assertEquals(0, accounts.size());
+        System.assertEquals(0, contacts.size());
+    }
+
+    @IsTest
     static void test_ManyToOne() {
         ATK.SaveResult result = ATK.prepare(Account.SObjectType, 10)
             .withChildren(Contact.SObjectType, Contact.AccountId, 20)
@@ -184,6 +197,20 @@ public with sharing class ATKTest {
             System.assertEquals(acc, contact1.Account);
             System.assertEquals(acc, contact2.Account);
         }
+    }
+
+
+    @IsTest
+    static void test_ManyToOne_List_Empty() {
+        ATK.SaveResult result = ATK.prepare(Contact.SObjectType, new List<Contact>())
+            .withParents(Account.SObjectType, Contact.AccountId, new List<Account>())
+            .save(false);
+
+        List<Account> accounts = result.get(Account.SObjectType);
+        List<Contact> contacts = result.get(Contact.SObjectType);
+
+        System.assertEquals(0, accounts.size());
+        System.assertEquals(0, contacts.size());
     }
 
     @IsTest
