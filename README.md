@@ -172,9 +172,10 @@ ATK.prepare(A__c.SObjectType, [SELECT Id FROM A__c]) // Select existing sObjects
         new B__c(Name = 'Name-B'),
         new B__c(Name = 'Name-C')
     })
+    .field(B__c.Field__c).add(1, 1)                  // Automatically assign field values
     .also()
     .withParents(C__c.SObjectType, A__c.C_ID__c, new List<SObject> {
-        new C__c(Name = 'Name-A'),                   // Manually assign field values
+        new C__c(Name = 'Name-A'),
         new C__c(Name = 'Name-B'),
         new C__c(Name = 'Name-C')
     })
