@@ -152,7 +152,7 @@ ATK.prepare(A__c.SObjectType, 10)
 
 #### Entity Create Keywords
 
-All the following APIs with a third `Integer size` param at the last, indicate how many of the associated sObject type will be created on the fly.
+All the following APIs with a `Integer size` param at the last, indicate how many of the associated sObject type will be created on the fly.
 
 | Keyword API                                                  | Description                                                  |
 | ------------------------------------------------------------ | ------------------------------------------------------------ |
@@ -162,23 +162,23 @@ All the following APIs with a third `Integer size` param at the last, indicate h
 
 #### Entity Update Keywords
 
-All the following APIs with a third `List<SObject> objects` param at the last, indicate the sObjects are created elsewhere, and ATK just updates them.
+All the following APIs with a `List<SObject> objects` param at the last, indicate the sObjects are created elsewhere, and ATK just updates them.
 
 ```java
 ATK.prepare(A__c.SObjectType, [SELECT Id FROM A__c]) // Select existing sObjects
     .field(A__c.Name).index('Name-{0000}')           // Update existing sObjects
+    .field(A__c.Price).repeat(100)
     .withChildren(B__c.SObjectType, B__c.A_ID__c, new List<SObject> {
         new B__c(Name = 'Name-A'),                   // Manually assign field values
         new B__c(Name = 'Name-B'),
-        new B__c(Name = 'Name-C')
-    })
-    .field(B__c.Field__c).add(1, 1)                  // Automatically assign field values
-    .also()
-    .withParents(C__c.SObjectType, A__c.C_ID__c, new List<SObject> {
-        new C__c(Name = 'Name-A'),
-        new C__c(Name = 'Name-B'),
-        new C__c(Name = 'Name-C')
-    })
+        new B__c(Name = 'Name-C')})
+        .field(B__c.Counter__c).add(1, 1)            // Automatically assign field values
+        .field(B__c.Weekday__c).repeat('Mon', 'Tue') // Automatically assign field values
+        .withParents(C__c.SObjectType, B__c.C_ID__c, new List<SObject> {
+            new C__c(Name = 'Name-A'),
+            new C__c(Name = 'Name-B'),
+            new C__c(Name = 'Name-C')
+        })
     .save(true);
 ```
 
