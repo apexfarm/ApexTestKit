@@ -68,6 +68,10 @@ public with sharing class ATK implements Entity, Field {
         }
     }
 
+    public SaveResult save() {
+        return save(true);
+    }
+
     public SaveResult save(Boolean doInsert) {
         ATKCore.GENERATOR.generate(this.matrix, doInsert);
         SaveResult result = new SaveResult();
@@ -334,6 +338,7 @@ public with sharing class ATK implements Entity, Field {
         // Entity permissionSet(List<String> names);
 
         // keywords to end with
+        SaveResult save();
         SaveResult save(Boolean doInsert);
     }
 

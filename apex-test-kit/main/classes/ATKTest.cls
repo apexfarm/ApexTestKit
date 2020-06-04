@@ -18,6 +18,22 @@
 public with sharing class ATKTest {
 
     @IsTest
+    static void test_SaveRecord() {
+        Test.startTest();
+        ATK.SaveResult result = ATK.prepare(Account.getSObjectType(), 1)
+            .field(Account.Name).index('Account #{0}')
+            .save();
+
+        System.assertEquals(1, Limits.getDmlStatements());
+        Test.stopTest();
+
+        List<Account> records = [SELECT Id, Name FROM Account];
+
+        System.assertEquals(1, records.size());
+        System.assertEquals('Account #1', records[0].Name);
+    }
+
+    @IsTest
     static void test_OneToMany() {
         ATK.SaveResult result = ATK.prepare(Account.SObjectType, 10)
             .withChildren(Case.SObjectType, Case.AccountId, 40)
