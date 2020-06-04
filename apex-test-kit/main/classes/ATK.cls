@@ -68,6 +68,10 @@ public with sharing class ATK implements Entity, Field {
         }
     }
 
+    public SaveResult save() {
+        this.save(true);
+    }
+
     public SaveResult save(Boolean doInsert) {
         ATKCore.GENERATOR.generate(this.matrix, doInsert);
         SaveResult result = new SaveResult();
@@ -139,36 +143,9 @@ public with sharing class ATK implements Entity, Field {
     // #region Field Interface Implementation
     // **************************************
 
-    static Map<String, Id> recordTypeIdByName {
-        get {
-            if (recordTypeIdByName == null) {
-                recordTypeIdByName = new Map<String, Id>();
-                for (RecordType recordType : [SELECT Id, DeveloperName, Name FROM RecordType]) {
-                    recordTypeIdByName.put(recordType.DeveloperName.toUpperCase(), recordType.Id);
-                    recordTypeIdByName.put(recordType.Name.toUpperCase(), recordType.Id);
-                }
-            }
-            return recordTypeIdByName;
-        }
-        set;
-    }
-
     public Entity recordType(String name) {
         this.matrix.currEntityNode.currEntityField.fixedValue = recordTypeIdByName.get(name.toUpperCase());
         return sharedCommand;
-    }
-
-    static Map<String, Id> profileIdByName {
-        get {
-            if (profileIdByName == null) {
-                profileIdByName = new Map<String, Id>();
-                for (Profile profile : [SELECT Id, Name FROM Profile]) {
-                    profileIdByName.put(profile.Name.toUpperCase(), profile.Id);
-                }
-            }
-            return profileIdByName;
-        }
-        set;
     }
 
     public Entity profile(String name) {
@@ -310,6 +287,40 @@ public with sharing class ATK implements Entity, Field {
     // #endregion
     // **************************************
 
+    // **********************
+    // #region Helper Methods
+    // **********************
+
+    static Map<String, Id> recordTypeIdByName {
+        get {
+            if (recordTypeIdByName == null) {
+                recordTypeIdByName = new Map<String, Id>();
+                for (RecordType recordType : [SELECT Id, DeveloperName, Name FROM RecordType]) {
+                    recordTypeIdByName.put(recordType.DeveloperName.toUpperCase(), recordType.Id);
+                    recordTypeIdByName.put(recordType.Name.toUpperCase(), recordType.Id);
+                }
+            }
+            return recordTypeIdByName;
+        }
+        set;
+    }
+
+    static Map<String, Id> profileIdByName {
+        get {
+            if (profileIdByName == null) {
+                profileIdByName = new Map<String, Id>();
+                for (Profile profile : [SELECT Id, Name FROM Profile]) {
+                    profileIdByName.put(profile.Name.toUpperCase(), profile.Id);
+                }
+            }
+            return profileIdByName;
+        }
+        set;
+    }
+
+    // #endregion
+    // **********************
+
     // ******************
     // #region Interfaces
     // ******************
@@ -334,6 +345,7 @@ public with sharing class ATK implements Entity, Field {
         // Entity permissionSet(List<String> names);
 
         // keywords to end with
+        SaveResult save();
         SaveResult save(Boolean doInsert);
     }
 

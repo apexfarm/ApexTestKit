@@ -8,7 +8,7 @@ Apex Test Kit is a Salesforce library to help generate massive records for eithe
 1. Establish arbitrary levels of many-to-one, one-to-many relationships.
 2. Generate field values based on simple rules automatically.
 
-Imagine the complexity to generate the following sObjects to establish all the relationships in the diagram.
+Imagine the complexity to generate the following sObjects and establish all the relationships in the diagram.
 
 <p align="center">
 <img src="docs/images/sales-objects.png#2020-5-31" width="400" alt="Sales Object Graph">
@@ -18,10 +18,10 @@ Imagine the complexity to generate the following sObjects to establish all the r
 With ATK we can create them within just one Apex statement. Here, we are generating:
 
 1. *200* accounts with names: `Name-0001, Name-0002, Name-0003...`
-2. Each of the account has *2* contacts.
-3. Each of the contact has *1* opportunity via the OpportunityContactRole.
-4. Also each of the account has *2* orders.
-5. Also each of the order belongs to *1* opportunity from the same account.
+2. Each of the accounts has *2* contacts.
+3. Each of the contacts has *1* opportunity via the OpportunityContactRole.
+4. Also each of the accounts has *2* orders.
+5. Also each of the orders belongs to *1* opportunity from the same account.
 
 ```java
 ATK.SaveResult result = ATK.prepare(Account.SObjectType, 200)
@@ -86,7 +86,7 @@ ATK.prepare(Account.SObjectType, 10)
         .field(Contact.LastName).index('Name-{0000}')
         .field(Contact.Email).index('test.user+{0000}@email.com')
         .field(Contact.MobilePhone).index('+86 186 7777 {0000}')
-    .save(true);
+    .save();
 ```
 
 Children will be evenly distributed among parents, and here is how the relationship going to be mapped:
@@ -108,7 +108,7 @@ ATK.prepare(Contact.SObjectType, 20)
     .field(Contact.MobilePhone).index('+86 186 7777 {0000}')
     .withParents(Account.SObjectType, Contact.AccountId, 10)
         .field(Account.Name).index('Name-{0000}')
-    .save(true);
+    .save();
 ```
 
 ### Many to Many
@@ -124,7 +124,7 @@ ATK.prepare(Contact.SObjectType, 40)
             .field(Opportunity.Name).index('Name-{0000}')
             .field(Opportunity.CloseDate).addDays(Date.newInstance(2020, 1, 1), 1)
             .field(Opportunity.StageName).repeat('Prospecting')
-    .save(true);
+    .save();
 ```
 
 ## Keywords And APIs
@@ -147,12 +147,19 @@ ATK.prepare(A__c.SObjectType, 10)
             .withChildren(E__c.SObjectType, E__c.C_ID__c, 10)
         .also(2)    // Go back 2 depth to B__c
         .withChildren(F__c.SObjectType, F__c.B_ID__c, 10)
-    .save(true);
+    .save();
 ```
 
 #### Entity Create Keywords
 
 All the following APIs with a `Integer size` param at the last, indicate how many of the associated sObject type will be created on the fly.
+
+```java
+ATK.prepare(A__c.SObjectType, 10)
+    .withChildren(B__c.SObjectType, B__c.A_ID__c, 10)
+        .withParents(C__c.SObjectType, B__c.C_ID__c, 10)
+    .save();
+```
 
 | Keyword API                                                  | Description                                                  |
 | ------------------------------------------------------------ | ------------------------------------------------------------ |
@@ -162,7 +169,7 @@ All the following APIs with a `Integer size` param at the last, indicate how man
 
 #### Entity Update Keywords
 
-All the following APIs with a `List<SObject> objects` param at the last, indicate the sObjects are created elsewhere, and ATK just updates them.
+All the following APIs with a `List<SObject> objects` param at the last, indicate the sObjects are created elsewhere, and ATK just upsert them.
 
 ```java
 ATK.prepare(A__c.SObjectType, [SELECT Id FROM A__c]) // Select existing sObjects
@@ -177,9 +184,8 @@ ATK.prepare(A__c.SObjectType, [SELECT Id FROM A__c]) // Select existing sObjects
         .withParents(C__c.SObjectType, B__c.C_ID__c, new List<SObject> {
             new C__c(Name = 'Name-A'),
             new C__c(Name = 'Name-B'),
-            new C__c(Name = 'Name-C')
-        })
-    .save(true);
+            new C__c(Name = 'Name-C')})
+    .save();
 ```
 
 | Keyword API                                                  | Description                                                  |
@@ -212,7 +218,7 @@ ATK.prepare(A__c.SObjectType, 10)
         .field(B__C.CampanyName__c).repeat('Google', 'Apple', 'Microsoft')
         .field(B__C.Counter__c).add(1, 1)
         .field(B__C.StartDate__c).addDays(Date.newInstance(2020, 1, 1), 1)
-    .save(true);
+    .save();
 ```
 #### Basic Field Keywords
 | Keyword API                                               | Description                                                  |
@@ -261,7 +267,7 @@ public with sharing class CampaignServiceTest {
             .withChildren(CampaignMember.SObjectType, CampaignMember.CampaignId, 8)
                 .withParents(Lead.SObjectType, CampaignMember.LeadId, 8)
                     .field(FieldBuilderFactory.leadField)    // Reference to Field Builder
-            .save(true);
+            .save();
     }
 }
 ```
