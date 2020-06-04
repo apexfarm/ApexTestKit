@@ -69,7 +69,7 @@ public with sharing class ATK implements Entity, Field {
     }
 
     public SaveResult save() {
-        this.save(true);
+        return this.save(true);
     }
 
     public SaveResult save(Boolean doInsert) {
