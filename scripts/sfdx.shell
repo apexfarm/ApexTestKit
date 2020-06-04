@@ -1,0 +1,3 @@
+sfdx force:package:version:create -p ApexTestKit -k ApexTestKit --wait 10
+sfdx force:package:version:list
+sfdx force:package:version:promote -p "ApexTestKit@3.0.1-1"
