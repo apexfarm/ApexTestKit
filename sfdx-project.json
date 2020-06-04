@@ -13,6 +13,7 @@
     "sourceApiVersion": "48.0",
     "packageAliases": {
         "ApexTestKit": "0Ho2v00000000FfCAI",
-        "ApexTestKit@3.0.0-2": "04t2v000007X2zHAAS"
+        "ApexTestKit@3.0.0-2": "04t2v000007X2zHAAS",
+        "ApexTestKit@3.0.1-1": "04t2v000007X3BAAA0"
     }
 }
