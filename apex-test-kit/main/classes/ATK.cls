@@ -139,40 +139,14 @@ public with sharing class ATK implements Entity, Field {
     // #region Field Interface Implementation
     // **************************************
 
-    static Map<String, Id> recordTypeIdByName {
-        get {
-            if (recordTypeIdByName == null) {
-                recordTypeIdByName = new Map<String, Id>();
-                for (RecordType recordType : [SELECT Id, DeveloperName, Name FROM RecordType]) {
-                    recordTypeIdByName.put(recordType.DeveloperName.toUpperCase(), recordType.Id);
-                    recordTypeIdByName.put(recordType.Name.toUpperCase(), recordType.Id);
-                }
-            }
-            return recordTypeIdByName;
-        }
-        set;
-    }
-
     public Entity recordType(String name) {
-        this.matrix.currEntityNode.currEntityField.fixedValue = recordTypeIdByName.get(name.toUpperCase());
+        this.matrix.currEntityNode.currEntityField.fixedValue = ATKCore.RECORD_TYPES
+            .getId(this.matrix.currEntityNode.objectType, name);
         return sharedCommand;
     }
 
-    static Map<String, Id> profileIdByName {
-        get {
-            if (profileIdByName == null) {
-                profileIdByName = new Map<String, Id>();
-                for (Profile profile : [SELECT Id, Name FROM Profile]) {
-                    profileIdByName.put(profile.Name.toUpperCase(), profile.Id);
-                }
-            }
-            return profileIdByName;
-        }
-        set;
-    }
-
     public Entity profile(String name) {
-        this.matrix.currEntityNode.currEntityField.fixedValue = profileIdByName.get(name.toUpperCase());
+        this.matrix.currEntityNode.currEntityField.fixedValue = ATKCore.PROFILES.getId(name);
         return sharedCommand;
     }
 

@@ -15,6 +15,8 @@
  */
 
 public with sharing class ATKCore {
+    public static final Profiles PROFILES = new Profiles();
+    public static final RecordTypes RECORD_TYPES = new RecordTypes();
     public static final Converter CONVERTER = new Converter();
     public static final Generator GENERATOR = new Generator();
     private static final Distributor DISTRIBUTOR = new Distributor();
@@ -754,6 +756,67 @@ public with sharing class ATKCore {
                 return ((Datetime)input).time();
             }
             return null;
+        }
+    }
+
+    public class Profiles {
+        @TestVisible
+        Map<String, Id> profileIdByName {
+            get {
+                if (profileIdByName == null) {
+                    profileIdByName = new Map<String, Id>();
+                    for (Profile profile : [SELECT Id, Name FROM Profile]) {
+                        profileIdByName.put(profile.Name.toUpperCase(), profile.Id);
+                    }
+                }
+                return profileIdByName;
+            }
+            set;
+        }
+
+        public Id getId(String name) {
+            return profileIdByName.get(name.toUpperCase());
+        }
+    }
+
+    public class RecordTypes {
+        @TestVisible
+        Map<String, Map<String, Id>> recordTypeIdByName {
+            get {
+                if (recordTypeIdByName == null) {
+                    recordTypeIdByName = new Map<String, Map<String, Id>>();
+                    for (RecordType recordType : [SELECT
+                            Id,
+                            DeveloperName,
+                            NamespacePrefix,
+                            Name,
+                            SObjectType
+                        FROM RecordType]) {
+                        if (!recordTypeIdByName.containsKey(recordType.SObjectType)) {
+                            recordTypeIdByName.put(recordType.SObjectType.toUpperCase(), new Map<String, Id> {
+                                recordType.DeveloperName.toUpperCase() => recordType.Id,
+                                recordType.Name.toUpperCase() => recordType.Id
+                            });
+                        } else {
+                            recordTypeIdByName.get(recordType.SObjectType.toUpperCase())
+                                .put(recordType.DeveloperName.toUpperCase(), recordType.Id);
+                            recordTypeIdByName.get(recordType.SObjectType.toUpperCase())
+                                .put(recordType.Name.toUpperCase(), recordType.Id);
+                        }
+                    }
+                }
+                return recordTypeIdByName;
+            }
+            set;
+        }
+
+        public Id getId(SObjectType objectType, String name) {
+            Map<String, Id> recordTypeIds = recordTypeIdByName.get(String.valueOf(objectType).toUpperCase());
+            if (recordTypeIds != null) {
+                return recordTypeIds.get(name.toUpperCase());
+            } else {
+                return null;
+            }
         }
     }
 

@@ -3,8 +3,8 @@
         {
             "path": "apex-test-kit",
             "package": "ApexTestKit",
-            "versionName": "ver 3.0.1",
-            "versionNumber": "3.0.1.NEXT",
+            "versionName": "ver 3.0.2",
+            "versionNumber": "3.0.2.NEXT",
             "default": true
         }
     ],
@@ -14,6 +14,7 @@
     "packageAliases": {
         "ApexTestKit": "0Ho2v00000000FfCAI",
         "ApexTestKit@3.0.0-2": "04t2v000007X2zHAAS",
-        "ApexTestKit@3.0.1-1": "04t2v000007X3BAAA0"
+        "ApexTestKit@3.0.1-1": "04t2v000007X3BAAA0",
+        "ApexTestKit@3.0.2-1": "04t2v000007X3LqAAK"
     }
 }

@@ -555,4 +555,36 @@ public with sharing class ATKCoreTest {
         System.assertEquals(null, ATKCore.Converter.toTime('2018-08-28T14:24:22Z'));
         System.assertEquals(null, ATKCore.Converter.toTime('abc'));
     }
+
+    @IsTest
+    static void test_Util_Profiles() {
+        {
+            Id profileId = ATKCore.PROFILES.getId('Fake Profile');
+            System.assertEquals(null, profileId);
+        }
+
+        {
+            try {
+                Profile profile = [
+                    SELECT Id, Name
+                    FROM Profile
+                    WHERE Name = 'System Administrator'
+                    WITH SECURITY_ENFORCED];
+                if (profile != null) {
+                    Id profileId = ATKCore.PROFILES.getId('System Administrator');
+                    System.assertEquals(profile.Id, profileId);
+                }
+            } catch(System.QueryException ex) {
+
+            }
+        }
+    }
+
+    @IsTest
+    static void test_Util_RecordTypes() {
+        {
+            Id recordTypeId = ATKCore.RECORD_TYPES.getId(Account.SObjectType, 'Fake Record Type');
+            System.assertEquals(null, recordTypeId);
+        }
+    }
 }
