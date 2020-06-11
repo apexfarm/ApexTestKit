@@ -72,6 +72,7 @@ There are four demos under the `scripts/apex` folder, they can be successfully r
 | -------- | --------------------------------- | ------------------------------------------------------------ |
 | Campaign | `scripts/apex/demo-campaign.apex` | How to genereate campaigns with hierarchy relationships. `ATK.FieldBuilder` is implemented to reuse the field population logic. |
 | Cases    | `scripts/apex/demo-cases.apex`    | How to generate Accounts, Contacts and Cases.                |
+| Products | `scripts/apex/demo-products.apex` | How to generate Products for standard Price Book.            |
 | Sales    | `scripts/apex/demo-sales.apex`    | You've already seen it in the above paragraph.               |
 | Users    | `scripts/apex/demo-users.apex`    | How to generate community users in one goal.                 |
 
