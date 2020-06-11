@@ -1,5 +1,6 @@
 /**
  * Copyright 2018 Jeff Jin
+ * https://github.com/apexfarm/ApexTestKit
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -144,12 +145,13 @@ public with sharing class ATK implements Entity, Field {
     // **************************************
 
     public Entity recordType(String name) {
-        this.matrix.currEntityNode.currEntityField.fixedValue = recordTypeIdByName.get(name.toUpperCase());
+        this.matrix.currEntityNode.currEntityField.fixedValue = ATKCore.RECORD_TYPES
+            .getId(this.matrix.currEntityNode.objectType, name);
         return sharedCommand;
     }
 
     public Entity profile(String name) {
-        this.matrix.currEntityNode.currEntityField.fixedValue = profileIdByName.get(name.toUpperCase());
+        this.matrix.currEntityNode.currEntityField.fixedValue = ATKCore.PROFILES.getId(name);
         return sharedCommand;
     }
 
