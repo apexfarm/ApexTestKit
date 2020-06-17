@@ -18,6 +18,7 @@
 public with sharing class ATKCore {
     public static final Profiles PROFILES = new Profiles();
     public static final RecordTypes RECORD_TYPES = new RecordTypes();
+    public static final PermissionSets PERMISSION_SETS = new PermissionSets();
     public static final Converter CONVERTER = new Converter();
     public static final Generator GENERATOR = new Generator();
     private static final Distributor DISTRIBUTOR = new Distributor();
@@ -757,6 +758,38 @@ public with sharing class ATKCore {
                 return ((Datetime)input).time();
             }
             return null;
+        }
+    }
+
+    public class PermissionSets {
+        @TestVisible
+        Map<String, Id> permissionSetIdByName {
+            get {
+                if (permissionSetIdByName == null) {
+                    permissionSetIdByName = new Map<String, Id>();
+                    for (PermissionSet permissionSet : [
+                        SELECT Id, Label, Name
+                        FROM PermissionSet
+                        WHERE ProfileId = null]) {
+                        permissionSetIdByName.put(permissionSet.Name.toUpperCase(), permissionSet.Id);
+                        permissionSetIdByName.put(permissionSet.Label.toUpperCase(), permissionSet.Id);
+                    }
+                }
+                return permissionSetIdByName;
+            }
+            set;
+        }
+
+        public Id getId(String name) {
+            return permissionSetIdByName.get(name.toUpperCase());
+        }
+
+        public List<Id> getIds(List<String> names) {
+            List<Id> ids = new List<Id>();
+            for (String name : names) {
+                ids.add(this.getId(name));
+            }
+            return ids;
         }
     }
 

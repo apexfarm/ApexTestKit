@@ -256,8 +256,8 @@ public with sharing class ATKTest {
     @IsTest
     static void test_Fields() {
         ATK.prepare(Account.SObjectType, 0)
-            .field(Account.Name).recordType('Fake Record Type')
-            .field(Account.Name).profile('Fake Profile')
+            .recordType('==Fake Record Type==')
+            .field(new AccountFieldBuilder())
             .field(Account.Name).index('Name-{0000}')
             .field(Account.Name).repeat('A')
             .field(Account.Name).repeat('A', 'B')
@@ -274,6 +274,17 @@ public with sharing class ATKTest {
             .field(Account.Name).addMinutes(Time.newInstance(0, 0, 0, 0), 1)
             .field(Account.Name).addSeconds(Time.newInstance(0, 0, 0, 0), 1);
 
+        ATK.prepare(User.SObjectType, 0)
+            .profile('==Fake Profile==')
+            .permissionSet('==Fake Permission Set==')
+            .permissionSet('==Fake Permission Set 1==', '==Fake Permission Set 2==')
+            .permissionSet('==Fake Permission Set 1==', '==Fake Permission Set 2==', '==Fake Permission Set 3==')
+            .permissionSet(new List<String> {'==Fake Permission Set 1==', '==Fake Permission Set 2=='});
+    }
+
+    class AccountFieldBuilder implements ATK.FieldBuilder {
+        public void build(ATK.Entity accountEneity, Integer size) {
+        }
     }
 
 }

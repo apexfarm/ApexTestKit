@@ -1,12 +1,18 @@
 # Apex Test Kit
 
-![](https://img.shields.io/badge/version-3.0.2-brightgreen.svg) ![](https://img.shields.io/badge/build-passing-brightgreen.svg) ![](https://img.shields.io/badge/coverage-95%25-brightgreen.svg)
-
+![](https://img.shields.io/badge/version-3.1.0-brightgreen.svg) ![](https://img.shields.io/badge/build-passing-brightgreen.svg) ![](https://img.shields.io/badge/coverage-95%25-brightgreen.svg)
 
 Apex Test Kit is a Salesforce library to help generate massive records for either Apex test classes, or sandboxes. It solves two pain points during record creation:
 
 1. Establish arbitrary levels of many-to-one, one-to-many relationships.
 2. Generate field values based on simple rules automatically.
+
+### **3.1.0 Release Notes**
+
+3.1.0 has some breaking changes, it shouln't affect existing methods compilation, since the old APIs are still there. However some changes required to be made to prevent runtime errors.
+
+1. **Lookup Field Keywords** doesn't need to be chained after  `.field()`.
+2. **Entity Builder Factory**: ATK.FieldBuilder has been renamed to ATK.EntityBuilder, and has to be used with `.build(entityBuilder)`. ATK.FieldBuilder will be completely removed in the next version.
 
 Imagine the complexity to generate the following sObjects and establish all the relationships in the diagram.
 
@@ -61,8 +67,8 @@ To generate the above 2200 records and saving them into Salesforce, it will take
 
 | Environment           | Install Link                                                 | Version   |
 | --------------------- | ------------------------------------------------------------ | --------- |
-| Production, Developer | <a target="_blank" href="https://login.salesforce.com/packaging/installPackage.apexp?p0=04t2v000007X3LqAAK"><img src="docs/images/deploy-button.png"></a> | ver 3.0.2 |
-| Sandbox               | <a target="_blank" href="https://test.salesforce.com/packaging/installPackage.apexp?p0=04t2v000007X3LqAAK"><img src="docs/images/deploy-button.png"></a> | ver 3.0.2 |
+| Production, Developer | <a target="_blank" href="https://login.salesforce.com/packaging/installPackage.apexp?p0=04t2v000007X3Q7AAK"><img src="docs/images/deploy-button.png"></a> | ver 3.1.0 |
+| Sandbox               | <a target="_blank" href="https://test.salesforce.com/packaging/installPackage.apexp?p0=04t2v000007X3Q7AAK"><img src="docs/images/deploy-button.png"></a> | ver 3.1.0 |
 
 ### Demos
 
@@ -230,12 +236,27 @@ ATK.prepare(A__c.SObjectType, 10)
 | repeat(Object *value1*, Object *value2*, Object *value3*) | Repeat with the provided values alternatively.               |
 | repeat(List\<Object\> *values*)                           | Repeat with the provided values alternatively.               |
 
-#### Special Field Keywords
+#### Lookup Field Keywords
 
-| Keyword API                                               | Description                                                  |
-| --------------------------------------------------------- | ------------------------------------------------------------ |
-| recordType(String *name*)                                 | Look up record type ID by record type name or developer name. |
-| profile(String *name*)                                    | Look up profile ID by profile name.                          |
+These are field keywords in nature, but don't need to be chained after `.field(Schema.SObjectField)`. Because ATK automatically helps resolving the correct fields for them.
+
+```java
+ATK.prepare(User.SObjectType, 10)
+    .profile('Chatter Free User')      // must be applied to User SObject
+    .permissionSet('Survey Creator');  // must be applied to User SObject
+
+ATK.prepare(Account.SObjectType, 10)
+  	.recordType('Business Account');
+```
+
+| Keyword API                                                  | Description                                                  |
+| ------------------------------------------------------------ | ------------------------------------------------------------ |
+| recordType(String *name*)                                    | Assign record type ID by developer name or label             |
+| profile(String *name*)                                       | Assign profile ID by profile name.                           |
+| permissionSet(String *name*)                                 | Assign the permission set to users by its developer name or label. |
+| permissionSet(String name1, String *name2*)                  | Assign all the permission sets to users by developer name or label. |
+| permissionSet(String *name1*, String *name2*, String *name3*) | Assign all the permission sets to users by developer name or label. |
+| permissionSet(List\<String\> *names*)                        | Assign all the permission sets to users by developer name or label. |
 
 #### Arithmetic Field Keywords
 
@@ -254,9 +275,9 @@ These keywords will increase/decrease the init values by the provided step value
 | addMinutes(Object *init*, Integer *step*)  | Must be applied to a Datetime/Time type field. |
 | addSeconds(Object *init*, Integer *step*)  | Must be applied to a Datetime/Time type field. |
 
-## Field Builder Factory
+## Entity Builder Factory
 
-It is recommended to keep how the sObject relationship is established in the test class. Because they are less subject to change, and clearer to the developers. In order to increase the reusability, let's introduce the field builder factory. Here is how the Field Builder Factory can be used:
+It is recommended to keep how the sObject relationship is established in the test class. Because they are less subject to change, and clearer to the developers. In order to increase the reusability, let's introduce the entity builder factory. Here is how the Entity Builder Factory can be used:
 
 ```java
 @IsTest
@@ -264,10 +285,10 @@ public with sharing class CampaignServiceTest {
     @TestSetup
     static void setup() {
         ATK.SaveResult result = ATK.prepare(Campaign.SObjectType, 4)
-            .field(FieldBuilderFactory.campaignField)        // Reference to Field Builder
+            .build(EntityBuilderFactory.campaignBuilder)        // Reference to Entity Builder
             .withChildren(CampaignMember.SObjectType, CampaignMember.CampaignId, 8)
                 .withParents(Lead.SObjectType, CampaignMember.LeadId, 8)
-                    .field(FieldBuilderFactory.leadField)    // Reference to Field Builder
+                    .build(EntityBuilderFactory.leadBuilder)    // Reference to Entity Builder
             .save();
     }
 }
@@ -277,12 +298,12 @@ A field builder factory example:
 
 ```java
 @IsTest
-public with sharing class FieldBuilderFactory {
-    public static CampaignFieldBuilder campaignField = new CampaignFieldBuilder();
-    public static LeadFieldBuilder leadField = new LeadFieldBuilder();
+public with sharing class EntityBuilderFactory {
+    public static CampaignEntityBuilder campaignBuilder = new CampaignEntityBuilder();
+    public static LeadEntityBuilder leadBuilder = new LeadEntityBuilder();
 
     // Inner class implements ATK.FieldBuilder
-    public class CampaignFieldBuilder implements ATK.FieldBuilder {
+    public class CampaignEntityBuilder implements ATK.EntityBuilder {
         public void build(ATK.Entity campaignEntity, Integer size) {
             campaignEntity
                 .field(Campaign.Type).repeat('Partners')
@@ -293,7 +314,7 @@ public with sharing class FieldBuilderFactory {
     }
 
     // Inner class implements ATK.FieldBuilder
-    public class LeadFieldBuilder implements ATK.FieldBuilder {
+    public class LeadEntityBuilder implements ATK.EntityBuilder {
         public void build(ATK.Entity leadEntity, Integer size) {
             leadEntity
                 .field(Lead.Company).index('Name-{0000}')
