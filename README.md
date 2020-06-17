@@ -9,7 +9,7 @@ Apex Test Kit is a Salesforce library to help generate massive records for eithe
 
 ### **3.1.0 Release Notes**
 
-3.1.0 has some breaking changes, it shouln't affect existing methods compilation, since the old APIs are still there. However some changes required to be made to prevent runtime errors.
+3.1.0 has some breaking changes, it shouldn't affect existing methods compilation, since the old APIs are still there. However some changes required to be made to prevent runtime errors.
 
 1. **Lookup Field Keywords** doesn't need to be chained after  `.field()`.
 2. **Entity Builder Factory**: ATK.FieldBuilder has been renamed to ATK.EntityBuilder, and has to be used with `.build(entityBuilder)`. ATK.FieldBuilder will be completely removed in the next version.
