@@ -7,12 +7,16 @@ Apex Test Kit is a Salesforce library to help generate massive records for eithe
 1. Establish arbitrary levels of many-to-one, one-to-many relationships.
 2. Generate field values based on simple rules automatically.
 
-### **3.1.0 Release Notes**
+------
 
-3.1.0 has some breaking changes, it shouldn't affect existing methods compilation, since the old APIs are still there. However some changes required to be made to prevent runtime errors.
+### **3.1 Release Notes**
 
-1. **Lookup Field Keywords** doesn't need to be chained after  `.field()`, and the `.field()` before has to be removed.
-2. **Entity Builder Factory**: ATK.FieldBuilder has been renamed to ATK.EntityBuilder, and has to be used with `.build(entityBuilder)`. ATK.FieldBuilder will be completely removed in the next version.
+3.1 has some `breaking` changes, it shouldn't affect existing methods compilation, since the old APIs are still there. However some changes required to be made to prevent runtime errors.
+
+1. **<a href="#lookup-field-keywords">Lookup Field Keywords</a>** such as `recordType()` and `profile()` don't need to be chained after  `.field()`, and the `.field()` before has to be removed.
+2. **<a href="#entity-builder-factory">Entity Builder Factory</a>** is a proper name to reflect its responsibility, so ATK.FieldBuilder has been renamed to ATK.EntityBuilder, and has to be used with `.build(entityBuilder)`. ATK.FieldBuilder will be completely removed in the next version 3.2.
+
+------
 
 Imagine the complexity to generate the following sObjects and establish all the relationships in the diagram.
 
@@ -277,7 +281,7 @@ These keywords will increase/decrease the init values by the provided step value
 
 ## Entity Builder Factory
 
-It is recommended to keep how the sObject relationship is established in the test class. Because they are less subject to change, and clearer to the developers. In order to increase the reusability, let's introduce the entity builder factory. Here is how the Entity Builder Factory can be used:
+It is recommended to keep how the sObject relationship is established in the test class. Because they are less subject to change, and clearer to the developers. In order to increase the reusability, let's introduce the Entity Builder Factory:
 
 ```java
 @IsTest
