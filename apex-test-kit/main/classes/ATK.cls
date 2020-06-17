@@ -132,7 +132,13 @@ public with sharing class ATK implements Entity, Field {
         return sharedCommand;
     }
 
+    // deprecating on 3.2.0
     public Entity field(ATK.FieldBuilder builder) {
+        builder.build(sharedCommand, sharedCommand.matrix.currEntityNode.size);
+        return sharedCommand;
+    }
+
+    public Entity build(ATK.EntityBuilder builder) {
         builder.build(sharedCommand, sharedCommand.matrix.currEntityNode.size);
         return sharedCommand;
     }
@@ -145,45 +151,52 @@ public with sharing class ATK implements Entity, Field {
     // **************************************
 
     public Entity recordType(String name) {
-        this.matrix.currEntityNode.currEntityField.fixedValue = ATKCore.RECORD_TYPES
-            .getId(this.matrix.currEntityNode.objectType, name);
+        Schema.SObjectField recordTypeIdField = this.matrix.currEntityNode.dsr
+            .fields.getMap().get('RecordTypeId');
+        if (recordTypeIdField != null) {
+            sharedCommand.field(recordTypeIdField).repeat(ATKCore.RECORD_TYPES
+                .getId(this.matrix.currEntityNode.objectType, name));
+        }
         return sharedCommand;
     }
 
     public Entity profile(String name) {
-        this.matrix.currEntityNode.currEntityField.fixedValue = ATKCore.PROFILES.getId(name);
+        if (User.SObjectType == sharedCommand.matrix.currEntityNode.objectType) {
+            sharedCommand.field(User.ProfileId).repeat(ATKCore.PROFILES.getId(name));
+        }
         return sharedCommand;
     }
 
-    // public Entity permissionSet(String name) {
+    public Entity permissionSet(String name) {
+        this.permissionSet(new List<String> { name });
+        return sharedCommand;
+    }
 
-    //     return sharedCommand;
-    // }
+    public Entity permissionSet(String name1, String name2) {
+        this.permissionSet(new List<String> { name1, name2 });
+        return sharedCommand;
+    }
 
-    // public Entity permissionSet(String name1, String name2) {
+    public Entity permissionSet(String name1, String name2, String name3) {
+        this.permissionSet(new List<String> { name1, name2, name3 });
+        return sharedCommand;
+    }
 
-    //     return sharedCommand;
-    // }
-
-    // public Entity permissionSet(String name1, String name2, String name3) {
-
-    //     return sharedCommand;
-    // }
-
-    // public Entity permissionSet(List<String> names) {
-
-    //     return sharedCommand;
-    // }
+    public Entity permissionSet(List<String> names) {
+        if (User.SObjectType == sharedCommand.matrix.currEntityNode.objectType) {
+            sharedCommand.withChildren(
+                PermissionSetAssignment.SObjectType,
+                PermissionSetAssignment.AssigneeId,
+                sharedCommand.matrix.currEntityNode.size * names.size())
+                .field(PermissionSetAssignment.PermissionSetId).repeat(ATKCore.PERMISSION_SETS.getIds(names))
+                .also();
+        }
+        return sharedCommand;
+    }
 
     public Entity index(String format) {
         this.matrix.currEntityNode.currEntityField.indexFormat = format;
         this.matrix.currEntityNode.currEntityField.uniqueIndex = true;
-        return sharedCommand;
-    }
-
-    public Entity index(String format, Boolean unique) {
-        this.matrix.currEntityNode.currEntityField.indexFormat = format;
-        this.matrix.currEntityNode.currEntityField.uniqueIndex = unique;
         return sharedCommand;
     }
 
@@ -289,40 +302,6 @@ public with sharing class ATK implements Entity, Field {
     // #endregion
     // **************************************
 
-    // **********************
-    // #region Helper Methods
-    // **********************
-
-    static Map<String, Id> recordTypeIdByName {
-        get {
-            if (recordTypeIdByName == null) {
-                recordTypeIdByName = new Map<String, Id>();
-                for (RecordType recordType : [SELECT Id, DeveloperName, Name FROM RecordType]) {
-                    recordTypeIdByName.put(recordType.DeveloperName.toUpperCase(), recordType.Id);
-                    recordTypeIdByName.put(recordType.Name.toUpperCase(), recordType.Id);
-                }
-            }
-            return recordTypeIdByName;
-        }
-        set;
-    }
-
-    static Map<String, Id> profileIdByName {
-        get {
-            if (profileIdByName == null) {
-                profileIdByName = new Map<String, Id>();
-                for (Profile profile : [SELECT Id, Name FROM Profile]) {
-                    profileIdByName.put(profile.Name.toUpperCase(), profile.Id);
-                }
-            }
-            return profileIdByName;
-        }
-        set;
-    }
-
-    // #endregion
-    // **********************
-
     // ******************
     // #region Interfaces
     // ******************
@@ -338,26 +317,34 @@ public with sharing class ATK implements Entity, Field {
         // keywords to build graph
         Entity also();
         Entity also(Integer depth);
-        Entity field(ATK.FieldBuilder builder);
+        Entity build(ATK.EntityBuilder builder);
+        Entity field(ATK.FieldBuilder builder); // deprecating on 3.2.0
         Field field(SObjectField field);
-
-        // Entity permissionSet(String name);
-        // Entity permissionSet(String name1, String name2);
-        // Entity permissionSet(String name1, String name2, String name3);
-        // Entity permissionSet(List<String> names);
 
         // keywords to end with
         SaveResult save();
         SaveResult save(Boolean doInsert);
+
+        // keywords to lookup relation
+        Entity recordType(String name);
+        Entity profile(String name);
+        Entity permissionSet(String name);
+        Entity permissionSet(String name1, String name2);
+        Entity permissionSet(String name1, String name2, String name3);
+        Entity permissionSet(List<String> names);
     }
 
     public interface Field {
+        // deprecating on 3.2.0
         Entity recordType(String name);
         Entity profile(String name);
+        Entity permissionSet(String name);
+        Entity permissionSet(String name1, String name2);
+        Entity permissionSet(String name1, String name2, String name3);
+        Entity permissionSet(List<String> names);
 
         // Fixed Values
         Entity index(String format);
-        Entity index(String format, Boolean unique);
         Entity repeat(Object value);
         Entity repeat(Object value1, Object value2);
         Entity repeat(Object value1, Object value2, Object value3);
@@ -378,8 +365,12 @@ public with sharing class ATK implements Entity, Field {
         Entity addSeconds(Object init, Integer step);
     }
 
-    public interface FieldBuilder {
+    public interface EntityBuilder {
         void build(Entity entity, Integer size);
+    }
+
+    // deprecating on 3.2.0
+    public interface FieldBuilder extends EntityBuilder {
     }
     // #endregion
     // ******************

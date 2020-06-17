@@ -558,9 +558,17 @@ public with sharing class ATKCoreTest {
     }
 
     @IsTest
+    static void test_Util_PermissionSets() {
+        {
+            Id permissionSetId = ATKCore.PERMISSION_SETS.getId('==Fake Permission Set==');
+            System.assertEquals(null, permissionSetId);
+        }
+    }
+
+    @IsTest
     static void test_Util_Profiles() {
         {
-            Id profileId = ATKCore.PROFILES.getId('Fake Profile');
+            Id profileId = ATKCore.PROFILES.getId('==Fake Profile==');
             System.assertEquals(null, profileId);
         }
 
@@ -584,7 +592,7 @@ public with sharing class ATKCoreTest {
     @IsTest
     static void test_Util_RecordTypes() {
         {
-            Id recordTypeId = ATKCore.RECORD_TYPES.getId(Account.SObjectType, 'Fake Record Type');
+            Id recordTypeId = ATKCore.RECORD_TYPES.getId(Account.SObjectType, '==Fake Record Type==');
             System.assertEquals(null, recordTypeId);
         }
     }

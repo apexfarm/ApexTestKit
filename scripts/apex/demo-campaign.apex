@@ -1,23 +1,23 @@
 Savepoint sp = Database.setSavepoint();
 
-CampaignFieldBuilder campaignFieldBuilder = new CampaignFieldBuilder();
+CampaignBuilder campaignBuilder = new CampaignBuilder();
 ATK.SaveResult result = ATK.prepare(Campaign.SObjectType, 4)
-    .field(campaignFieldBuilder)
+    .build(campaignBuilder)
     .withChildren(Campaign.SObjectType, Campaign.ParentId, 4)
-        .field(campaignFieldBuilder)
+        .build(campaignBuilder)
         .withChildren(Campaign.SObjectType, Campaign.ParentId, 4)
-            .field(campaignFieldBuilder)
+            .build(campaignBuilder)
             .withChildren(Campaign.SObjectType, Campaign.ParentId, 4)
-                .field(campaignFieldBuilder)
+                .build(campaignBuilder)
                 .withChildren(Campaign.SObjectType, Campaign.ParentId, 4)
-                    .field(campaignFieldBuilder)
+                    .build(campaignBuilder)
     .save(true);
 
 convertLeads(result);
 
 Database.rollback(sp);
 
-class CampaignFieldBuilder implements ATK.FieldBuilder {
+class CampaignBuilder implements ATK.EntityBuilder {
     public void build(ATK.Entity campaignEntity, Integer size) {
         campaignEntity
             .field(Campaign.Type).repeat('Partners')
