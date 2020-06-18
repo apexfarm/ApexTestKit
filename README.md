@@ -13,7 +13,7 @@ Apex Test Kit is a Salesforce library to help generate massive records for eithe
 
 3.1 has some `breaking` changes, it shouldn't affect existing methods compilation, since the old APIs are still there. However some changes required to be made to prevent runtime errors.
 
-1. **<a href="#lookup-field-keywords">Lookup Field Keywords</a>** such as `recordType()` and `profile()` don't need to be chained after  `.field()`, and the `.field()` before has to be removed.
+1. **<a href="#lookup-field-keywords">Lookup Field Keywords</a>** such as `recordType()` and `profile()` can no longer be chained after  `.field()`.
 2. **<a href="#entity-builder-factory">Entity Builder Factory</a>** is a proper name to reflect its responsibility, so ATK.FieldBuilder has been renamed to ATK.EntityBuilder, and has to be used with `.build(entityBuilder)`. ATK.FieldBuilder will be completely removed in the next version 3.2.
 
 ------
@@ -250,7 +250,7 @@ ATK.prepare(User.SObjectType, 10)
     .permissionSet('Survey Creator');  // must be applied to User SObject
 
 ATK.prepare(Account.SObjectType, 10)
-  	.recordType('Business Account');
+    .recordType('Business Account');
 ```
 
 | Keyword API                                                  | Description                                                  |
@@ -289,10 +289,10 @@ public with sharing class CampaignServiceTest {
     @TestSetup
     static void setup() {
         ATK.SaveResult result = ATK.prepare(Campaign.SObjectType, 4)
-            .build(EntityBuilderFactory.campaignBuilder)        // Reference to Entity Builder
+            .build(EntityBuilderFactory.campaignBuilder)     // Reference to Entity Builder
             .withChildren(CampaignMember.SObjectType, CampaignMember.CampaignId, 8)
                 .withParents(Lead.SObjectType, CampaignMember.LeadId, 8)
-                    .build(EntityBuilderFactory.leadBuilder)    // Reference to Entity Builder
+                    .build(EntityBuilderFactory.leadBuilder) // Reference to Entity Builder
             .save();
     }
 }
