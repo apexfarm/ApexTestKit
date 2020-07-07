@@ -11,7 +11,7 @@ Apex Test Kit is a Salesforce library to help generate massive records for eithe
 
 ### **3.2 Release Notes**
 
-**<a href="#command-api">Command API</a>**: A new `mock()` method is added. If it is used instead of `save()`, a very large fake ID will be generated for the newly created SObjects. This is useful when used with a mock libray together.
+**<a href="#command-api">Command API</a>**: A new `mock()` method is added. If it is used instead of `save()`, very large fake IDs of the SObjectType will be generated for the newly created SObjects. This is useful when used with a mock libray together.
 
 ------
 
