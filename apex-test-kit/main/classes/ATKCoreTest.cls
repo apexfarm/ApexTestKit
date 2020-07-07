@@ -410,7 +410,41 @@ public with sharing class ATKCoreTest {
             matrix.add(ATKCore.EntityNodeType.PREPARE, new ATKCore.EntityNode(Account.SObjectType,
                 new List<Account> {new Account(), new Account(), new Account()}), null);
             matrix.add(ATKCore.EntityNodeType.ONE_TO_MANY, new ATKCore.EntityNode(Contact.SObjectType, 3), Contact.AccountId);
-            generator.generate(matrix, false);
+            generator.generate(matrix, false, false);
+        }
+    }
+
+    @IsTest
+    static void test_Generator_Generate_doInsert() {
+        ATKCore.Generator generator = new ATKCore.Generator();
+        {
+            ATKCore.EntityNodeMatrix matrix = new ATKCore.EntityNodeMatrix();
+            matrix.add(ATKCore.EntityNodeType.PREPARE, new ATKCore.EntityNode(Account.SObjectType,
+                new List<Account> {new Account(), new Account(), new Account()}), null);
+            matrix.add(ATKCore.EntityNodeType.ONE_TO_MANY, new ATKCore.EntityNode(Contact.SObjectType, 3), Contact.AccountId);
+            try {
+                generator.generate(matrix, true, false);
+            } catch(Exception ex) {}
+        }
+    }
+
+    @IsTest
+    static void test_Generator_Generate_doMock() {
+        ATKCore.Generator generator = new ATKCore.Generator();
+        {
+            ATKCore.EntityNodeMatrix matrix = new ATKCore.EntityNodeMatrix();
+            matrix.add(ATKCore.EntityNodeType.PREPARE, new ATKCore.EntityNode(Account.SObjectType,
+                new List<Account> {new Account(), new Account(), new Account()}), null);
+            matrix.add(ATKCore.EntityNodeType.ONE_TO_MANY, new ATKCore.EntityNode(Contact.SObjectType, 3), Contact.AccountId);
+            generator.generate(matrix, false, true);
+
+            System.assertEquals(2, matrix.entityNodeCache.size());
+            for (ATKCore.EntityNode node : matrix.entityNodeCache) {
+                System.assert(node.objects.size() > 0);
+                for (SObject obj : node.objects) {
+                    System.assertNotEquals(null, obj.Id);
+                }
+            }
         }
     }
 

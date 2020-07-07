@@ -22,6 +22,7 @@ public with sharing class ATKCore {
     public static final Converter CONVERTER = new Converter();
     public static final Generator GENERATOR = new Generator();
     private static final Distributor DISTRIBUTOR = new Distributor();
+    private static final FakeId FAKEID = new FakeId();
 
     // ************************
     // #region Graph Definition
@@ -410,7 +411,7 @@ public with sharing class ATKCore {
             indexes = new Map<Schema.SObjectType, Map<Schema.SObjectField, Integer>>();
         }
 
-        public void generate(EntityNodeMatrix iterator, Boolean doInsert) {
+        public void generate(EntityNodeMatrix iterator, Boolean doInsert, Boolean doMock) {
             iterator.reset();
             while (iterator.hasNext()) {
                 EntityNode entityNode = iterator.next();
@@ -427,6 +428,15 @@ public with sharing class ATKCore {
                 if (entityNode.size > 0) {
                     assignFields(entityNode);
                     assignReference(entityNode, doInsert);
+                }
+
+                if (doMock) {
+                    for (SObject obj : entityNode.objects) {
+                        if (obj.Id == null) {
+                            obj.Id = FAKEID.generate(entityNode.objectType);
+                        }
+                    }
+                    continue;
                 }
 
                 if (!doInsert) {
@@ -581,6 +591,29 @@ public with sharing class ATKCore {
     // ***********************
     // #region Utility Classes
     // ***********************
+    class Indexer {
+        Integer i = 0;
+    }
+
+    public class FakeId {
+        Map<Schema.SObjectType, Indexer> objectIdIndexes { get; set; }
+
+        {
+            objectIdIndexes = new Map<Schema.SObjectType, Indexer>();
+        }
+
+        public String generate(Schema.SObjectType objectType) {
+            if (!objectIdIndexes.containsKey(objectType)) {
+                objectIdIndexes.put(objectType, new Indexer());
+            }
+
+            Indexer idx = objectIdIndexes.get(objectType);
+            idx.i++;
+            return objectType.getDescribe().getKeyPrefix()
+                + '000zzzz' // start from a large Id to avoid confliction during unit test.
+                + String.valueOf(idx.i).leftPad(5, '0');
+        }
+    }
 
     public class StringBuilder {
         List<String> values { get; set; }
