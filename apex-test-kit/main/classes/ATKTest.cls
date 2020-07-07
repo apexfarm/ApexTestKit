@@ -32,10 +32,10 @@ public with sharing class ATKTest {
             Account acc = (Account)result.get(Account.SObjectType)[i];
             Contact contact1 = (Contact)result.get(Contact.SObjectType)[i * 2];
             Contact contact2 = (Contact)result.get(Contact.SObjectType)[i * 2 + 1];
-            Case case1 = (Case)result.get(Case.SObjectType)[i * 2];
-            Case case2 = (Case)result.get(Case.SObjectType)[i * 2 + 1];
-            Case case3 = (Case)result.get(Case.SObjectType)[i * 2];
-            Case case4 = (Case)result.get(Case.SObjectType)[i * 2 + 1];
+            Case case1 = (Case)result.get(Case.SObjectType)[i * 4];
+            Case case2 = (Case)result.get(Case.SObjectType)[i * 4 + 1];
+            Case case3 = (Case)result.get(Case.SObjectType)[i * 4 + 2];
+            Case case4 = (Case)result.get(Case.SObjectType)[i * 4 + 3];
 
             System.assertEquals(acc, contact1.Account);
             System.assertEquals(acc, contact2.Account);
@@ -47,6 +47,38 @@ public with sharing class ATKTest {
             System.assertEquals(contact1, case2.Contact);
             System.assertEquals(contact2, case3.Contact);
             System.assertEquals(contact2, case4.Contact);
+        }
+    }
+
+    @IsTest
+    static void test_OneToMany_mock() {
+        ATK.SaveResult result = ATK.prepare(Account.SObjectType, 10)
+            .withChildren(Case.SObjectType, Case.AccountId, 40)
+            .also()
+            .withChildren(Contact.SObjectType, Contact.AccountId, 20)
+                // in order to test this method
+                .withChildren(Case.SObjectType, Case.ContactId)
+            .save(false);
+
+        for (Integer i = 0; i < 10; i++) {
+            Account acc = (Account)result.get(Account.SObjectType)[i];
+            Contact contact1 = (Contact)result.get(Contact.SObjectType)[i * 2];
+            Contact contact2 = (Contact)result.get(Contact.SObjectType)[i * 2 + 1];
+            Case case1 = (Case)result.get(Case.SObjectType)[i * 4];
+            Case case2 = (Case)result.get(Case.SObjectType)[i * 4 + 1];
+            Case case3 = (Case)result.get(Case.SObjectType)[i * 4 + 2];
+            Case case4 = (Case)result.get(Case.SObjectType)[i * 4 + 3];
+
+            System.assertEquals(acc.Id, contact1.Account.Id);
+            System.assertEquals(acc.Id, contact2.Account.Id);
+            System.assertEquals(acc.Id, case1.Account.Id);
+            System.assertEquals(acc.Id, case2.Account.Id);
+            System.assertEquals(acc.Id, case3.Account.Id);
+            System.assertEquals(acc.Id, case4.Account.Id);
+            System.assertEquals(contact1.Id, case1.Contact.Id);
+            System.assertEquals(contact1.Id, case2.Contact.Id);
+            System.assertEquals(contact2.Id, case3.Contact.Id);
+            System.assertEquals(contact2.Id, case4.Contact.Id);
         }
     }
 
@@ -125,14 +157,15 @@ public with sharing class ATKTest {
                     .withParents(Account.SObjectType, Case.AccountId)
             .save(false);
 
+
         for (Integer i = 0; i < 10; i++) {
             Account acc = (Account)result.get(Account.SObjectType)[i];
             Contact contact1 = (Contact)result.get(Contact.SObjectType)[i * 2];
             Contact contact2 = (Contact)result.get(Contact.SObjectType)[i * 2 + 1];
-            Case case1 = (Case)result.get(Case.SObjectType)[i * 2];
-            Case case2 = (Case)result.get(Case.SObjectType)[i * 2 + 1];
-            Case case3 = (Case)result.get(Case.SObjectType)[i * 2];
-            Case case4 = (Case)result.get(Case.SObjectType)[i * 2 + 1];
+            Case case1 = (Case)result.get(Case.SObjectType)[i * 4];
+            Case case2 = (Case)result.get(Case.SObjectType)[i * 4 + 1];
+            Case case3 = (Case)result.get(Case.SObjectType)[i * 4 + 2];
+            Case case4 = (Case)result.get(Case.SObjectType)[i * 4 + 3];
 
             System.assertEquals(acc, contact1.Account);
             System.assertEquals(acc, contact2.Account);
@@ -148,9 +181,41 @@ public with sharing class ATKTest {
     }
 
     @IsTest
+    static void test_ManyToOne_Mock() {
+        ATK.SaveResult result = ATK.prepare(Account.SObjectType, 10)
+            .withChildren(Contact.SObjectType, Contact.AccountId, 20)
+                .withChildren(Case.SObjectType, Case.ContactId, 40)
+                    // in order to test this method
+                    .withParents(Account.SObjectType, Case.AccountId)
+            .mock();
+
+
+        for (Integer i = 0; i < 10; i++) {
+            Account acc = (Account)result.get(Account.SObjectType)[i];
+            Contact contact1 = (Contact)result.get(Contact.SObjectType)[i * 2];
+            Contact contact2 = (Contact)result.get(Contact.SObjectType)[i * 2 + 1];
+            Case case1 = (Case)result.get(Case.SObjectType)[i * 4];
+            Case case2 = (Case)result.get(Case.SObjectType)[i * 4 + 1];
+            Case case3 = (Case)result.get(Case.SObjectType)[i * 4 + 2];
+            Case case4 = (Case)result.get(Case.SObjectType)[i * 4 + 3];
+
+            System.assertEquals(acc.Id, contact1.Account.Id);
+            System.assertEquals(acc.Id, contact2.Account.Id);
+            System.assertEquals(acc.Id, case1.Account.Id);
+            System.assertEquals(acc.Id, case2.Account.Id);
+            System.assertEquals(acc.Id, case3.Account.Id);
+            System.assertEquals(acc.Id, case4.Account.Id);
+            System.assertEquals(contact1.Id, case1.Contact.Id);
+            System.assertEquals(contact1.Id, case2.Contact.Id);
+            System.assertEquals(contact2.Id, case3.Contact.Id);
+            System.assertEquals(contact2.Id, case4.Contact.Id);
+        }
+    }
+
+    @IsTest
     static void test_ManyToOne_Size() {
         ATK.SaveResult result = ATK.prepare(Contact.SObjectType, 20)
-            .withParents(Account.SObjectType, Contact.AccountId, 20)
+            .withParents(Account.SObjectType, Contact.AccountId, 10)
             .save(false);
 
         for (Integer i = 0; i < 10; i++) {
@@ -186,8 +251,8 @@ public with sharing class ATKTest {
             contacts.add(new Contact());
         }
 
-        ATK.SaveResult result = ATK.prepare(Contact.SObjectType, 20)
-            .withParents(Account.SObjectType, Contact.AccountId, 20)
+        ATK.SaveResult result = ATK.prepare(Contact.SObjectType, contacts)
+            .withParents(Account.SObjectType, Contact.AccountId, accounts)
             .save(false);
 
         for (Integer i = 0; i < 10; i++) {
@@ -257,7 +322,7 @@ public with sharing class ATKTest {
     static void test_Fields() {
         ATK.prepare(Account.SObjectType, 0)
             .recordType('==Fake Record Type==')
-            .field(new AccountFieldBuilder())
+            .build(new AccountEntityBuilder())
             .field(Account.Name).index('Name-{0000}')
             .field(Account.Name).repeat('A')
             .field(Account.Name).repeat('A', 'B')
@@ -282,7 +347,7 @@ public with sharing class ATKTest {
             .permissionSet(new List<String> {'==Fake Permission Set 1==', '==Fake Permission Set 2=='});
     }
 
-    class AccountFieldBuilder implements ATK.FieldBuilder {
+    class AccountEntityBuilder implements ATK.EntityBuilder {
         public void build(ATK.Entity accountEneity, Integer size) {
         }
     }

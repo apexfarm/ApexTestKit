@@ -1,6 +1,6 @@
 # Apex Test Kit
 
-![](https://img.shields.io/badge/version-3.1.0-brightgreen.svg) ![](https://img.shields.io/badge/build-passing-brightgreen.svg) ![](https://img.shields.io/badge/coverage-95%25-brightgreen.svg)
+![](https://img.shields.io/badge/version-3.2-brightgreen.svg) ![](https://img.shields.io/badge/build-passing-brightgreen.svg) ![](https://img.shields.io/badge/coverage-95%25-brightgreen.svg)
 
 Apex Test Kit is a Salesforce library to help generate massive records for either Apex test classes, or sandboxes. It solves two pain points during record creation:
 
@@ -9,12 +9,9 @@ Apex Test Kit is a Salesforce library to help generate massive records for eithe
 
 ------
 
-### **3.1 Release Notes**
+### **3.2 Release Notes**
 
-3.1 has some `breaking` changes, it shouldn't affect existing methods compilation, since the old APIs are still there. However some changes required to be made to prevent runtime errors.
-
-1. **<a href="#lookup-field-keywords">Lookup Field Keywords</a>** such as `recordType()` and `profile()` can no longer be chained after  `.field()`.
-2. **<a href="#entity-builder-factory">Entity Builder Factory</a>** is a proper name to reflect its responsibility, so ATK.FieldBuilder has been renamed to ATK.EntityBuilder, and has to be used with `.build(entityBuilder)`. ATK.FieldBuilder will be completely removed in the next version 3.2.
+**<a href="#command-api">Command API</a>**: A new `mock()` method is added. If it is used instead of `save()`, very large fake IDs of the SObjectType will be generated for the newly created SObjects. This is useful when used with a mock libray together.
 
 ------
 
@@ -69,10 +66,10 @@ To generate the above 2200 records and saving them into Salesforce, it will take
 
 ### Installation
 
-| Environment           | Install Link                                                 | Version   |
-| --------------------- | ------------------------------------------------------------ | --------- |
-| Production, Developer | <a target="_blank" href="https://login.salesforce.com/packaging/installPackage.apexp?p0=04t2v000007X3Q7AAK"><img src="docs/images/deploy-button.png"></a> | ver 3.1.0 |
-| Sandbox               | <a target="_blank" href="https://test.salesforce.com/packaging/installPackage.apexp?p0=04t2v000007X3Q7AAK"><img src="docs/images/deploy-button.png"></a> | ver 3.1.0 |
+| Environment           | Install Link                                                 | Version |
+| --------------------- | ------------------------------------------------------------ | ------- |
+| Production, Developer | <a target="_blank" href="https://login.salesforce.com/packaging/installPackage.apexp?p0=04t2v000007X4XzAAK"><img src="docs/images/deploy-button.png"></a> | ver 3.2 |
+| Sandbox               | <a target="_blank" href="https://test.salesforce.com/packaging/installPackage.apexp?p0=04t2v000007X4XzAAK"><img src="docs/images/deploy-button.png"></a> | ver 3.2 |
 
 ### Demos
 
@@ -138,7 +135,17 @@ ATK.prepare(Contact.SObjectType, 40)
     .save();
 ```
 
-## Keywords And APIs
+## Command API
+
+There are three ways to create the sObjects.
+
+| Method API                          | Description                                                  |
+| ----------------------------------- | ------------------------------------------------------------ |
+| SaveResult save()                   | Actual DMLs will be performed to insert/update sObjects into Salesforce. |
+| SaveResult save(Boolean *doInsert*) | If `doInsert` is `false`, no actual DMLs will be performed, just the in-memory generated SObjects will be returned. |
+| SaveResult mock()                   | No actual DMLs will be performed, but extremely large fake IDs of the sObjectType will be assigned to the newly created sObjects. |
+
+## Keywords API
 
 There are only two keyword categories Entity keyword and Field keyword. They are used to solve the two pain points we addressed at the beginning:
 

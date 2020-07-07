@@ -74,7 +74,16 @@ public with sharing class ATK implements Entity, Field {
     }
 
     public SaveResult save(Boolean doInsert) {
-        ATKCore.GENERATOR.generate(this.matrix, doInsert);
+        return generate(doInsert == true, false);
+    }
+
+    public SaveResult mock() {
+        return generate(false, true);
+    }
+
+
+    private SaveResult generate(Boolean doInsert, Boolean doMock) {
+        ATKCore.GENERATOR.generate(this.matrix, doInsert, doMock);
         SaveResult result = new SaveResult();
         for (ATKCore.EntityNode node : matrix.entityNodeCache) {
             if (!result.result.containsKey(node.objectType)) {
@@ -129,12 +138,6 @@ public with sharing class ATK implements Entity, Field {
 
     public Field field(SObjectField field) {
         this.matrix.currEntityNode.addField(field);
-        return sharedCommand;
-    }
-
-    // deprecating on 3.2.0
-    public Entity field(ATK.FieldBuilder builder) {
-        builder.build(sharedCommand, sharedCommand.matrix.currEntityNode.size);
         return sharedCommand;
     }
 
@@ -318,12 +321,12 @@ public with sharing class ATK implements Entity, Field {
         Entity also();
         Entity also(Integer depth);
         Entity build(ATK.EntityBuilder builder);
-        Entity field(ATK.FieldBuilder builder); // deprecating on 3.2.0
         Field field(SObjectField field);
 
         // keywords to end with
         SaveResult save();
         SaveResult save(Boolean doInsert);
+        SaveResult mock();
 
         // keywords to lookup relation
         Entity recordType(String name);
@@ -367,10 +370,6 @@ public with sharing class ATK implements Entity, Field {
 
     public interface EntityBuilder {
         void build(Entity entity, Integer size);
-    }
-
-    // deprecating on 3.2.0
-    public interface FieldBuilder extends EntityBuilder {
     }
     // #endregion
     // ******************

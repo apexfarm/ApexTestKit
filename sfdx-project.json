@@ -3,8 +3,8 @@
         {
             "path": "apex-test-kit",
             "package": "ApexTestKit",
-            "versionName": "ver 3.1.0",
-            "versionNumber": "3.1.0.NEXT",
+            "versionName": "ver 3.2.0",
+            "versionNumber": "3.2.0.NEXT",
             "default": true
         }
     ],
@@ -16,6 +16,7 @@
         "ApexTestKit@3.0.0-2": "04t2v000007X2zHAAS",
         "ApexTestKit@3.0.1-1": "04t2v000007X3BAAA0",
         "ApexTestKit@3.0.2-1": "04t2v000007X3LqAAK",
-        "ApexTestKit@3.1.0-1": "04t2v000007X3Q7AAK"
+        "ApexTestKit@3.1.0-1": "04t2v000007X3Q7AAK",
+        "ApexTestKit@3.2.0-1": "04t2v000007X4XzAAK"
     }
 }
