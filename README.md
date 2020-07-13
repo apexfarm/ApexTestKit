@@ -1,6 +1,6 @@
 # Apex Test Kit
 
-![](https://img.shields.io/badge/version-3.2-brightgreen.svg) ![](https://img.shields.io/badge/build-passing-brightgreen.svg) ![](https://img.shields.io/badge/coverage-95%25-brightgreen.svg)
+![](https://img.shields.io/badge/version-3.2.1-brightgreen.svg) ![](https://img.shields.io/badge/build-passing-brightgreen.svg) ![](https://img.shields.io/badge/coverage-95%25-brightgreen.svg)
 
 Apex Test Kit is a Salesforce library to help generate massive records for either Apex test classes, or sandboxes. It solves two pain points during record creation:
 
@@ -68,8 +68,8 @@ To generate the above 2200 records and saving them into Salesforce, it will take
 
 | Environment           | Install Link                                                 | Version |
 | --------------------- | ------------------------------------------------------------ | ------- |
-| Production, Developer | <a target="_blank" href="https://login.salesforce.com/packaging/installPackage.apexp?p0=04t2v000007X4XzAAK"><img src="docs/images/deploy-button.png"></a> | ver 3.2 |
-| Sandbox               | <a target="_blank" href="https://test.salesforce.com/packaging/installPackage.apexp?p0=04t2v000007X4XzAAK"><img src="docs/images/deploy-button.png"></a> | ver 3.2 |
+| Production, Developer | <a target="_blank" href="https://login.salesforce.com/packaging/installPackage.apexp?p0=04t2v000007X4qeAAC"><img src="docs/images/deploy-button.png"></a> | ver 3.2.1 |
+| Sandbox               | <a target="_blank" href="https://test.salesforce.com/packaging/installPackage.apexp?p0=04t2v000007X4qeAAC"><img src="docs/images/deploy-button.png"></a> | ver 3.2.1 |
 
 ### Demos
 
