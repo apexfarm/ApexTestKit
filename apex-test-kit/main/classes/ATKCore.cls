@@ -859,7 +859,7 @@ public with sharing class ATKCore {
                             Name,
                             SObjectType
                         FROM RecordType]) {
-                        if (!recordTypeIdByName.containsKey(recordType.SObjectType)) {
+                        if (!recordTypeIdByName.containsKey(recordType.SObjectType.toUpperCase())) {
                             recordTypeIdByName.put(recordType.SObjectType.toUpperCase(), new Map<String, Id> {
                                 recordType.DeveloperName.toUpperCase() => recordType.Id,
                                 recordType.Name.toUpperCase() => recordType.Id
