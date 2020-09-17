@@ -25,6 +25,294 @@ public with sharing class ATKCore {
     private static final FakeId FAKEID = new FakeId();
 
     // ************************
+    // #region SObject Creation
+    // ************************
+
+    public class Generator {
+        public Map<Schema.SObjectType, Map<Schema.SObjectField, Integer>> indexes { get; set; }
+
+        {
+            indexes = new Map<Schema.SObjectType, Map<Schema.SObjectField, Integer>>();
+        }
+
+        public void generate(EntityNodeMatrix iterator, Boolean doInsert, Boolean doMock) {
+            iterator.reset();
+            while (iterator.hasNext()) {
+                EntityNode entityNode = iterator.next();
+                Boolean needUpsert = true;
+                if (entityNode.objects.size() == 0) {
+                    needUpsert = false;
+                    entityNode.objects.addAll(createObjects(entityNode, doMock));
+                }
+
+                if (entityNode.size > 0) {
+                    assignWritableFields(entityNode);
+                    assignReferences(entityNode);
+                }
+
+                if (!doInsert || doMock) {
+                    continue;
+                }
+
+                if (needUpsert) {
+                    // upsert doesn't work on list of generic sObject types
+                    List<SObject> updateList = new List<SObject>();
+                    List<SObject> insertList = new List<SObject>();
+                    for (SObject obj : entityNode.objects) {
+                        if (obj.Id == null) {
+                            insertList.add(obj);
+                        } else {
+                            updateList.add(obj);
+                        }
+                    }
+                    if (updateList.size() > 0) {
+                        Database.update(updateList);
+                    }
+                    if (insertList.size() > 0) {
+                        Database.insert(insertList);
+                    }
+                } else {
+                    Database.insert(entityNode.objects);
+                }
+            }
+        }
+
+        public List<SObject> createObjects(EntityNode entityNode, Boolean doMock) {
+            List<SObject> objects = new List<SObject>();
+            if (doMock && entityNode.readonlyFields.size() > 0) {
+                objects = buildSObjectListByBatch(entityNode, 200);
+            } else {
+                Schema.SObjectType objectType = entityNode.objectType;
+                for (Integer i = 0; i < entityNode.size; ++i) {
+                    objects.add(objectType.newSObject());
+                }
+            }
+
+            if (doMock) {
+                List<Id> ids = FAKEID.generate(entityNode.objectType, objects.size());
+                for (Integer i = 0; i < objects.size(); i++) {
+                    if (objects[i].Id == null) {
+                        objects[i].Id = ids[i];
+                    }
+                }
+            }
+            return objects;
+        }
+
+        private List<SObject> buildSObjectListByBatch(EntityNode entityNode, Integer numberPerBatch) {
+            List<SObject> objects = new List<SObject>();
+            for (Integer i = 0; i * numberPerBatch < entityNode.size; i++) {
+                Integer endIndex = Math.min((i + 1) * numberPerBatch, entityNode.size);
+                String objectArrayJSON = buildSObjectArrayJSON(entityNode, i * numberPerBatch, endIndex);
+                objects.addAll((List<SObject>)JSON.deserialize(objectArrayJSON, List<SObject>.class));
+            }
+            return objects;
+        }
+
+        private String buildSObjectArrayJSON(EntityNode entityNode, Integer startIndex, Integer endIndex) {
+
+            List<Map<String, String>> fieldMaps = assignReadonlyFields(
+                entityNode.objectType, entityNode.readonlyFields, startIndex, endIndex);
+
+            StringBuilder builder = new StringBuilder();
+            builder.append('[');
+            for (Integer i = 0; i < endIndex - startIndex; ++i) {
+                if (i > 0) {
+                    builder.append(', ');
+                }
+                builder.append(buildSObjectJson(entityNode.dsr.getName(), fieldMaps[i]));
+            }
+            builder.append(']');
+            return builder.toString();
+        }
+
+        private StringBuilder buildSObjectJson(String objectName, Map<String, String> fieldMap) {
+            StringBuilder builder = new StringBuilder();
+            builder.append('{');
+            builder.append('"attributes":{"type":"'+ objectName +'"}');
+            for (String key : fieldMap.keySet()) {
+                String value = fieldMap.get(key);
+                builder.append(String.format(', "{0}": "{1}"', new List<String> { key, value}));
+            }
+            builder.append('}');
+            return builder;
+        }
+
+        public List<Map<String, String>> assignReadonlyFields(
+            SObjectType objectType, List<EntityField> entityFields, Integer startIndex, Integer endIndex) {
+
+            List<Map<String, String>> fieldMaps = new List<Map<String, String>>();
+            for (Integer i = startIndex; i < endIndex; ++i) {
+                fieldMaps.add(new Map<String, String>());
+            }
+
+            for (EntityField entityField : entityFields) {
+                if (entityField.isArithmetic) {
+                    switch on entityField.dfr.getType() {
+                        when DATE {
+                            Date init = Converter.toDate(entityField.initValue);
+                            Integer step = Converter.toInteger(entityField.stepVAlue);
+                            for (Integer i = startIndex; i < endIndex; ++i) {
+                                fieldMaps[0].put(entityField.dfr.getName(), String.valueOf(entityField.getValue(init, step, i)));
+                            }
+                        }
+                        when DATETIME {
+                            Datetime init = Converter.toDatetime(entityField.initValue);
+                            Integer step = Converter.toInteger(entityField.stepVAlue);
+                            for (Integer i = startIndex; i < endIndex; ++i) {
+                                fieldMaps[0].put(entityField.dfr.getName(), String.valueOf(entityField.getValue(init, step, i)));
+                            }
+                        }
+                        when TIME {
+                            Time init = Converter.toTime(entityField.initValue);
+                            Integer step = Converter.toInteger(entityField.stepVAlue);
+                            for (Integer i = startIndex; i < endIndex; ++i) {
+                                fieldMaps[0].put(entityField.dfr.getName(), String.valueOf(entityField.getValue(init, step, i)));
+                            }
+                        }
+                        when DOUBLE, INTEGER, PERCENT, CURRENCY {
+                            Decimal init = Converter.toDecimal(entityField.initValue);
+                            Decimal step = Converter.toDecimal(entityField.stepVAlue);
+                            for (Integer i = startIndex; i < endIndex; ++i) {
+                                fieldMaps[0].put(entityField.dfr.getName(), String.valueOf(entityField.getValue(init, step, i)));
+                            }
+                        }
+                    }
+                } else {
+                    Integer start = reserveIndex(objectType, entityField.field, endIndex - startIndex);
+                    for (Integer i = startIndex; i < endIndex; ++i) {
+                        Object value = entityField.getValue(i + start);
+                        fieldMaps[0].put(entityField.dfr.getName(), String.valueOf(value));
+                    }
+                }
+            }
+            return fieldMaps;
+        }
+
+        public void assignWritableFields(EntityNode entityNode) {
+            List<SObject> objects = entityNode.objects;
+            Integer size = objects.size();
+
+            for (EntityField entityField : entityNode.writableFields) {
+                if (entityField.isArithmetic) {
+                    switch on entityField.dfr.getType() {
+                        when DATE {
+                            Date init = Converter.toDate(entityField.initValue);
+                            Integer step = Converter.toInteger(entityField.stepVAlue);
+                            for (Integer i = 0; i < size; ++i) {
+                                objects[i].put(entityField.field, entityField.getValue(init, step, i));
+                            }
+                        }
+                        when DATETIME {
+                            Datetime init = Converter.toDatetime(entityField.initValue);
+                            Integer step = Converter.toInteger(entityField.stepVAlue);
+                            for (Integer i = 0; i < size; ++i) {
+                                objects[i].put(entityField.field, entityField.getValue(init, step, i));
+                            }
+                        }
+                        when TIME {
+                            Time init = Converter.toTime(entityField.initValue);
+                            Integer step = Converter.toInteger(entityField.stepVAlue);
+                            for (Integer i = 0; i < size; ++i) {
+                                objects[i].put(entityField.field, entityField.getValue(init, step, i));
+                            }
+                        }
+                        when DOUBLE, INTEGER, PERCENT, CURRENCY {
+                            Decimal init = Converter.toDecimal(entityField.initValue);
+                            Decimal step = Converter.toDecimal(entityField.stepVAlue);
+                            for (Integer i = 0; i < size; ++i) {
+                                objects[i].put(entityField.field, entityField.getValue(init, step, i));
+                            }
+                        }
+                    }
+                } else {
+                    Integer index = reserveIndex(entityNode.objectType, entityField.field, size);
+                    for (Integer i = 0; i < size; ++i) {
+                        Object value = entityField.getValue(i + index);
+                        objects[i].put(entityField.field, value);
+                    }
+                }
+            }
+        }
+
+        public Integer reserveIndex(SObjectType objectType, SObjectField field, Integer size) {
+            if(!indexes.containsKey(objectType)) {
+                indexes.put(objectType, new Map<Schema.SObjectField, Integer> {
+                    field => 0
+                });
+            } else if (!indexes.get(objectType).containsKey(field)) {
+                indexes.get(objectType).put(field, 0);
+            }
+            Integer index = indexes.get(objectType).get(field);
+            indexes.get(objectType).put(field, index + size);
+            return index;
+        }
+
+        @TestVisible
+        void assignReferences(EntityNode entityNode) {
+            if (entityNode.referenceToMap != null
+                && entityNode.referenceToMap.size() > 0
+                && entityNode.objects != null) {
+
+                List<SObject> childObjectList = entityNode.objects;
+
+                for (Schema.SObjectField referenceField : entityNode.referenceFields) {
+                    String relationshipName = referenceField.getDescribe().getRelationshipName();
+                    List<SObject> parentObjectList = entityNode.referenceToMap.get(referenceField).objects;
+
+                    // Open comment for debug purpose
+                    // System.debug(String.format('{0} -> {1}', new List<Object> { entityNode.objectType, relationshipName }));
+                    // System.debug(String.format('{0} -> {1}', new List<Object> { childObjectList.size(), parentObjectList.size() }));
+
+                    for (List<SObject> pair : DISTRIBUTOR.distribute(childObjectList, parentObjectList)) {
+                        // pair[0] = child
+                        // pair[1] = parent
+                        pair[0].put(referenceField, pair[1].Id);
+                        pair[0].putSObject(relationshipName, pair[1]);
+                    }
+                }
+            }
+        }
+    }
+
+    public class Distributor {
+
+        public List<List<SObject>> distribute(List<SObject> leftGroup, List<SObject> rightGroup) {
+            List<List<SObject>> groups = new List<List<SObject>>();
+
+            Integer l = leftGroup.size();
+            Integer r = rightGroup.size();
+            Integer s = l / r;
+            Integer remainder = Math.mod(l, r);
+
+            /*
+             * Balanced Set Distribution
+             * { i0, i1, i2, i3, i4 } => { j0, j1 }; then s = 2, reminder = 1
+             *                       ↓↓↓
+             *                     i0 - j0
+             *                     i1 - j0
+             *                     i2 - j0
+             *                     i3 - j1
+             *                     i4 - j1
+             */
+            for (Integer i = 0, j = 0; i < l; ++i) {
+                if (j < remainder) {
+                    j = i / (s + 1);
+                } else {
+                    j = (i - remainder) / s;
+                }
+                groups.add(new List<SObject>{
+                    leftGroup[i], rightGroup[j]
+                });
+            }
+            return groups;
+        }
+    }
+
+    // #endregion
+    // ************************
+
+    // ************************
     // #region Graph Definition
     // ************************
     public class EntityNodeMatrix implements Iterator<EntityNode> {
@@ -82,6 +370,42 @@ public with sharing class ATKCore {
             }
         }
 
+        public void add(EntityNodeType nodeType, EntityNode nextEntityNode, Schema.SObjectField referenceField) {
+            switch on nodeType {
+                when PREPARE {
+                    rowIndex = 0;
+                    colIndex = 0;
+                    entityNodeMatrix.add(new List<EntityNode>());
+                    entityNodeMatrix.get(rowIndex).add(nextEntityNode);
+                }
+                when MANY_TO_ONE {
+                    if (rowIndex > 0) {
+                        rowIndex -= 1;
+                        entityNodeMatrix.get(rowIndex).add(nextEntityNode);
+                        colIndex = entityNodeMatrix.get(rowIndex).size() - 1;
+                    } else {
+                        rowIndex = 0;
+                        colIndex = 0;
+                        entityNodeMatrix.add(rowIndex, new List<EntityNode>());
+                        entityNodeMatrix.get(rowIndex).add(nextEntityNode);
+                    }
+                }
+                when ONE_TO_MANY {
+                    rowIndex += 1;
+                    if (rowIndex == entityNodeMatrix.size()) {
+                        colIndex = 0;
+                        entityNodeMatrix.add(new List<EntityNode>());
+                        entityNodeMatrix.get(rowIndex).add(nextEntityNode);
+                    } else {
+                        colIndex = entityNodeMatrix.get(rowIndex).size();
+                        entityNodeMatrix.get(rowIndex).add(nextEntityNode);
+                    }
+                }
+            }
+
+            attach(nodeType, nextEntityNode, referenceField);
+        }
+
         public void add(EntityNodeType nodeType, Schema.SObjectType objectType, Schema.SObjectField referenceField) {
             Integer currRowIndex = rowIndex;
             Integer currColIndex = colIndex;
@@ -130,42 +454,6 @@ public with sharing class ATKCore {
             }
         }
 
-        public void add(EntityNodeType nodeType, EntityNode nextEntityNode, Schema.SObjectField referenceField) {
-            switch on nodeType {
-                when PREPARE {
-                    rowIndex = 0;
-                    colIndex = 0;
-                    entityNodeMatrix.add(new List<EntityNode>());
-                    entityNodeMatrix.get(rowIndex).add(nextEntityNode);
-                }
-                when MANY_TO_ONE {
-                    if (rowIndex > 0) {
-                        rowIndex -= 1;
-                        entityNodeMatrix.get(rowIndex).add(nextEntityNode);
-                        colIndex = entityNodeMatrix.get(rowIndex).size() - 1;
-                    } else {
-                        rowIndex = 0;
-                        colIndex = 0;
-                        entityNodeMatrix.add(rowIndex, new List<EntityNode>());
-                        entityNodeMatrix.get(rowIndex).add(nextEntityNode);
-                    }
-                }
-                when ONE_TO_MANY {
-                    rowIndex += 1;
-                    if (rowIndex == entityNodeMatrix.size()) {
-                        colIndex = 0;
-                        entityNodeMatrix.add(new List<EntityNode>());
-                        entityNodeMatrix.get(rowIndex).add(nextEntityNode);
-                    } else {
-                        colIndex = entityNodeMatrix.get(rowIndex).size();
-                        entityNodeMatrix.get(rowIndex).add(nextEntityNode);
-                    }
-                }
-            }
-
-            attach(nodeType, nextEntityNode, referenceField);
-        }
-
         void attach(EntityNodeType nodeType, EntityNode nextEntityNode, Schema.SObjectField referenceField) {
             entityNodeStack.add(nextEntityNode);
             entityNodeCache.add(nextEntityNode);
@@ -198,10 +486,10 @@ public with sharing class ATKCore {
         public List<Schema.SObjectField> referenceFields { get; set; }
         public List<SObject> objects { get; set; }
 
-
-        public Map<Schema.SObjectField, EntityField> fieldMap { get; set; }
-        public List<EntityField> fieldCache { get; set; }
         public EntityField currEntityField { get; set; }
+        public Map<Schema.SObjectField, EntityField> fieldMap { get; set; }
+        private List<EntityField> writableFields { get; set; }
+        private List<EntityField> readonlyFields { get; set; }
 
         public EntityNode(Schema.SObjectType objectType) {
             this.objectType = objectType;
@@ -210,7 +498,8 @@ public with sharing class ATKCore {
             this.referenceToMap = new Map<Schema.SObjectField, EntityNode>();
             this.referenceFields = new List<Schema.SObjectField>();
             this.fieldMap = new Map<Schema.SObjectField, EntityField>();
-            this.fieldCache = new List<EntityField>();
+            this.writableFields = new List<EntityField>();
+            this.readonlyFields = new List<EntityField>();
         }
 
         public EntityNode(Schema.SObjectType objectType, Integer size) {
@@ -232,7 +521,11 @@ public with sharing class ATKCore {
             } else {
                 entityField = new EntityField(field);
                 this.fieldMap.put(field, entityField);
-                this.fieldCache.add(entityField);
+                if (entityField.dfr.isCalculated()) {
+                    this.readonlyFields.add(entityField);
+                } else {
+                    this.writableFields.add(entityField);
+                }
             }
             this.currEntityField = entityField;
         }
@@ -261,7 +554,6 @@ public with sharing class ATKCore {
         // Fixed Value
         public Object fixedValue { get; set; }
         public Integer indexLength { get; set; }
-        public Boolean uniqueIndex { get; set; }
         public String indexFormat { get;
             set {
                 indexFormat = value;
@@ -282,7 +574,6 @@ public with sharing class ATKCore {
         public EntityField(Schema.SObjectField field) {
             this.field = field;
             this.dfr = this.field.getDescribe();
-            this.uniqueIndex = true;
         }
 
         Boolean isIndexed {
@@ -400,194 +691,6 @@ public with sharing class ATKCore {
     // #endregion
     // ************************
 
-    // ************************
-    // #region SObject Creation
-    // ************************
-
-    public class Generator {
-        public Map<Schema.SObjectType, Map<Schema.SObjectField, Integer>> indexes { get; set; }
-
-        {
-            indexes = new Map<Schema.SObjectType, Map<Schema.SObjectField, Integer>>();
-        }
-
-        public void generate(EntityNodeMatrix iterator, Boolean doInsert, Boolean doMock) {
-            iterator.reset();
-            while (iterator.hasNext()) {
-                EntityNode entityNode = iterator.next();
-                Boolean needUpsert = true;
-                if (entityNode.objects.size() == 0) {
-                    needUpsert = false;
-                    Schema.SObjectType objectType = entityNode.objectType;
-                    for (Integer i = 0; i < entityNode.size; ++i) {
-                        SObject obj = objectType.newSObject();
-                        entityNode.objects.add(obj);
-                    }
-                }
-
-                if (entityNode.size > 0) {
-                    assignFields(entityNode);
-                    assignReference(entityNode, doInsert);
-                }
-
-                if (doMock) {
-                    for (SObject obj : entityNode.objects) {
-                        if (obj.Id == null) {
-                            obj.Id = FAKEID.generate(entityNode.objectType);
-                        }
-                    }
-                    continue;
-                }
-
-                if (!doInsert) {
-                    continue;
-                }
-
-                if (needUpsert) {
-                    // upsert doesn't work on list of generic sObject types
-                    List<SObject> updateList = new List<SObject>();
-                    List<SObject> insertList = new List<SObject>();
-                    for (SObject obj : entityNode.objects) {
-                        if (obj.Id == null) {
-                            insertList.add(obj);
-                        } else {
-                            updateList.add(obj);
-                        }
-                    }
-                    if (updateList.size() > 0) {
-                        Database.update(updateList);
-                    }
-                    if (insertList.size() > 0) {
-                        Database.insert(insertList);
-                    }
-                } else {
-                    Database.insert(entityNode.objects);
-                }
-            }
-        }
-
-        public void assignFields(EntityNode entityNode) {
-            List<SObject> objects = entityNode.objects;
-            Integer size = objects.size();
-
-            for (EntityField entityField : entityNode.fieldCache) {
-                if (entityField.isArithmetic) {
-                    switch on entityField.dfr.getType() {
-                        when DATE {
-                            Date init = Converter.toDate(entityField.initValue);
-                            Integer step = Converter.toInteger(entityField.stepVAlue);
-                            for (Integer i = 0; i < size; ++i) {
-                                objects[i].put(entityField.field, entityField.getValue(init, step, i));
-                            }
-                        }
-                        when DATETIME {
-                            Datetime init = Converter.toDatetime(entityField.initValue);
-                            Integer step = Converter.toInteger(entityField.stepVAlue);
-                            for (Integer i = 0; i < size; ++i) {
-                                objects[i].put(entityField.field, entityField.getValue(init, step, i));
-                            }
-                        }
-                        when TIME {
-                            Time init = Converter.toTime(entityField.initValue);
-                            Integer step = Converter.toInteger(entityField.stepVAlue);
-                            for (Integer i = 0; i < size; ++i) {
-                                objects[i].put(entityField.field, entityField.getValue(init, step, i));
-                            }
-                        }
-                        when DOUBLE, INTEGER, PERCENT, CURRENCY {
-                            Decimal init = Converter.toDecimal(entityField.initValue);
-                            Decimal step = Converter.toDecimal(entityField.stepVAlue);
-                            for (Integer i = 0; i < size; ++i) {
-                                objects[i].put(entityField.field, entityField.getValue(init, step, i));
-                            }
-                        }
-                    }
-                } else {
-                    Integer index = 0;
-                    if (entityField.uniqueIndex) {
-                        if(!indexes.containsKey(entityNode.objectType)) {
-                            indexes.put(entityNode.objectType, new Map<Schema.SObjectField, Integer> {
-                                entityField.field => 0
-                            });
-                        } else if (!indexes.get(entityNode.objectType).containsKey(entityField.field)) {
-                            indexes.get(entityNode.objectType).put(entityField.field, 0);
-                        }
-                        index = indexes.get(entityNode.objectType).get(entityField.field);
-                        indexes.get(entityNode.objectType).put(entityField.field, index + size);
-                    }
-
-                    for (Integer i = 0; i < size; ++i) {
-                        Object value = entityField.getValue(i + index);
-                        objects[i].put(entityField.field, value);
-                    }
-                }
-            }
-        }
-
-        @TestVisible
-        void assignReference(EntityNode entityNode, Boolean doInsert) {
-            if (entityNode.referenceToMap != null
-                && entityNode.referenceToMap.size() > 0
-                && entityNode.objects != null) {
-
-                List<SObject> childObjectList = entityNode.objects;
-
-                for (Schema.SObjectField referenceField : entityNode.referenceFields) {
-                    String relationshipName = referenceField.getDescribe().getRelationshipName();
-                    List<SObject> parentObjectList = entityNode.referenceToMap.get(referenceField).objects;
-
-                    // Open comment for debug purpose
-                    // System.debug(String.format('{0} -> {1}', new List<Object> { entityNode.objectType, relationshipName }));
-                    // System.debug(String.format('{0} -> {1}', new List<Object> { childObjectList.size(), parentObjectList.size() }));
-
-                    for (List<SObject> pair : DISTRIBUTOR.distribute(childObjectList, parentObjectList)) {
-                        // pair[0] = child
-                        // pair[1] = parent
-                        pair[0].put(referenceField, pair[1].Id);
-                        pair[0].putSObject(relationshipName, pair[1]);
-                    }
-                }
-            }
-        }
-    }
-
-    public class Distributor {
-
-        public List<List<SObject>> distribute(List<SObject> leftGroup, List<SObject> rightGroup) {
-            List<List<SObject>> groups = new List<List<SObject>>();
-
-            Integer l = leftGroup.size();
-            Integer r = rightGroup.size();
-            Integer s = l / r;
-            Integer remainder = Math.mod(l, r);
-
-            /*
-             * Balanced Set Distribution
-             * { i0, i1, i2, i3, i4 } => { j0, j1 }; then s = 2, reminder = 1
-             *                       ↓↓↓
-             *                     i0 - j0
-             *                     i1 - j0
-             *                     i2 - j0
-             *                     i3 - j1
-             *                     i4 - j1
-             */
-            for (Integer i = 0, j = 0; i < l; ++i) {
-                if (j < remainder) {
-                    j = i / (s + 1);
-                } else {
-                    j = (i - remainder) / s;
-                }
-                groups.add(new List<SObject>{
-                    leftGroup[i], rightGroup[j]
-                });
-            }
-            return groups;
-        }
-    }
-
-    // #endregion
-    // ************************
-
     // ***********************
     // #region Utility Classes
     // ***********************
@@ -612,6 +715,21 @@ public with sharing class ATKCore {
             return objectType.getDescribe().getKeyPrefix()
                 + '000zzzz' // start from a large Id to avoid confliction during unit test.
                 + String.valueOf(idx.i).leftPad(5, '0');
+        }
+
+        public List<String> generate(Schema.SObjectType objectType, Integer size) {
+            List<String> ids = new List<String>();
+            if (!objectIdIndexes.containsKey(objectType)) {
+                objectIdIndexes.put(objectType, new Indexer());
+            }
+
+            Indexer idx = objectIdIndexes.get(objectType);
+            // start from a large Id to avoid confliction during unit test.
+            String prefix = objectType.getDescribe().getKeyPrefix() + '000zzzz';
+            for (Integer i = 0; i < size; i++) {
+                ids.add(prefix + String.valueOf(++idx.i).leftPad(5, '0'));
+            }
+            return ids;
         }
     }
 
@@ -847,43 +965,12 @@ public with sharing class ATKCore {
     }
 
     public class RecordTypes {
-        @TestVisible
-        Map<String, Map<String, Id>> recordTypeIdByName {
-            get {
-                if (recordTypeIdByName == null) {
-                    recordTypeIdByName = new Map<String, Map<String, Id>>();
-                    for (RecordType recordType : [SELECT
-                            Id,
-                            DeveloperName,
-                            NamespacePrefix,
-                            Name,
-                            SObjectType
-                        FROM RecordType]) {
-                        if (!recordTypeIdByName.containsKey(recordType.SObjectType.toUpperCase())) {
-                            recordTypeIdByName.put(recordType.SObjectType.toUpperCase(), new Map<String, Id> {
-                                recordType.DeveloperName.toUpperCase() => recordType.Id,
-                                recordType.Name.toUpperCase() => recordType.Id
-                            });
-                        } else {
-                            recordTypeIdByName.get(recordType.SObjectType.toUpperCase())
-                                .put(recordType.DeveloperName.toUpperCase(), recordType.Id);
-                            recordTypeIdByName.get(recordType.SObjectType.toUpperCase())
-                                .put(recordType.Name.toUpperCase(), recordType.Id);
-                        }
-                    }
-                }
-                return recordTypeIdByName;
+        public Id getId(DescribeSObjectResult dsr, String developerName) {
+            RecordTypeInfo recordTypeInfo = dsr.getRecordTypeInfosByDeveloperName().get(developerName);
+            if (recordTypeInfo != null) {
+                return recordTypeInfo.getRecordTypeId();
             }
-            set;
-        }
-
-        public Id getId(SObjectType objectType, String name) {
-            Map<String, Id> recordTypeIds = recordTypeIdByName.get(String.valueOf(objectType).toUpperCase());
-            if (recordTypeIds != null) {
-                return recordTypeIds.get(name.toUpperCase());
-            } else {
-                return null;
-            }
+            return null;
         }
     }
 

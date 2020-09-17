@@ -158,7 +158,7 @@ public with sharing class ATK implements Entity, Field {
             .fields.getMap().get('RecordTypeId');
         if (recordTypeIdField != null) {
             sharedCommand.field(recordTypeIdField).repeat(ATKCore.RECORD_TYPES
-                .getId(this.matrix.currEntityNode.objectType, name));
+                .getId(this.matrix.currEntityNode.dsr, name));
         }
         return sharedCommand;
     }
@@ -199,7 +199,6 @@ public with sharing class ATK implements Entity, Field {
 
     public Entity index(String format) {
         this.matrix.currEntityNode.currEntityField.indexFormat = format;
-        this.matrix.currEntityNode.currEntityField.uniqueIndex = true;
         return sharedCommand;
     }
 

@@ -398,7 +398,7 @@ public with sharing class ATKCoreTest {
                 new List<Account> {new Account(), new Account(), new Account()}), null);
             matrix.add(ATKCore.EntityNodeType.ONE_TO_MANY, new ATKCore.EntityNode(Contact.SObjectType,
                 new List<Contact> {new Contact(), new Contact(), new Contact()}), Contact.AccountId);
-            generator.assignReference(matrix.currEntityNode, true);
+            generator.assignReferences(matrix.currEntityNode);
         }
     }
 
@@ -433,9 +433,14 @@ public with sharing class ATKCoreTest {
         ATKCore.Generator generator = new ATKCore.Generator();
         {
             ATKCore.EntityNodeMatrix matrix = new ATKCore.EntityNodeMatrix();
-            matrix.add(ATKCore.EntityNodeType.PREPARE, new ATKCore.EntityNode(Account.SObjectType,
-                new List<Account> {new Account(), new Account(), new Account()}), null);
-            matrix.add(ATKCore.EntityNodeType.ONE_TO_MANY, new ATKCore.EntityNode(Contact.SObjectType, 3), Contact.AccountId);
+            matrix.add(ATKCore.EntityNodeType.PREPARE,
+                new ATKCore.EntityNode(Account.SObjectType,
+                    new List<Account> {new Account(), new Account(), new Account()})
+                , null);
+            matrix.add(ATKCore.EntityNodeType.ONE_TO_MANY,
+                new ATKCore.EntityNode(Contact.SObjectType, 3),
+                Contact.AccountId);
+
             generator.generate(matrix, false, true);
 
             System.assertEquals(2, matrix.entityNodeCache.size());
@@ -606,27 +611,25 @@ public with sharing class ATKCoreTest {
             System.assertEquals(null, profileId);
         }
 
-        {
-            try {
-                Profile profile = [
-                    SELECT Id, Name
-                    FROM Profile
-                    WHERE Name = 'System Administrator'
-                    WITH SECURITY_ENFORCED];
-                if (profile != null) {
-                    Id profileId = ATKCore.PROFILES.getId('System Administrator');
-                    System.assertEquals(profile.Id, profileId);
-                }
-            } catch(System.QueryException ex) {
-
+        try {
+            Profile profile = [
+                SELECT Id, Name
+                FROM Profile
+                WHERE Name = 'System Administrator'
+                WITH SECURITY_ENFORCED];
+            if (profile != null) {
+                Id profileId = ATKCore.PROFILES.getId('System Administrator');
+                System.assertEquals(profile.Id, profileId);
             }
+        } catch(System.QueryException ex) {
+
         }
     }
 
     @IsTest
     static void test_Util_RecordTypes() {
         {
-            Id recordTypeId = ATKCore.RECORD_TYPES.getId(Account.SObjectType, '==Fake Record Type==');
+            Id recordTypeId = ATKCore.RECORD_TYPES.getId(Account.SObjectType.getDescribe(), '==Fake Record Type==');
             System.assertEquals(null, recordTypeId);
         }
     }
