@@ -96,9 +96,9 @@ ATK.SaveResult result = ATK.prepare(Account.SObjectType, 200)
 
 ### Performance
 
-To `.save()` the above 2200 records, it will take ~3000 CPU time. That's already 1/3 of the Maximum CPU time. However, if we use `.mock()` without saving them, and just create them in the memory, it will take ~700 CPU time.
+To `.save()` the above 2200 records, it will take ~3000 CPU time. That's already 1/3 of the Maximum CPU time. However, if we use `.mock()` to just create them in the memory, it will take ~700 CPU time.
 
-**Benchmark**: Insert 1000 accounts without duplicate rules, process builders, and triggers etc. The scripts used for 
+**Benchmark**: Insert 1000 accounts without duplicate rules, process builders, and triggers etc. The scripts used to perform benchmark testing are documented under `scripts/apex/benchmark.apex`.
 
 | 1000 * Account | Database.insert() | ATK Save() | ATK Mock() | Save/Mock |
 | -------------- | ----------------- | ---------- | ---------- | --------- |
@@ -288,20 +288,20 @@ These are field keywords in nature, but don't need to be chained after `.field(S
 ```java
 ATK.prepare(User.SObjectType, 10)
     .profile('Chatter Free User')      // must be applied to User SObject
-    .permissionSet('Survey Creator');  // must be applied to User SObject
+    .permissionSet('Survey_Creator');  // must be applied to User SObject
 
 ATK.prepare(Account.SObjectType, 10)
-    .recordType('Business Account');
+    .recordType('Business_Account');
 ```
 
-| Keyword API                                                  | Description                                                  |
-| ------------------------------------------------------------ | ------------------------------------------------------------ |
-| recordType(String *name*)                                    | Assign record type ID by developer name and case sensitive.  |
-| profile(String *name*)                                       | Assign profile ID by profile name.                           |
-| permissionSet(String *name*)                                 | Assign the permission set to users by its developer name or label. |
-| permissionSet(String name1, String *name2*)                  | Assign all the permission sets to users by developer name or label. |
-| permissionSet(String *name1*, String *name2*, String *name3*) | Assign all the permission sets to users by developer name or label. |
-| permissionSet(List\<String\> *names*)                        | Assign all the permission sets to users by developer name or label. |
+| Keyword API                                                  | Description                                                 |
+| ------------------------------------------------------------ | ----------------------------------------------------------- |
+| recordType(String *name*)                                    | Assign record type ID by developer name and case sensitive. |
+| profile(String *name*)                                       | Assign profile ID by profile name.                          |
+| permissionSet(String *name*)                                 | Assign the permission set to users by developer name.       |
+| permissionSet(String name1, String *name2*)                  | Assign all the permission sets to users by developer names. |
+| permissionSet(String *name1*, String *name2*, String *name3*) | Assign all the permission sets to users by developer names. |
+| permissionSet(List\<String\> *names*)                        | Assign all the permission sets to users by developer names. |
 
 ### Arithmetic Field Keywords
 
