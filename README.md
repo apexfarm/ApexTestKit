@@ -322,7 +322,7 @@ These keywords will increase/decrease the init values by the provided step value
 
 ## Entity Builder Factory
 
-It is recommended to keep how the sObject relationship is established in the test class. Because they are less subject to change, and clearer to the developers. In order to increase the reusability, let's introduce the Entity Builder Factory:
+In order to increase the reusability of ATK, we can abstract the field keywords into an Entity Builder. Here is how it can be used in a test class:
 
 ```java
 @IsTest
@@ -339,7 +339,7 @@ public with sharing class CampaignServiceTest {
 }
 ```
 
-A field builder factory example:
+And let's introduce the Entity Builder Factory:
 
 ```java
 @IsTest
@@ -347,25 +347,25 @@ public with sharing class EntityBuilderFactory {
     public static CampaignEntityBuilder campaignBuilder = new CampaignEntityBuilder();
     public static LeadEntityBuilder leadBuilder = new LeadEntityBuilder();
 
-    // Inner class implements ATK.FieldBuilder
+    // Inner class implements ATK.EntityBuilder
     public class CampaignEntityBuilder implements ATK.EntityBuilder {
         public void build(ATK.Entity campaignEntity, Integer size) {
             campaignEntity
                 .field(Campaign.Type).repeat('Partners')
                 .field(Campaign.Name).index('Name-{0000}')
                 .field(Campaign.StartDate).repeat(Date.newInstance(2020, 1, 1))
-                .field(Campaign.EndDate).repeat(Date.newInstance(2020, 1, 1).addMonths(1))
+                .field(Campaign.EndDate).repeat(Date.newInstance(2020, 1, 1));
         }
     }
 
-    // Inner class implements ATK.FieldBuilder
+    // Inner class implements ATK.EntityBuilder
     public class LeadEntityBuilder implements ATK.EntityBuilder {
         public void build(ATK.Entity leadEntity, Integer size) {
             leadEntity
                 .field(Lead.Company).index('Name-{0000}')
                 .field(Lead.LastName).index('Name-{0000}')
                 .field(Lead.Email).index('test.user+{0000}@email.com')
-                .field(Lead.MobilePhone).index('+86 186 7777 {0000}')
+                .field(Lead.MobilePhone).index('+86 186 7777 {0000}');
         }
     }
 }
