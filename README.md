@@ -1,6 +1,6 @@
 # Apex Test Kit
 
-![](https://img.shields.io/badge/version-3.3 beta-orange.svg) ![](https://img.shields.io/badge/build-passing-brightgreen.svg) ![](https://img.shields.io/badge/coverage-95%25-brightgreen.svg)
+![](https://img.shields.io/badge/version-3.3%20beta-orange.svg) ![](https://img.shields.io/badge/build-passing-brightgreen.svg) ![](https://img.shields.io/badge/coverage-95%25-brightgreen.svg)
 
 Apex Test Kit can help generate massive records for Apex test classes. It solves two pain points during record creation:
 
@@ -11,15 +11,16 @@ Apex Test Kit can help generate massive records for Apex test classes. It solves
 
 ### **3.3 Beta Release Notes**
 
-**<a href="#lookup-field-keywords">Lookup Field Keywords</a>** has some **breaking changes**:
+**[Lookup Field Keywords](#lookup-field-keywords)** has some **breaking changes**:
 
 - `recordType()` keyword will only support record type developer name, and become *case sensitive*.
 
-**<a href="#command-api">Command API</a>** `mock()` now supports:
+**[Command API](#command-api)**:
 
-- Generate read-only fields, such as *formula fields*, *rollup summary fields*, and *system fields*. For example `.field(Account.CreatedDate).repeat(Datetime.newInstance(2020, 1, 1))`
-- Generate fake sObject Ids.
-- Fixed a bug when Id is assigned, the record master-detail relationship is not updatable.
+- `mock()` now supports assigning read-only fields, such as *formula fields*, *rollup summary fields*, and *system fields*. For example `.field(Account.CreatedDate).repeat(Datetime.newInstance(2020, 1, 1))`.
+- Fixed a bug for v3.2 when fake Ids are assigned during `mock()`, the master-detail relationships are not updatable. Now update the master-deteil relationship first, then assign fake Ids to the records.
+
+**[Performance](#performance)** adds **benchmark** section to give a feel how fast it is to use `mock()` instead of `save()`.
 
 
 Happy hacking!
@@ -38,8 +39,8 @@ Happy hacking!
   - [Many to Many](#many-to-many)
 - [Command API](#command-api)
 - [Entity Keywords](#entity-keywords)
-  - [Entity Create Keywords](#entity-create-keywords)
-  - [Entity Update Keywords](#entity-update-keywords)
+  - [Entity Creation Keywords](#entity-creation-keywords)
+  - [Entity Updating Keywords](#entity-updating-keywords)
   - [Entity Reference Keywords](#entity-reference-keywords)
 - [Field Keywords](#field-keywords)
   - [Basic Field Keywords](#basic-field-keywords)
@@ -181,9 +182,9 @@ There are three ways to create the sObjects.
 
 | Method API                          | Description                                                  |
 | ----------------------------------- | ------------------------------------------------------------ |
-| SaveResult save()                   | Actual DMLs will be performed to insert/update sObjects into Salesforce. |
+| `SaveResult save()                  | Actual DMLs will be performed to insert/update sObjects into Salesforce. |
 | SaveResult save(Boolean *doInsert*) | If `doInsert` is `false`, no actual DMLs will be performed, just the in-memory generated SObjects will be returned. |
-| SaveResult mock()                   | 1. No actual DMLs will be performed, and extremely large fake IDs of the sObjectType will be assigned to sObjects.<br />2. Support assigning values to read-only fields, such as *formula fields*, *rollup summary fields*, and *system fields*, when `mock()` is called instead of `save()` |
+| SaveResult *mock()*                 | 1. No actual DMLs will be performed, and extremely large fake IDs of the sObjectType will be assigned to sObjects.<br />2. Support assigning values to read-only fields, such as *formula fields*, *rollup summary fields*, and *system fields*.<br />3. Can only work with [Entity Creation Keywords](#entity-creation-keywords). |
 
 ## Entity Keywords
 
