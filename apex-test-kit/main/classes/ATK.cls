@@ -187,12 +187,15 @@ public with sharing class ATK implements Entity, Field {
 
     public Entity permissionSet(List<String> names) {
         if (User.SObjectType == sharedCommand.matrix.currEntityNode.objectType) {
-            sharedCommand.withChildren(
-                PermissionSetAssignment.SObjectType,
-                PermissionSetAssignment.AssigneeId,
-                sharedCommand.matrix.currEntityNode.size * names.size())
-                .field(PermissionSetAssignment.PermissionSetId).repeat(ATKCore.PERMISSION_SETS.getIds(names))
-                .also();
+            List<Id> permissionSetIds = ATKCore.PERMISSION_SETS.getIds(names);
+            if (permissionSetIds.size() > 0) {
+                sharedCommand.withChildren(
+                    PermissionSetAssignment.SObjectType,
+                    PermissionSetAssignment.AssigneeId,
+                    sharedCommand.matrix.currEntityNode.size * permissionSetIds.size())
+                    .field(PermissionSetAssignment.PermissionSetId).repeat(permissionSetIds)
+                    .also();
+            }
         }
         return sharedCommand;
     }

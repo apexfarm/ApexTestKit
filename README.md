@@ -1,27 +1,60 @@
 # Apex Test Kit
 
-![](https://img.shields.io/badge/version-3.2.1-brightgreen.svg) ![](https://img.shields.io/badge/build-passing-brightgreen.svg) ![](https://img.shields.io/badge/coverage-95%25-brightgreen.svg)
+![](https://img.shields.io/badge/version-3.3 beta-orange.svg) ![](https://img.shields.io/badge/build-passing-brightgreen.svg) ![](https://img.shields.io/badge/coverage-95%25-brightgreen.svg)
 
-Apex Test Kit is a Salesforce library to help generate massive records for either Apex test classes, or sandboxes. It solves two pain points during record creation:
+Apex Test Kit can help generate massive records for Apex test classes. It solves two pain points during record creation:
 
 1. Establish arbitrary levels of many-to-one, one-to-many relationships.
 2. Generate field values based on simple rules automatically.
 
 ------
 
-### **3.2 Release Notes**
+### **3.3 Beta Release Notes**
 
-**<a href="#command-api">Command API</a>**: A new `mock()` method is added. If it is used instead of `save()`, very large fake IDs of the SObjectType will be generated for the newly created SObjects. This is useful when used with a mock libray together.
+**<a href="#lookup-field-keywords">Lookup Field Keywords</a>** has some **breaking changes**:
+
+- `recordType()` keyword will only support record type developer name, and become *case sensitive*.
+
+**<a href="#command-api">Command API</a>** `mock()` now supports:
+
+- Generate read-only fields, such as *formula fields*, *rollup summary fields*, and *system fields*. For example `.field(Account.CreatedDate).repeat(Datetime.newInstance(2020, 1, 1))`
+- Generate fake sObject Ids.
+- Fixed a bug when Id is assigned, the record master-detail relationship is not updatable.
+
+
+Happy hacking!
 
 ------
+
+## Table of Contents
+
+- [Introduction](#introduction)
+  - [Performance](#performance)
+  - [Installation](#installation)
+  - [Demos](#demos)
+- [Relationship](#relationship)
+  - [One to Many](#one-to-many)
+  - [Many to One](#many-to-one)
+  - [Many to Many](#many-to-many)
+- [Command API](#command-api)
+- [Entity Keywords](#entity-keywords)
+  - [Entity Create Keywords](#entity-create-keywords)
+  - [Entity Update Keywords](#entity-update-keywords)
+  - [Entity Reference Keywords](#entity-reference-keywords)
+- [Field Keywords](#field-keywords)
+  - [Basic Field Keywords](#basic-field-keywords)
+  - [Lookup Field Keywords](#lookup-field-keywords)
+  - [Arithmetic Field Keywords](#arithmetic-field-keywords)
+- [Entity Builder Factory](#entity-builder-factory)
+- [License](#license)
+
+## Introduction
 
 Imagine the complexity to generate the following sObjects and establish all the relationships in the diagram.
 
 <p align="center">
 <img src="docs/images/sales-objects.png#2020-5-31" width="400" alt="Sales Object Graph">
 </p>
-
-
 With ATK we can create them within just one Apex statement. Here, we are generating:
 
 1. *200* accounts with names: `Name-0001, Name-0002, Name-0003...`
@@ -55,14 +88,21 @@ ATK.SaveResult result = ATK.prepare(Account.SObjectType, 200)
         .withParents(Contact.SObjectType, Order.BillToContactId)
         .also()
         .withParents(Opportunity.SObjectType, Order.OpportunityId)
-    .save(true);
+    .save();
 ```
 
 `withChildren()` and `withParents()` without a third size parameter indicate they will back reference the sObjects created previously in the statement. If the third size param is supplied, new sObjects will be created.
 
 ### Performance
 
-To generate the above 2200 records and saving them into Salesforce, it will take less than 3000 CPU time. That's already 1/3 of the Maximum CPU time. However, if we use `.save(false)` without saving them, and just create them in the memory, it will take less than 700 CPU time, 4x faster.
+To `.save()` the above 2200 records, it will take ~3000 CPU time. That's already 1/3 of the Maximum CPU time. However, if we use `.mock()` without saving them, and just create them in the memory, it will take ~700 CPU time.
+
+**Benchmark**: Insert 1000 accounts without duplicate rules, process builders, and triggers etc. The scripts used for 
+
+| 1000 * Account | Database.insert() | ATK Save() | ATK Mock() | Save/Mock |
+| -------------- | ----------------- | ---------- | ---------- | --------- |
+| CPU Time       | 0                 | 2024       | 401        | ~5x       |
+| Real Time (ms) | 6803              | 6430       | 526        | ~12x      |
 
 ### Installation
 
@@ -143,18 +183,11 @@ There are three ways to create the sObjects.
 | ----------------------------------- | ------------------------------------------------------------ |
 | SaveResult save()                   | Actual DMLs will be performed to insert/update sObjects into Salesforce. |
 | SaveResult save(Boolean *doInsert*) | If `doInsert` is `false`, no actual DMLs will be performed, just the in-memory generated SObjects will be returned. |
-| SaveResult mock()                   | No actual DMLs will be performed, but extremely large fake IDs of the sObjectType will be assigned to the newly created sObjects. |
+| SaveResult mock()                   | 1. No actual DMLs will be performed, and extremely large fake IDs of the sObjectType will be assigned to sObjects.<br />2. Support assigning values to read-only fields, such as *formula fields*, *rollup summary fields*, and *system fields*, when `mock()` is called instead of `save()` |
 
-## Keywords API
+## Entity Keywords
 
-There are only two keyword categories Entity keyword and Field keyword. They are used to solve the two pain points we addressed at the beginning:
-
-1. **Entity Keyword**: Establish arbitrary levels of many-to-one, one-to-many relationships.
-2. **Field Keyword**: Generate field values based on simple rules automatically.
-
-### Entity Keywords
-
-Here is a dummy example to demo the use of Entity keywords. Each of them will start a new sObject context. And it is advised to use the following indentation for clarity.
+These keywords are used to establish arbitrary levels of many-to-one, one-to-many relationships. Here is a dummy example to demo the use of Entity keywords. Each of them will start a new sObject context. And it is advised to use the following indentation for clarity.
 
 ```java
 ATK.prepare(A__c.SObjectType, 10)
@@ -168,7 +201,7 @@ ATK.prepare(A__c.SObjectType, 10)
     .save();
 ```
 
-#### Entity Create Keywords
+### Entity Creation Keywords
 
 All the following APIs with a `Integer size` param at the last, indicate how many of the associated sObject type will be created on the fly.
 
@@ -185,7 +218,7 @@ ATK.prepare(A__c.SObjectType, 10)
 | withChildren(SObjectType *objectType*, SObjectField *referenceField*, Integer *size*) | Establish one to many relationship between the previous working on sObject and the current sObject. |
 | withParents(SObjectType *objectType*, SObjectField *referenceField*, Integer *size*) | Establish many to one relationship between the previous working on sObject and the current sObject. |
 
-#### Entity Update Keywords
+### Entity Updating Keywords
 
 All the following APIs with a `List<SObject> objects` param at the last, indicate the sObjects are created elsewhere, and ATK just upsert them.
 
@@ -212,7 +245,7 @@ ATK.prepare(A__c.SObjectType, [SELECT Id FROM A__c]) // Select existing sObjects
 | withChildren(SObjectType *objectType*, SObjectField *referenceField*, List\<SObject\> *objects*) | Establish one to many relationship between the previous working on sObject and the current sObject. |
 | withParents(SObjectType *objectType*, SObjectField *referenceField*, List\<SObject\> *objects*) | Establish many to one relationship between the previous working on sObject and the current sObject. |
 
-#### Entity Reference Keywords
+### Entity Reference Keywords
 
 All the following APIs without a third param at the last, indicate a back reference to the previously created sObjects within the statement. Thus, no new records will be created with the following statements.
 
@@ -223,9 +256,9 @@ All the following APIs without a third param at the last, indicate a back refere
 
 **Note**: Once these APIs are used, please make sure there are sObjects with the same type created previously, and only created once.
 
-### Field Keywords
+## Field Keywords
 
-Here is a dummy example to demo the use of field keywords.
+These keywords are used to generate field values based on simple rules automatically. Here is a dummy example to demo the use of field keywords.
 
 ```java
 ATK.prepare(A__c.SObjectType, 10)
@@ -238,7 +271,7 @@ ATK.prepare(A__c.SObjectType, 10)
         .field(B__C.StartDate__c).addDays(Date.newInstance(2020, 1, 1), 1)
     .save();
 ```
-#### Basic Field Keywords
+### Basic Field Keywords
 | Keyword API                                               | Description                                                  |
 | --------------------------------------------------------- | ------------------------------------------------------------ |
 | index(String *format*)                                    | Formated string with `{0000}`, can recogonize left padding. For example: 0001, 0002, 0003 etc. |
@@ -247,7 +280,7 @@ ATK.prepare(A__c.SObjectType, 10)
 | repeat(Object *value1*, Object *value2*, Object *value3*) | Repeat with the provided values alternatively.               |
 | repeat(List\<Object\> *values*)                           | Repeat with the provided values alternatively.               |
 
-#### Lookup Field Keywords
+### Lookup Field Keywords
 
 These are field keywords in nature, but don't need to be chained after `.field(Schema.SObjectField)`. Because ATK automatically helps resolving the correct fields for them.
 
@@ -262,14 +295,14 @@ ATK.prepare(Account.SObjectType, 10)
 
 | Keyword API                                                  | Description                                                  |
 | ------------------------------------------------------------ | ------------------------------------------------------------ |
-| recordType(String *name*)                                    | Assign record type ID by developer name or label             |
+| recordType(String *name*)                                    | Assign record type ID by developer name and case sensitive.  |
 | profile(String *name*)                                       | Assign profile ID by profile name.                           |
 | permissionSet(String *name*)                                 | Assign the permission set to users by its developer name or label. |
 | permissionSet(String name1, String *name2*)                  | Assign all the permission sets to users by developer name or label. |
 | permissionSet(String *name1*, String *name2*, String *name3*) | Assign all the permission sets to users by developer name or label. |
 | permissionSet(List\<String\> *names*)                        | Assign all the permission sets to users by developer name or label. |
 
-#### Arithmetic Field Keywords
+### Arithmetic Field Keywords
 
 These keywords will increase/decrease the init values by the provided step values. They must be applied to the correct field data types that support them.
 
