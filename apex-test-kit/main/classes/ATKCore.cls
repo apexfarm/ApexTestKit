@@ -48,6 +48,13 @@ public with sharing class ATKCore {
                     objects.addAll(createObjects(entityNode, doMock));
                 }
 
+                if (entityNode.size > 0) {
+                    assignWritableFields(entityNode);
+                    assignReferences(entityNode);
+                }
+
+                // Ids should be assigned after reference assignments, because once Ids are
+                // assigned some relationships are no longer updatable.
                 if (doMock) {
                     List<Id> ids = FAKEID.generate(entityNode.objectType, objects.size());
                     for (Integer i = 0; i < objects.size(); i++) {
@@ -55,11 +62,6 @@ public with sharing class ATKCore {
                             objects[i].Id = ids[i];
                         }
                     }
-                }
-
-                if (entityNode.size > 0) {
-                    assignWritableFields(entityNode);
-                    assignReferences(entityNode);
                 }
 
                 if (!doInsert || doMock) {
@@ -271,9 +273,6 @@ public with sharing class ATKCore {
                     for (List<SObject> pair : DISTRIBUTOR.distribute(childObjectList, parentObjectList)) {
                         // pair[0] = child
                         // pair[1] = parent
-                        System.debug(referenceField.getDescribe().isCreateable());
-                        System.debug(referenceField.getDescribe().isUpdateable());
-                        System.debug(pair[1].Id);
                         pair[0].put(referenceField, pair[1].Id);
                         pair[0].putSObject(relationshipName, pair[1]);
                     }

@@ -1,26 +1,31 @@
 # Apex Test Kit
 
-![](https://img.shields.io/badge/version-3.3%20beta-orange.svg) ![](https://img.shields.io/badge/build-passing-brightgreen.svg) ![](https://img.shields.io/badge/coverage-95%25-brightgreen.svg)
+![](https://img.shields.io/badge/version-3.3.1-brightgreen.svg) ![](https://img.shields.io/badge/build-passing-brightgreen.svg) ![](https://img.shields.io/badge/coverage-95%25-brightgreen.svg)
 
 Apex Test Kit can help generate massive records for Apex test classes. It solves two pain points during record creation:
 
 1. Establish arbitrary levels of many-to-one, one-to-many relationships.
 2. Generate field values based on simple rules automatically.
 
+| Environment           | Installation Link                                            | Version |
+| --------------------- | ------------------------------------------------------------ | ------- |
+| Production, Developer | <a target="_blank" href="https://login.salesforce.com/packaging/installPackage.apexp?p0=04t2v000007GQuwAAG"><img src="docs/images/deploy-button.png"></a> | ver 3.3.1 |
+| Sandbox               | <a target="_blank" href="https://test.salesforce.com/packaging/installPackage.apexp?p0=04t2v000007GQuwAAG"><img src="docs/images/deploy-button.png"></a> | ver 3.3.1 |
+
 ------
 
-### **3.3 Beta Release Notes**
+### **v3.3 Release Notes**
 
 **[Lookup Field Keywords](#lookup-field-keywords)** has some **breaking changes**:
 
-- `recordType()` keyword will only support record type developer name, and become *case sensitive*.
+- `recordType()` will only support developer name as param, and become *case sensitive*.
 
 **[Command API](#command-api)**:
 
 - `mock()` now supports assigning read-only fields, such as *formula fields*, *rollup summary fields*, and *system fields*. For example `.field(Account.CreatedDate).repeat(Datetime.newInstance(2020, 1, 1))`.
-- Fixed a bug for v3.2 when fake Ids are assigned during `mock()`, the master-detail relationships are not updatable. Now update the master-deteil relationship first, then assign fake Ids to the records.
+- Fix:  Fake Id assignments of sObjects during `mock()`  blocking some relationships to be updated.
 
-**[Performance](#performance)** adds **benchmark** section to give a feel how fast it is to use `mock()` instead of `save()`.
+**[Performance](#performance)** adds **benchmark** to give a feel how fast it is to use `mock()` compared with `save()`.
 
 
 Happy hacking!
@@ -31,7 +36,6 @@ Happy hacking!
 
 - [Introduction](#introduction)
   - [Performance](#performance)
-  - [Installation](#installation)
   - [Demos](#demos)
 - [Relationship](#relationship)
   - [One to Many](#one-to-many)
@@ -98,19 +102,17 @@ ATK.SaveResult result = ATK.prepare(Account.SObjectType, 200)
 
 To `.save()` the above 2200 records, it will take ~3000 CPU time. That's already 1/3 of the Maximum CPU time. However, if we use `.mock()` to just create them in the memory, it will take ~700 CPU time.
 
-**Benchmark**: Insert 1000 accounts without duplicate rules, process builders, and triggers etc. The scripts used to perform benchmark testing are documented under `scripts/apex/benchmark.apex`.
+#### Benchmark
 
-| 1000 * Account | Database.insert() | ATK Save() | ATK Mock() | Save/Mock |
-| -------------- | ----------------- | ---------- | ---------- | --------- |
-| CPU Time       | 0                 | 2024       | 401        | ~5x       |
-| Real Time (ms) | 6803              | 6430       | 526        | ~12x      |
+The scripts used to perform benchmark testing are documented under `scripts/apex/benchmark.apex`. All tests will insert 1000 accounts under the following conditions:
 
-### Installation
+1. No duplicate rules, process builders, and triggers etc.
+2. ApexCode debug level is set to DEBUG.
 
-| Environment           | Install Link                                                 | Version |
-| --------------------- | ------------------------------------------------------------ | ------- |
-| Production, Developer | <a target="_blank" href="https://login.salesforce.com/packaging/installPackage.apexp?p0=04t2v000007X4qeAAC"><img src="docs/images/deploy-button.png"></a> | ver 3.2.1 |
-| Sandbox               | <a target="_blank" href="https://test.salesforce.com/packaging/installPackage.apexp?p0=04t2v000007X4qeAAC"><img src="docs/images/deploy-button.png"></a> | ver 3.2.1 |
+| 1000 * Account | Database.insert | ATK Save | ATK Mock | ATK Save/Mock |
+| -------------- | --------------- | -------- | -------- | ------------- |
+| CPU Time       | 0               | 2024     | 401      | ~5x           |
+| Real Time (ms) | 6803            | 6430     | 526      | ~12x          |
 
 ### Demos
 
