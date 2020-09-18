@@ -347,7 +347,7 @@ public with sharing class ATKCoreTest {
             }
             entity.addField(Account.Name);
             entity.currEntityField.fixedValue = 'Name';
-            generator.assignFields(entity);
+            generator.assignWritableFields(entity);
         }
 
         {
@@ -359,7 +359,7 @@ public with sharing class ATKCoreTest {
             entity.currEntityField.arithmetic = ATKCore.EntityFieldArithmetic.ADD_DAYS;
             entity.currEntityField.initValue = Date.newInstance(2020, 1, 1);
             entity.currEntityField.stepValue = 1;
-            generator.assignFields(entity);
+            generator.assignWritableFields(entity);
         }
 
         {
@@ -371,7 +371,7 @@ public with sharing class ATKCoreTest {
             entity.currEntityField.arithmetic = ATKCore.EntityFieldArithmetic.ADD;
             entity.currEntityField.initValue = 0.1;
             entity.currEntityField.stepValue = 0.1;
-            generator.assignFields(entity);
+            generator.assignWritableFields(entity);
         }
 
         {
@@ -385,7 +385,7 @@ public with sharing class ATKCoreTest {
             entity.currEntityField.initValue = DateTime.newInstance(2020, 1, 1, 0, 0, 0);
             entity.currEntityField.stepValue = 1;
             entity.addField(Event.ActivityDateTime);
-            generator.assignFields(entity);
+            generator.assignWritableFields(entity);
         }
     }
 
@@ -398,7 +398,7 @@ public with sharing class ATKCoreTest {
                 new List<Account> {new Account(), new Account(), new Account()}), null);
             matrix.add(ATKCore.EntityNodeType.ONE_TO_MANY, new ATKCore.EntityNode(Contact.SObjectType,
                 new List<Contact> {new Contact(), new Contact(), new Contact()}), Contact.AccountId);
-            generator.assignReference(matrix.currEntityNode, true);
+            generator.assignReferences(matrix.currEntityNode);
         }
     }
 
@@ -429,13 +429,18 @@ public with sharing class ATKCoreTest {
     }
 
     @IsTest
-    static void test_Generator_Generate_doMock() {
+    static void test_Generator_Generate_doMock_Empty() {
         ATKCore.Generator generator = new ATKCore.Generator();
         {
             ATKCore.EntityNodeMatrix matrix = new ATKCore.EntityNodeMatrix();
-            matrix.add(ATKCore.EntityNodeType.PREPARE, new ATKCore.EntityNode(Account.SObjectType,
-                new List<Account> {new Account(), new Account(), new Account()}), null);
-            matrix.add(ATKCore.EntityNodeType.ONE_TO_MANY, new ATKCore.EntityNode(Contact.SObjectType, 3), Contact.AccountId);
+            matrix.add(ATKCore.EntityNodeType.PREPARE,
+                new ATKCore.EntityNode(Account.SObjectType,
+                    new List<Account> {new Account(), new Account(), new Account()}),
+                null);
+            matrix.add(ATKCore.EntityNodeType.ONE_TO_MANY,
+                new ATKCore.EntityNode(Contact.SObjectType, 3),
+                Contact.AccountId);
+
             generator.generate(matrix, false, true);
 
             System.assertEquals(2, matrix.entityNodeCache.size());
@@ -443,6 +448,49 @@ public with sharing class ATKCoreTest {
                 System.assert(node.objects.size() > 0);
                 for (SObject obj : node.objects) {
                     System.assertNotEquals(null, obj.Id);
+                }
+            }
+        }
+    }
+
+    @IsTest
+    static void test_Generator_Generate_doMock_SystemField() {
+        ATKCore.Generator generator = new ATKCore.Generator();
+        Id fakeUserId = ATKCore.FakeId.get(User.SObjectType, 1);
+        {
+            ATKCore.EntityNodeMatrix matrix = new ATKCore.EntityNodeMatrix();
+            matrix.add(ATKCore.EntityNodeType.PREPARE,
+                new ATKCore.EntityNode(Account.SObjectType, 3),
+                null);
+            matrix.currEntityNode.addField(Account.CreatedDate);
+            matrix.currEntityNode.currEntityField.fixedValue = Datetime.newInstance(2020, 1, 1);
+            matrix.currEntityNode.addField(Account.CreatedById);
+            matrix.currEntityNode.currEntityField.fixedValue = fakeUserId;
+            matrix.add(ATKCore.EntityNodeType.ONE_TO_MANY,
+                new ATKCore.EntityNode(Contact.SObjectType, 3),
+                Contact.AccountId);
+            matrix.currEntityNode.addField(Contact.CreatedDate);
+            matrix.currEntityNode.currEntityField.fixedValue = Datetime.newInstance(2020, 1, 1);
+            matrix.currEntityNode.addField(Contact.CreatedById);
+            matrix.currEntityNode.currEntityField.fixedValue = fakeUserId;
+
+            generator.generate(matrix, false, true);
+            System.assertEquals(2, matrix.entityNodeCache.size());
+
+            Datetime expectedDatetime = Datetime.newInstance(2020, 1, 1);
+            for (ATKCore.EntityNode node : matrix.entityNodeCache) {
+                System.assert(node.objects.size() > 0);
+                for (SObject obj : node.objects) {
+                    if (node.objectType == Account.SObjectType) {
+                        Account acc = (Account)obj;
+                        System.assertEquals(expectedDatetime, acc.CreatedDate);
+                        System.assertEquals(fakeUserId, acc.CreatedById);
+                    }
+                    if (node.objectType == Contact.SObjectType) {
+                        Contact con = (Contact)obj;
+                        System.assertEquals(expectedDatetime, con.CreatedDate);
+                        System.assertEquals(fakeUserId, con.CreatedById);
+                    }
                 }
             }
         }
@@ -597,6 +645,14 @@ public with sharing class ATKCoreTest {
             Id permissionSetId = ATKCore.PERMISSION_SETS.getId('==Fake Permission Set==');
             System.assertEquals(null, permissionSetId);
         }
+
+        {
+            List<Id> permissionSetIds = ATKCore.PERMISSION_SETS.getIds(new List<String> {
+                '==Fake Permission Set 1==',
+                '==Fake Permission Set 2==',
+                '==Fake Permission Set 3=='});
+            System.assertEquals(0, permissionSetIds.size());
+        }
     }
 
     @IsTest
@@ -606,28 +662,35 @@ public with sharing class ATKCoreTest {
             System.assertEquals(null, profileId);
         }
 
-        {
-            try {
-                Profile profile = [
-                    SELECT Id, Name
-                    FROM Profile
-                    WHERE Name = 'System Administrator'
-                    WITH SECURITY_ENFORCED];
-                if (profile != null) {
-                    Id profileId = ATKCore.PROFILES.getId('System Administrator');
-                    System.assertEquals(profile.Id, profileId);
-                }
-            } catch(System.QueryException ex) {
-
+        try {
+            Profile profile = [
+                SELECT Id, Name
+                FROM Profile
+                WHERE Name = 'System Administrator'
+                WITH SECURITY_ENFORCED];
+            if (profile != null) {
+                Id profileId = ATKCore.PROFILES.getId('System Administrator');
+                System.assertEquals(profile.Id, profileId);
             }
+        } catch(System.QueryException ex) {
+
         }
     }
 
     @IsTest
     static void test_Util_RecordTypes() {
         {
-            Id recordTypeId = ATKCore.RECORD_TYPES.getId(Account.SObjectType, '==Fake Record Type==');
+            Id recordTypeId = ATKCore.RECORD_TYPES.getId(Account.SObjectType.getDescribe(), '==Fake Record Type==');
             System.assertEquals(null, recordTypeId);
         }
     }
+
+    @IsTest
+    static void test_Util_FakeId() {
+        system.assert(ATKCore.FAKEID.get(Account.SObjectType, 1).endsWith('00001'));
+        system.assert(ATKCore.FAKEID.get(Account.SObjectType, 1).endsWith('00001'));
+        system.assert(ATKCore.FAKEID.get(Account.SObjectType, 2).endsWith('00002'));
+        system.assert(ATKCore.FAKEID.get(Contact.SObjectType, 2).endsWith('00002'));
+    }
+
 }

@@ -158,7 +158,7 @@ public with sharing class ATK implements Entity, Field {
             .fields.getMap().get('RecordTypeId');
         if (recordTypeIdField != null) {
             sharedCommand.field(recordTypeIdField).repeat(ATKCore.RECORD_TYPES
-                .getId(this.matrix.currEntityNode.objectType, name));
+                .getId(this.matrix.currEntityNode.dsr, name));
         }
         return sharedCommand;
     }
@@ -187,19 +187,21 @@ public with sharing class ATK implements Entity, Field {
 
     public Entity permissionSet(List<String> names) {
         if (User.SObjectType == sharedCommand.matrix.currEntityNode.objectType) {
-            sharedCommand.withChildren(
-                PermissionSetAssignment.SObjectType,
-                PermissionSetAssignment.AssigneeId,
-                sharedCommand.matrix.currEntityNode.size * names.size())
-                .field(PermissionSetAssignment.PermissionSetId).repeat(ATKCore.PERMISSION_SETS.getIds(names))
-                .also();
+            List<Id> permissionSetIds = ATKCore.PERMISSION_SETS.getIds(names);
+            if (permissionSetIds.size() > 0) {
+                sharedCommand.withChildren(
+                    PermissionSetAssignment.SObjectType,
+                    PermissionSetAssignment.AssigneeId,
+                    sharedCommand.matrix.currEntityNode.size * permissionSetIds.size())
+                    .field(PermissionSetAssignment.PermissionSetId).repeat(permissionSetIds)
+                    .also();
+            }
         }
         return sharedCommand;
     }
 
     public Entity index(String format) {
         this.matrix.currEntityNode.currEntityField.indexFormat = format;
-        this.matrix.currEntityNode.currEntityField.uniqueIndex = true;
         return sharedCommand;
     }
 

@@ -51,14 +51,14 @@ public with sharing class ATKTest {
     }
 
     @IsTest
-    static void test_OneToMany_mock() {
+    static void test_OneToMany_Mock() {
         ATK.SaveResult result = ATK.prepare(Account.SObjectType, 10)
             .withChildren(Case.SObjectType, Case.AccountId, 40)
             .also()
             .withChildren(Contact.SObjectType, Contact.AccountId, 20)
                 // in order to test this method
                 .withChildren(Case.SObjectType, Case.ContactId)
-            .save(false);
+            .mock();
 
         for (Integer i = 0; i < 10; i++) {
             Account acc = (Account)result.get(Account.SObjectType)[i];
@@ -352,4 +352,24 @@ public with sharing class ATKTest {
         }
     }
 
+    @IsTest
+    static void test_Mock_SystemField() {
+        ATKCore.batchSize = 3;
+
+        Id fakeUserId = ATKCore.FakeId.get(User.SObjectType, 1);
+        ATK.SaveResult result = ATK.prepare(Account.SObjectType, 9)
+            .field(Account.CreatedById).repeat(fakeUserId)
+            .field(Account.CreatedDate).repeat(Datetime.newInstance(2020, 1, 1))
+            .field(Account.LastModifiedById).repeat(fakeUserId)
+            .field(Account.LastModifiedDate).addDays(Datetime.newInstance(2020, 1, 1), 1)
+            .mock();
+
+        List<SObject> accounts = result.get(Account.SObjectType);
+        System.assertEquals(9, accounts.size());
+        for (SObject obj : accounts) {
+            Account acc = (Account)obj;
+            System.assertEquals(fakeUserId, acc.CreatedById);
+            System.assertEquals(Datetime.newInstance(2020, 1, 1), acc.CreatedDate);
+        }
+    }
 }
