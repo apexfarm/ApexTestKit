@@ -19,10 +19,13 @@ public with sharing class ATKCore {
     public static final Profiles PROFILES = new Profiles();
     public static final RecordTypes RECORD_TYPES = new RecordTypes();
     public static final PermissionSets PERMISSION_SETS = new PermissionSets();
-    public static final Converter CONVERTER = new Converter();
-    public static final Generator GENERATOR = new Generator();
-    private static final Distributor DISTRIBUTOR = new Distributor();
     public static final FakeId FAKEID = new FakeId();
+    
+    public static final Generator GENERATOR = new Generator();
+    @TestVisible
+    private static final Converter CONVERTER = new Converter();
+    @TestVisible
+    private static final Distributor DISTRIBUTOR = new Distributor();
     @TestVisible
     private static Integer batchSize = 200;
 
@@ -109,7 +112,7 @@ public with sharing class ATKCore {
             for (Integer i = 0; i * numberPerBatch < entityNode.size; i++) {
                 Integer endIndex = Math.min((i + 1) * numberPerBatch, entityNode.size);
                 String objectArrayJSON = buildSObjectArrayJSON(entityNode, i * numberPerBatch, endIndex);
-                System.debug(objectArrayJSON);
+                // System.debug(objectArrayJSON);
                 objects.addAll((List<SObject>)JSON.deserialize(objectArrayJSON, List<SObject>.class));
             }
             return objects;
@@ -320,6 +323,199 @@ public with sharing class ATKCore {
 
     // ************************
     // #region Graph Definition
+    // ************************
+    // Digraph g = new Digraph(6);
+    // g.addEdge(0, 5);
+    // g.addEdge(5, 4);
+    // g.addEdge(4, 3);
+    // g.addEdge(3, 0);
+
+    // DirectedCycle dc = new DirectedCycle(g);
+    // System.debug(dc.hasCycle());
+    // System.debug(dc.cycle);
+
+    public class Digraph {
+        public final Integer V { get; private set; }
+        public Integer E { get; private set; }
+        private List<List<Integer>> adj { get; set; }
+
+        public Digraph(Integer V) {
+            this.V = V;
+            this.E = 0;
+            this.adj = new List<List<Integer>>();
+            for (Integer i = 0; i < V; i ++) {
+                this.adj.add(new List<Integer>());
+            }
+        }
+
+        public void addEdge(Integer v, Integer w) {
+            // System.debug(new List<Integer>{ v, w });
+            adj[v].add(w);
+            E++;
+        }
+
+        public List<Integer> adj(Integer v) {
+            return adj[v];
+        }
+    }
+
+    public class DirectedCycle {
+        List<Boolean> marked { get; set; }
+        List<Integer> edgeTo { get; set; }
+        List<Boolean> onStack { get; set; }
+        List<Integer> cycle { get; set; }
+
+        public DirectedCycle(Digraph G) {
+            onStack = new List<Boolean>();
+            edgeTo = new List<Integer>(); 
+            marked = new List<Boolean>(); 
+
+            for (Integer v = 0; v < G.V; v++) {
+                onStack.add(false);
+                edgeTo.add(null);
+                marked.add(false);
+            }
+
+            for (Integer v = 0; v < G.V; v++) {
+                if (!marked[v]) dfs(G, v);
+            }
+        }
+
+        private void dfs(Digraph G, Integer v) {
+            onStack[v] = true;
+            marked[v] = true;
+            for (Integer w : G.adj(v)) {
+                if (this.hasCycle()) {
+                    return;
+                } else if (!marked[w]) {  
+                    edgeTo[w] = v; 
+                    dfs(G, w);
+                } else if (onStack[w]) {
+                    cycle = new List<Integer>();
+                    for (Integer x = v; x != w; x = edgeTo[x]) {
+                        cycle.add(x);
+                    }
+                    cycle.add(w); 
+                    cycle.add(v);
+                }
+            }
+            onStack[v] = false;
+        }
+
+        public Boolean hasCycle() {
+            return cycle != null; 
+        }
+
+        public List<Integer> cycle() {
+            return cycle;
+        }
+    }
+
+    public class DepthFirstOrder {
+        private List<Boolean> marked;
+        private List<Integer> pre; // Queue
+        private List<Integer> post; // Queue
+        private List<Integer> reversePost;
+
+        public DepthFirstOrder(Digraph G) {
+            pre = new List<Integer>(); 
+            post = new List<Integer>(); 
+            reversePost = new List<Integer>();
+            marked = new List<Boolean>();
+
+            for (Integer v = 0; v < G.V; v++) {
+                marked.add(false);
+            }
+            
+            for (Integer v = 0; v < G.V; v++) {
+                if (!marked[v]) {
+                    dfs(G, v);
+                }
+            }
+        }
+
+        private void dfs(Digraph G, Integer v) {
+            pre.add(v);
+            marked[v] = true;
+            for (Integer w : G.adj(v)) {
+                if (!marked[w]) {
+                    dfs(G, w);
+                }
+            }
+                    
+            post.add(v);
+            reversePost.add(v);
+        }
+
+        public List<Integer> pre() {  
+            return pre;  
+        }
+
+        public List<Integer> post() {  
+            return post;  
+        }
+
+        public List<Integer> reversePost(){  
+            return reversePost;  
+        }
+    }
+
+    public class Topological {
+        private List<Integer> order;
+        public Topological(Digraph G) {
+            DirectedCycle cyclefinder = new DirectedCycle(G); 
+            if (!cyclefinder.hasCycle()) {
+                DepthFirstOrder dfs = new DepthFirstOrder(G);
+                order = dfs.reversePost(); 
+            }
+        }
+
+        public List<Integer> order(){  
+            return order;  
+        }
+
+        public Boolean isDAG() {  
+            return order == null;  
+        }
+    }
+
+    public class SymbolDigraph {
+        private Map<Object, Integer> st;
+        private Digraph G;
+     
+        public SymbolDigraph(Integer V) {
+            st = new Map<Object, Integer>(); 
+            G = new Digraph(V);
+        }
+
+        public void addEdge(Object a, Object b) {
+            G.addEdge(st.get(a), st.get(b)); 
+        }
+
+        public void addVertex(Object obj) {
+            if (!this.st.containsKey(obj)) {
+                this.st.put(obj, st.size());
+            }
+        }
+
+        public Boolean contains(Object s) { 
+            return st.containsKey(s); 
+        }
+
+        public Integer index(Object s) { 
+            return st.get(s); 
+        }
+
+        public Digraph G() { 
+            return G; 
+        }
+    }
+
+    // #endregion
+    // ************************
+
+    // ************************
+    // #region Matrix Definition
     // ************************
     public class EntityNodeMatrix implements Iterator<EntityNode> {
         public Integer rowIndex { get; set; }

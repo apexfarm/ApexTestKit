@@ -510,8 +510,7 @@ public with sharing class ATKCoreTest {
             new Account(Name = 'j1')
         };
 
-        ATKCore.Distributor distributor = new ATKCore.Distributor();
-        List<List<SObject>> pairs = distributor.distribute(leftList, rightList);
+        List<List<SObject>> pairs = ATKCore.DISTRIBUTOR.distribute(leftList, rightList);
         System.assertEquals(5, pairs.size());
         System.assertEquals('i0j0', String.valueOf(((Account)pairs[0][0]).Name) + String.valueOf(((Account)pairs[0][1]).Name));
         System.assertEquals('i1j0', String.valueOf(((Account)pairs[1][0]).Name) + String.valueOf(((Account)pairs[1][1]).Name));
