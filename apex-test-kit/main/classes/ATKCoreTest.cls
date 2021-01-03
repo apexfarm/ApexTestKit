@@ -17,6 +17,88 @@
 
 @IsTest
 public with sharing class ATKCoreTest {
+
+    static ATKCore.Digraph makeDigraph() {
+        ATKCore.Digraph g = new ATKCore.Digraph(13);
+        g.addEdge(0, 5);
+        g.addEdge(0, 1);
+        g.addEdge(0, 6);
+        g.addEdge(2, 0);
+        g.addEdge(2, 3);
+        g.addEdge(3, 5);
+        g.addEdge(5, 4);
+        g.addEdge(6, 9);
+        g.addEdge(7, 6);
+        g.addEdge(8, 7);
+        g.addEdge(9, 10);
+        g.addEdge(9, 11);
+        g.addEdge(9, 12);
+        g.addEdge(11, 12);  
+        return g;
+    }
+
+    @IsTest
+    static void test_Digraph_DirectedCycle() {   
+        {
+            ATKCore.Digraph g = makeDigraph();
+            ATKCore.DirectedCycle dc = new ATKCore.DirectedCycle(g);
+            System.assertEquals(false, dc.hasCycle());
+        } 
+
+        {
+            ATKCore.Digraph g = makeDigraph();
+            g.addEdge(4, 3);
+            ATKCore.DirectedCycle dc = new ATKCore.DirectedCycle(g);
+            System.assertEquals(true, dc.hasCycle());
+        }
+    }
+
+    @IsTest
+    static void test_Digraph_Topological() {
+        ATKCore.Digraph g = makeDigraph();
+        ATKCore.Topological top = new ATKCore.Topological(g);
+        System.assertEquals(true, top.isDAG());
+    }
+
+    @IsTest
+    static void test_Digraph_SymbolDigraph() {
+        ATKCore.SymbolDigraph g = new ATKCore.SymbolDigraph(13);
+        g.addVertex('0');
+        g.addVertex('1');
+        g.addVertex('2');
+        g.addVertex('3');
+        g.addVertex('4');
+        g.addVertex('5');
+        g.addVertex('6');
+        g.addVertex('7');
+        g.addVertex('8');
+        g.addVertex('9');
+        g.addVertex('10');
+        g.addVertex('11');
+        g.addVertex('12');
+
+        g.addEdge('0', '5');
+        g.addEdge('0', '1');
+        g.addEdge('0', '6');
+        g.addEdge('2', '0');
+        g.addEdge('2', '3');
+        g.addEdge('3', '5');
+        g.addEdge('5', '4');
+        g.addEdge('6', '9');
+        g.addEdge('7', '6');
+        g.addEdge('8', '7');
+        g.addEdge('9', '10');
+        g.addEdge('9', '11');
+        g.addEdge('9', '12');
+        g.addEdge('11', '12');
+
+        ATKCore.Topological top = new ATKCore.Topological(g.G());
+        System.debug(top.order());
+        for (Integer v : top.order()) {
+            System.assertEquals(String.valueOf(v), g.keyAt(v));
+        }     
+    }
+
     @IsTest
     static void test_Model_EntityNodeMatrix() {
         ATKCore.EntityNodeMatrix matrix = new ATKCore.EntityNodeMatrix();

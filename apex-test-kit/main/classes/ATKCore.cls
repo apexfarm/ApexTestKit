@@ -324,16 +324,6 @@ public with sharing class ATKCore {
     // ************************
     // #region Graph Definition
     // ************************
-    // Digraph g = new Digraph(6);
-    // g.addEdge(0, 5);
-    // g.addEdge(5, 4);
-    // g.addEdge(4, 3);
-    // g.addEdge(3, 0);
-
-    // DirectedCycle dc = new DirectedCycle(g);
-    // System.debug(dc.hasCycle());
-    // System.debug(dc.cycle);
-
     public class Digraph {
         public final Integer V { get; private set; }
         public Integer E { get; private set; }
@@ -366,40 +356,42 @@ public with sharing class ATKCore {
         List<Integer> cycle { get; set; }
 
         public DirectedCycle(Digraph G) {
-            onStack = new List<Boolean>();
-            edgeTo = new List<Integer>(); 
-            marked = new List<Boolean>(); 
+            this.onStack = new List<Boolean>();
+            this.edgeTo = new List<Integer>(); 
+            this.marked = new List<Boolean>(); 
 
             for (Integer v = 0; v < G.V; v++) {
-                onStack.add(false);
-                edgeTo.add(null);
-                marked.add(false);
+                this.onStack.add(false);
+                this.edgeTo.add(null);
+                this.marked.add(false);
             }
 
             for (Integer v = 0; v < G.V; v++) {
-                if (!marked[v]) dfs(G, v);
+                if (!this.marked[v]) {
+                    dfs(G, v);
+                }
             }
         }
 
         private void dfs(Digraph G, Integer v) {
-            onStack[v] = true;
-            marked[v] = true;
+            this.onStack[v] = true;
+            this.marked[v] = true;
             for (Integer w : G.adj(v)) {
                 if (this.hasCycle()) {
                     return;
-                } else if (!marked[w]) {  
-                    edgeTo[w] = v; 
+                } else if (!this.marked[w]) {  
+                    this.edgeTo[w] = v; 
                     dfs(G, w);
-                } else if (onStack[w]) {
+                } else if (this.onStack[w]) {
                     cycle = new List<Integer>();
-                    for (Integer x = v; x != w; x = edgeTo[x]) {
+                    for (Integer x = v; x != w; x = this.edgeTo[x]) {
                         cycle.add(x);
                     }
                     cycle.add(w); 
                     cycle.add(v);
                 }
             }
-            onStack[v] = false;
+            this.onStack[v] = false;
         }
 
         public Boolean hasCycle() {
@@ -415,12 +407,10 @@ public with sharing class ATKCore {
         private List<Boolean> marked;
         private List<Integer> pre; // Queue
         private List<Integer> post; // Queue
-        private List<Integer> reversePost;
 
         public DepthFirstOrder(Digraph G) {
             pre = new List<Integer>(); 
             post = new List<Integer>(); 
-            reversePost = new List<Integer>();
             marked = new List<Boolean>();
 
             for (Integer v = 0; v < G.V; v++) {
@@ -444,7 +434,6 @@ public with sharing class ATKCore {
             }
                     
             post.add(v);
-            reversePost.add(v);
         }
 
         public List<Integer> pre() {  
@@ -455,8 +444,12 @@ public with sharing class ATKCore {
             return post;  
         }
 
-        public List<Integer> reversePost(){  
-            return reversePost;  
+        public List<Integer> reversePost(){
+            List<Integer> reversePost = new List<Integer>();
+            for (Integer i = post.size(); i > 0; i--) {
+                reversePost.add(post[i - 1]);
+            }
+            return reversePost;
         }
     }
 
@@ -475,17 +468,19 @@ public with sharing class ATKCore {
         }
 
         public Boolean isDAG() {  
-            return order == null;  
+            return order != null;  
         }
     }
 
     public class SymbolDigraph {
         private Map<Object, Integer> st;
+        private List<Object> keys;
         private Digraph G;
      
         public SymbolDigraph(Integer V) {
             st = new Map<Object, Integer>(); 
             G = new Digraph(V);
+            keys = new List<Object>();
         }
 
         public void addEdge(Object a, Object b) {
@@ -495,6 +490,7 @@ public with sharing class ATKCore {
         public void addVertex(Object obj) {
             if (!this.st.containsKey(obj)) {
                 this.st.put(obj, st.size());
+                this.keys.add(obj);
             }
         }
 
@@ -504,6 +500,10 @@ public with sharing class ATKCore {
 
         public Integer index(Object s) { 
             return st.get(s); 
+        }
+
+        public Object keyAt(Integer i) {
+            return keys[i];
         }
 
         public Digraph G() { 
