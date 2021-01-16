@@ -1,6 +1,6 @@
 # Apex Test Kit
 
-![](https://img.shields.io/badge/version-3.3.1-brightgreen.svg) ![](https://img.shields.io/badge/build-passing-brightgreen.svg) ![](https://img.shields.io/badge/coverage-95%25-brightgreen.svg)
+![](https://img.shields.io/badge/version-3.4-brightgreen.svg) ![](https://img.shields.io/badge/build-passing-brightgreen.svg) ![](https://img.shields.io/badge/coverage-95%25-brightgreen.svg)
 
 Apex Test Kit can help generate massive records for Apex test classes. It solves two pain points during record creation:
 
@@ -9,26 +9,20 @@ Apex Test Kit can help generate massive records for Apex test classes. It solves
 
 | Environment           | Installation Link                                            | Version |
 | --------------------- | ------------------------------------------------------------ | ------- |
-| Production, Developer | <a target="_blank" href="https://login.salesforce.com/packaging/installPackage.apexp?p0=04t2v000007GQuwAAG"><img src="docs/images/deploy-button.png"></a> | ver 3.3.1 |
-| Sandbox               | <a target="_blank" href="https://test.salesforce.com/packaging/installPackage.apexp?p0=04t2v000007GQuwAAG"><img src="docs/images/deploy-button.png"></a> | ver 3.3.1 |
+| Production, Developer | <a target="_blank" href="https://login.salesforce.com/packaging/installPackage.apexp?p0=04t2v000007GQuwAAG"><img src="docs/images/deploy-button.png"></a> | ver 3.4 |
+| Sandbox               | <a target="_blank" href="https://test.salesforce.com/packaging/installPackage.apexp?p0=04t2v000007GQuwAAG"><img src="docs/images/deploy-button.png"></a> | ver 3.4 |
 
 ------
 
-### **v3.3 Release Notes**
-
-**[Lookup Field Keywords](#lookup-field-keywords)** has some **breaking changes**:
-
-- `recordType()` will only support developer name as param, and become *case sensitive*.
+### **v3.4 Release Notes**
 
 **[Command API](#command-api)**:
 
 - `mock()` now supports assigning read-only fields, such as *formula fields*, *rollup summary fields*, and *system fields*. For example `.field(Account.CreatedDate).repeat(Datetime.newInstance(2020, 1, 1))`.
-- Fix:  Fake Id assignments of sObjects during `mock()`  blocking some relationships to be updated.
 
-**[Performance](#performance)** adds **benchmark** to give a feel how fast it is to use `mock()` compared with `save()`.
+**[Principle](#principle)**:
 
-
-Happy hacking!
+- The validation of no cyclic relationships defined within a ATK statement is enforced. Exception will be thrown if the validation is failed.
 
 ------
 
@@ -38,6 +32,7 @@ Happy hacking!
   - [Performance](#performance)
   - [Demos](#demos)
 - [Relationship](#relationship)
+  - [Principle](#principle) 
   - [One to Many](#one-to-many)
   - [Many to One](#many-to-one)
   - [Many to Many](#many-to-many)
@@ -109,14 +104,14 @@ The scripts used to perform benchmark testing are documented under `scripts/apex
 1. No duplicate rules, process builders, and triggers etc.
 2. ApexCode debug level is set to DEBUG.
 
-| 1000 * Account | Database.insert | ATK Save | ATK Mock | ATK Save/Mock |
-| -------------- | --------------- | -------- | -------- | ------------- |
-| CPU Time       | 0               | 2024     | 401      | ~5x           |
-| Real Time (ms) | 6803            | 6430     | 526      | ~12x          |
+| 1000 * Account | Database.insert | ATK Save | ATK Mock | ATK Mock Perf. |
+| -------------- | --------------- | -------- | -------- | -------------- |
+| CPU Time       | 0               | 0        | 558      | N/A            |
+| Real Time (ms) | 6300            | 6631     | 461      | ~14x faster    |
 
 ### Demos
 
-There are four demos under the `scripts/apex` folder, they can be successfully run in a clean Salesforce CRM organization. If not, please try to fix them with FLS, validation rules or duplicate rules etc.
+There are five demos under the `scripts/apex` folder, they can be successfully run in a clean Salesforce CRM organization. If not, please try to fix them with FLS, validation rules or duplicate rules etc.
 
 | Subject  | File Path                         | Description                                                  |
 | -------- | --------------------------------- | ------------------------------------------------------------ |
@@ -127,6 +122,25 @@ There are four demos under the `scripts/apex` folder, they can be successfully r
 | Users    | `scripts/apex/demo-users.apex`    | How to generate community users in one goal.                 |
 
 ## Relationship
+
+### Principle
+
+Directed Acyclic Graph ([DAG](https://en.wikipedia.org/wiki/Directed_acyclic_graph)) validation is enforced since version 3.4. The object relationships you built must be a DAG, thus no cyclic relationships. If the validation is failed, an exception will be thrown. An cyclic relationship example that violates DAG definition would be:
+
+```java
+// WRONG EXAMPEL, please don't do this
+ATK.prepare(Account.SObjectType, 10)
+    .field(Account.Name).index('Name-{0000}')
+    .withChildren(Contact.SObjectType, Contact.AccountId, 20)
+        .field(Contact.LastName).index('Name-{0000}')
+        .field(Contact.Email).index('test.user+{0000}@email.com')
+        .field(Contact.MobilePhone).index('+86 186 7777 {0000}')
+        .withParent(Account.SObjectType, Contact.AccountId) 
+        // withParent without a 3rd param of size/list indicate a lookup previously created Accunts
+    .save();
+```
+
+And such cyclic reference is meaningless, hopefully you will never encounter such relationships in real applications.
 
 ### One to Many
 
@@ -261,7 +275,7 @@ All the following APIs without a third param at the last, indicate a back refere
 
 ## Field Keywords
 
-These keywords are used to generate field values based on simple rules automatically. Here is a dummy example to demo the use of field keywords.
+These keywords are used to generate field values based on simple rules automatically. Here is a dummy example to demo the use of each field keywords.
 
 ```java
 ATK.prepare(A__c.SObjectType, 10)
@@ -277,15 +291,15 @@ ATK.prepare(A__c.SObjectType, 10)
 ### Basic Field Keywords
 | Keyword API                                               | Description                                                  |
 | --------------------------------------------------------- | ------------------------------------------------------------ |
-| index(String *format*)                                    | Formated string with `{0000}`, can recogonize left padding. For example: 0001, 0002, 0003 etc. |
-| repeat(Object *value*)                                    | Repeat with a fixed value.                                   |
+| index(String *format*)                                    | Formated string with `{0000}`, can recogonize left padding. i.e. `Name-{0000}` will generate Name-0001, Name-0002, Name-0003 etc. |
+| repeat(Object *value*)                                    | Repeat with a single fixed value.                            |
 | repeat(Object *value1*, Object *value2*)                  | Repeat with the provided values alternatively.               |
 | repeat(Object *value1*, Object *value2*, Object *value3*) | Repeat with the provided values alternatively.               |
 | repeat(List\<Object\> *values*)                           | Repeat with the provided values alternatively.               |
 
 ### Lookup Field Keywords
 
-These are field keywords in nature, but don't need to be chained after `.field(Schema.SObjectField)`. Because ATK automatically helps resolving the correct fields for them.
+These are field keywords in nature, but don't need to be chained after `.field(Schema.SObjectField)`. Because ATK helps to look up the reference Ids to the correct fields automatically.
 
 ```java
 ATK.prepare(User.SObjectType, 10)
@@ -296,18 +310,20 @@ ATK.prepare(Account.SObjectType, 10)
     .recordType('Business_Account');
 ```
 
-| Keyword API                                                  | Description                                                 |
-| ------------------------------------------------------------ | ----------------------------------------------------------- |
-| recordType(String *name*)                                    | Assign record type ID by developer name and case sensitive. |
-| profile(String *name*)                                       | Assign profile ID by profile name.                          |
-| permissionSet(String *name*)                                 | Assign the permission set to users by developer name.       |
-| permissionSet(String name1, String *name2*)                  | Assign all the permission sets to users by developer names. |
-| permissionSet(String *name1*, String *name2*, String *name3*) | Assign all the permission sets to users by developer names. |
-| permissionSet(List\<String\> *names*)                        | Assign all the permission sets to users by developer names. |
+| Keyword API                                                  | Description                                                  |
+| ------------------------------------------------------------ | ------------------------------------------------------------ |
+| recordType(String *name*)                                    | Assign record type ID by developer name, the name is case sensitive due the `getRecordTypeInfosByDeveloperName()` API. |
+| profile(String *name*)                                       | Assign profile ID by profile name.                           |
+| permissionSet(String *name*)                                 | Assign the permission set to users by developer name.        |
+| permissionSet(String name1, String *name2*)                  | Assign all the permission sets to users by developer names.  |
+| permissionSet(String *name1*, String *name2*, String *name3*) | Assign all the permission sets to users by developer names.  |
+| permissionSet(List\<String\> *names*)                        | Assign all the permission sets to users by developer names.  |
 
 ### Arithmetic Field Keywords
 
-These keywords will increase/decrease the init values by the provided step values. They must be applied to the correct field data types that support them.
+These keywords will increase/decrease the init values by the provided step values.
+
+#### Number Arithmetic
 
 | Keyword API                                | Description                                    |
 | ------------------------------------------ | ---------------------------------------------- |
@@ -315,6 +331,11 @@ These keywords will increase/decrease the init values by the provided step value
 | substract(Decimal *init*, Decimal *step*)  | Must be applied to a number type field.        |
 | divide(Decimal *init*, Decimal *factor*)   | Must be applied to a number type field.        |
 | multiply(Decimal *init*, Decimal *factor*) | Must be applied to a number type field.        |
+
+#### Date/Time Arithmetic
+
+| Keyword API                                | Description                                    |
+| ------------------------------------------ | ---------------------------------------------- |
 | addYears(Object *init*, Integer *step*)    | Must be applied to a Datetime/Date type field. |
 | addMonths(Object *init*, Integer *step*)   | Must be applied to a Datetime/Date type field. |
 | addDays(Object *init*, Integer *step*)     | Must be applied to a Datetime/Date type field. |
