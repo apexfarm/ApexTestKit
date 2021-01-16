@@ -1,0 +1,2 @@
+*.cls linguist-language=Apex
+scripts/* linguist-generated

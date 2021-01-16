@@ -207,25 +207,21 @@ public with sharing class ATK implements Entity, Field {
 
     public Entity repeat(Object value) {
         this.matrix.currEntityNode.currEntityField.fixedValue = value;
-
         return sharedCommand;
     }
 
     public Entity repeat(Object value1, Object value2) {
         this.matrix.currEntityNode.currEntityField.repeatValues = new List<Object> { value1, value2 };
-
         return sharedCommand;
     }
 
     public Entity repeat(Object value1, Object value2, Object value3) {
         this.matrix.currEntityNode.currEntityField.repeatValues = new List<Object> { value1, value2, value3 };
-
         return sharedCommand;
     }
 
     public Entity repeat(List<Object> values) {
         this.matrix.currEntityNode.currEntityField.repeatValues = values;
-
         return sharedCommand;
     }
 

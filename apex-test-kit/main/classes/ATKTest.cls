@@ -24,7 +24,6 @@ public with sharing class ATKTest {
             .withChildren(Case.SObjectType, Case.AccountId, 40)
             .also()
             .withChildren(Contact.SObjectType, Contact.AccountId, 20)
-                // in order to test this method
                 .withChildren(Case.SObjectType, Case.ContactId)
             .save(false);
 
@@ -56,7 +55,6 @@ public with sharing class ATKTest {
             .withChildren(Case.SObjectType, Case.AccountId, 40)
             .also()
             .withChildren(Contact.SObjectType, Contact.AccountId, 20)
-                // in order to test this method
                 .withChildren(Case.SObjectType, Case.ContactId)
             .mock();
 

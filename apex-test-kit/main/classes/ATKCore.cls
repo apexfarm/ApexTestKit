@@ -40,10 +40,10 @@ public with sharing class ATKCore {
             indexes = new Map<Schema.SObjectType, Map<Schema.SObjectField, Integer>>();
         }
 
-        public void generate(EntityNodeMatrix iterator, Boolean doInsert, Boolean doMock) {
-            iterator.reset();
-            while (iterator.hasNext()) {
-                EntityNode entityNode = iterator.next();
+        public void generate(EntityNodeMatrix matrix, Boolean doInsert, Boolean doMock) {   
+            matrix.reset();
+            while (matrix.hasNext()) {
+                EntityNode entityNode = matrix.next();
                 Boolean needUpsert = true;
                 List<SObject> objects = entityNode.objects;
                 if (objects.size() == 0) {
@@ -322,343 +322,80 @@ public with sharing class ATKCore {
     // ************************
 
     // ************************
-    // #region Graph Definition
-    // ************************
-    public class Digraph {
-        public final Integer V { get; private set; }
-        public Integer E { get; private set; }
-        private List<List<Integer>> adj { get; set; }
-
-        public Digraph(Integer V) {
-            this.V = V;
-            this.E = 0;
-            this.adj = new List<List<Integer>>();
-            for (Integer i = 0; i < V; i ++) {
-                this.adj.add(new List<Integer>());
-            }
-        }
-
-        public void addEdge(Integer v, Integer w) {
-            // System.debug(new List<Integer>{ v, w });
-            adj[v].add(w);
-            E++;
-        }
-
-        public List<Integer> adj(Integer v) {
-            return adj[v];
-        }
-    }
-
-    public class DirectedCycle {
-        List<Boolean> marked { get; set; }
-        List<Integer> edgeTo { get; set; }
-        List<Boolean> onStack { get; set; }
-        List<Integer> cycle { get; set; }
-
-        public DirectedCycle(Digraph G) {
-            this.onStack = new List<Boolean>();
-            this.edgeTo = new List<Integer>(); 
-            this.marked = new List<Boolean>(); 
-
-            for (Integer v = 0; v < G.V; v++) {
-                this.onStack.add(false);
-                this.edgeTo.add(null);
-                this.marked.add(false);
-            }
-
-            for (Integer v = 0; v < G.V; v++) {
-                if (!this.marked[v]) {
-                    dfs(G, v);
-                }
-            }
-        }
-
-        private void dfs(Digraph G, Integer v) {
-            this.onStack[v] = true;
-            this.marked[v] = true;
-            for (Integer w : G.adj(v)) {
-                if (this.hasCycle()) {
-                    return;
-                } else if (!this.marked[w]) {  
-                    this.edgeTo[w] = v; 
-                    dfs(G, w);
-                } else if (this.onStack[w]) {
-                    cycle = new List<Integer>();
-                    for (Integer x = v; x != w; x = this.edgeTo[x]) {
-                        cycle.add(x);
-                    }
-                    cycle.add(w); 
-                    cycle.add(v);
-                }
-            }
-            this.onStack[v] = false;
-        }
-
-        public Boolean hasCycle() {
-            return cycle != null; 
-        }
-
-        public List<Integer> cycle() {
-            return cycle;
-        }
-    }
-
-    public class DepthFirstOrder {
-        private List<Boolean> marked;
-        private List<Integer> pre; // Queue
-        private List<Integer> post; // Queue
-
-        public DepthFirstOrder(Digraph G) {
-            pre = new List<Integer>(); 
-            post = new List<Integer>(); 
-            marked = new List<Boolean>();
-
-            for (Integer v = 0; v < G.V; v++) {
-                marked.add(false);
-            }
-            
-            for (Integer v = 0; v < G.V; v++) {
-                if (!marked[v]) {
-                    dfs(G, v);
-                }
-            }
-        }
-
-        private void dfs(Digraph G, Integer v) {
-            pre.add(v);
-            marked[v] = true;
-            for (Integer w : G.adj(v)) {
-                if (!marked[w]) {
-                    dfs(G, w);
-                }
-            }
-                    
-            post.add(v);
-        }
-
-        public List<Integer> pre() {  
-            return pre;  
-        }
-
-        public List<Integer> post() {  
-            return post;  
-        }
-
-        public List<Integer> reversePost(){
-            List<Integer> reversePost = new List<Integer>();
-            for (Integer i = post.size(); i > 0; i--) {
-                reversePost.add(post[i - 1]);
-            }
-            return reversePost;
-        }
-    }
-
-    public class Topological {
-        private List<Integer> order;
-        public Topological(Digraph G) {
-            DirectedCycle cyclefinder = new DirectedCycle(G); 
-            if (!cyclefinder.hasCycle()) {
-                DepthFirstOrder dfs = new DepthFirstOrder(G);
-                order = dfs.reversePost(); 
-            }
-        }
-
-        public List<Integer> order(){  
-            return order;  
-        }
-
-        public Boolean isDAG() {  
-            return order != null;  
-        }
-    }
-
-    public class SymbolDigraph {
-        private Map<Object, Integer> st;
-        private List<Object> keys;
-        private Digraph G;
-     
-        public SymbolDigraph(Integer V) {
-            st = new Map<Object, Integer>(); 
-            G = new Digraph(V);
-            keys = new List<Object>();
-        }
-
-        public void addEdge(Object a, Object b) {
-            G.addEdge(st.get(a), st.get(b)); 
-        }
-
-        public void addVertex(Object obj) {
-            if (!this.st.containsKey(obj)) {
-                this.st.put(obj, st.size());
-                this.keys.add(obj);
-            }
-        }
-
-        public Boolean contains(Object s) { 
-            return st.containsKey(s); 
-        }
-
-        public Integer index(Object s) { 
-            return st.get(s); 
-        }
-
-        public Object keyAt(Integer i) {
-            return keys[i];
-        }
-
-        public Digraph G() { 
-            return G; 
-        }
-    }
-
-    // #endregion
-    // ************************
-
-    // ************************
     // #region Matrix Definition
     // ************************
+
     public class EntityNodeMatrix implements Iterator<EntityNode> {
-        public Integer rowIndex { get; set; }
-        public Integer colIndex { get; set; }
-        List<List<EntityNode>> entityNodeMatrix { get; set; }
-        public List<EntityNode> entityNodeCache { get; set; }
-        List<EntityNode> entityNodeStack { get; set; }
-        public EntityNode currEntityNode { get; set; }
+        public EntityNode currEntityNode { get; private set; }
+        public List<EntityNodeRelationship> entityNodeRelationships { get; private set; }
+        public List<EntityNode> entityNodeCache { get; private set; }
+        private List<EntityNode> entityNodeStack { get; set; }
+        
+        private SymbolDigraph graph { get; set; }
+        private Topological top { get; set; }
+        private Integer currentIndex { get; set; }
 
         public EntityNodeMatrix() {
-            entityNodeMatrix = new List<List<EntityNode>>();
             entityNodeStack = new List<EntityNode>();
             entityNodeCache = new List<EntityNode>();
-            this.reset();
+            entityNodeRelationships = new List<EntityNodeRelationship>();
         }
 
         public void reset() {
-            rowIndex = 0;
-            colIndex = -1;
+            this.graph = new SymbolDigraph(this.entityNodeCache);
+            for (EntityNodeRelationship relation : this.entityNodeRelationships) {
+                this.graph.addEdge(relation.parent, relation.child);
+            }
+
+            this.top = new Topological(graph.G());
+            
+            if (top.isDAG()) {
+                currentIndex = -1;
+            } else {
+                // throw Exception
+            }
         }
 
         public Boolean hasNext() {
-            return rowIndex + 1 < entityNodeMatrix.size()
-                || colIndex + 1 < entityNodeMatrix.get(rowIndex).size();
+            return currentIndex < this.top.order().size() - 1;
         }
 
         public EntityNode next() {
-            if (hasNext()) {
-                colIndex += 1;
-                if (colIndex == entityNodeMatrix.get(rowIndex).size()) {
-                    rowIndex += 1;
-                    colIndex = 0;
-                }
-                return entityNodeMatrix.get(rowIndex).get(colIndex);
-            }
-            return null;
-        }
-
-        public void pop(Integer depth) {
-            while (depth > 0) {
-                depth--;
-                Integer size = this.entityNodeStack.size();
-                if (size > 1) {
-                    this.entityNodeStack.remove(size - 1);
-                    this.currEntityNode = this.entityNodeStack[size - 2];
-                }
-            }
-            this.reset();
-            while (this.hasNext()) {
-                EntityNode entityNode = this.next();
-                if (entityNode == this.currEntityNode) {
-                    break;
-                }
+            if (this.hasNext()) {
+                currentIndex++;
+                return (EntityNode)this.graph.keyAt(this.top.order()[currentIndex]);
+            } else {
+                return null;
             }
         }
 
         public void add(EntityNodeType nodeType, EntityNode nextEntityNode, Schema.SObjectField referenceField) {
-            switch on nodeType {
-                when PREPARE {
-                    rowIndex = 0;
-                    colIndex = 0;
-                    entityNodeMatrix.add(new List<EntityNode>());
-                    entityNodeMatrix.get(rowIndex).add(nextEntityNode);
-                }
-                when MANY_TO_ONE {
-                    if (rowIndex > 0) {
-                        rowIndex -= 1;
-                        entityNodeMatrix.get(rowIndex).add(nextEntityNode);
-                        colIndex = entityNodeMatrix.get(rowIndex).size() - 1;
-                    } else {
-                        rowIndex = 0;
-                        colIndex = 0;
-                        entityNodeMatrix.add(rowIndex, new List<EntityNode>());
-                        entityNodeMatrix.get(rowIndex).add(nextEntityNode);
-                    }
-                }
-                when ONE_TO_MANY {
-                    rowIndex += 1;
-                    if (rowIndex == entityNodeMatrix.size()) {
-                        colIndex = 0;
-                        entityNodeMatrix.add(new List<EntityNode>());
-                        entityNodeMatrix.get(rowIndex).add(nextEntityNode);
-                    } else {
-                        colIndex = entityNodeMatrix.get(rowIndex).size();
-                        entityNodeMatrix.get(rowIndex).add(nextEntityNode);
-                    }
-                }
-            }
-
-            attach(nodeType, nextEntityNode, referenceField);
+            addEntityNode(nodeType, nextEntityNode, referenceField);
+            entityNodeCache.add(nextEntityNode);
         }
 
         public void add(EntityNodeType nodeType, Schema.SObjectType objectType, Schema.SObjectField referenceField) {
-            Integer currRowIndex = rowIndex;
-            Integer currColIndex = colIndex;
             EntityNode nextEntityNode;
-            this.reset();
-            while (this.hasNext()) {
-                nextEntityNode = this.next();
-                if (nextEntityNode.objectType == objectType) {
+            for (EntityNode entityNode : this.entityNodeCache) {
+                if (entityNode.objectType == objectType) {
+                    nextEntityNode = entityNode;
                     break;
                 }
             }
-
             if (nextEntityNode != null) {
-                switch on nodeType {
-                    when MANY_TO_ONE {
-                        moveParentAboveChild(
-                            nextEntityNode, rowIndex, colIndex,
-                            currEntityNode, currRowIndex, currColIndex);
-                        rowIndex = rowIndex;
-                        colIndex = 0;
-                    }
-                    when ONE_TO_MANY {
-                        moveParentAboveChild(
-                            currEntityNode, currRowIndex, currColIndex,
-                            nextEntityNode, rowIndex, colIndex);
-                        rowIndex = rowIndex + 1;
-                        colIndex = colIndex;
-                    }
+                addEntityNode(nodeType, nextEntityNode, referenceField);
+            }
+        }
+
+        private void addEntityNode(EntityNodeType nodeType, EntityNode nextEntityNode, Schema.SObjectField referenceField) {
+            switch on nodeType {
+                when MANY_TO_ONE {
+                    this.entityNodeRelationships.add(new EntityNodeRelationship(nextEntityNode, this.currEntityNode, referenceField));
                 }
-
-                attach(nodeType, nextEntityNode, referenceField);
+                when ONE_TO_MANY {
+                    this.entityNodeRelationships.add(new EntityNodeRelationship(this.currEntityNode, nextEntityNode, referenceField));
+                }
             }
-        }
-
-        public void moveParentAboveChild(
-            EntityNode parentNode, Integer parentRow, Integer parentCol,
-            EntityNode childNode, Integer childRow, Integer childCol) {
-
-            // Open comment for debug purpose
-            // System.debug(String.format('{0}({1}, {2})', new List<Object>{ parentNode.objectType, parentRow, parentCol }));
-            // System.debug(String.format('{0}({1}, {2})', new List<Object>{ childNode.objectType, childRow, childCol }));
-
-            if (childRow == parentRow && childCol < parentCol) {
-                entityNodeMatrix.get(parentRow).remove(parentCol);
-                entityNodeMatrix.add(parentRow, new List<EntityNode> { parentNode });
-            }
-        }
-
-        void attach(EntityNodeType nodeType, EntityNode nextEntityNode, Schema.SObjectField referenceField) {
-            entityNodeStack.add(nextEntityNode);
-            entityNodeCache.add(nextEntityNode);
 
             switch on nodeType {
                 when MANY_TO_ONE {
@@ -670,7 +407,20 @@ public with sharing class ATKCore {
                     nextEntityNode.referenceFields.add(referenceField);
                 }
             }
+
+            entityNodeStack.add(nextEntityNode);
             this.currEntityNode = nextEntityNode;
+        }
+
+        public void pop(Integer depth) {
+            while (depth > 0) {
+                depth--;
+                Integer size = this.entityNodeStack.size();
+                if (size > 1) {
+                    this.entityNodeStack.remove(size - 1);
+                    this.currEntityNode = this.entityNodeStack[size - 2];
+                }
+            }
         }
     }
 
@@ -678,6 +428,18 @@ public with sharing class ATKCore {
         PREPARE,
         MANY_TO_ONE,
         ONE_TO_MANY
+    }
+
+    class EntityNodeRelationship {
+        EntityNode parent { get; set; }
+        EntityNode child { get; set; }
+        Schema.SObjectField referenceField { get; set; }
+
+        EntityNodeRelationship(EntityNode parent, EntityNode child, Schema.SObjectField referenceField) {
+            this.parent = parent;
+            this.child = child;
+            this.referenceField = referenceField;
+        }
     }
 
     public class EntityNode {
@@ -896,10 +658,6 @@ public with sharing class ATKCore {
     // ***********************
     // #region Utility Classes
     // ***********************
-    class Indexer {
-        Integer i = 0;
-    }
-
     public class StringBuilder {
         List<String> values { get; set; }
 
@@ -1148,6 +906,10 @@ public with sharing class ATKCore {
         }
     }
 
+    class Indexer {
+        Integer i = 0;
+    }
+
     public class FakeId {
         Map<Schema.SObjectType, Indexer> objectIdIndexes { get; set; }
 
@@ -1178,4 +940,196 @@ public with sharing class ATKCore {
 
     // #endregion
     // ***********************
+
+    // ************************
+    // #region Graph Definition
+    // ************************
+    public class Digraph {
+        public final Integer V { get; private set; }
+        public Integer E { get; private set; }
+        private List<List<Integer>> adj { get; set; }
+
+        public Digraph(Integer V) {
+            this.V = V;
+            this.E = 0;
+            this.adj = new List<List<Integer>>();
+            for (Integer i = 0; i < V; i ++) {
+                this.adj.add(new List<Integer>());
+            }
+        }
+
+        public void addEdge(Integer v, Integer w) {
+            adj[v].add(w);
+            E++;
+        }
+
+        public List<Integer> adj(Integer v) {
+            return adj[v];
+        }
+    }
+
+    public class DirectedCycle {
+        List<Boolean> marked { get; set; }
+        List<Integer> edgeTo { get; set; }
+        List<Boolean> onStack { get; set; }
+        List<Integer> cycle { get; set; }
+
+        public DirectedCycle(Digraph G) {
+            this.onStack = new List<Boolean>();
+            this.edgeTo = new List<Integer>(); 
+            this.marked = new List<Boolean>(); 
+
+            for (Integer v = 0; v < G.V; v++) {
+                this.onStack.add(false);
+                this.edgeTo.add(null);
+                this.marked.add(false);
+            }
+
+            for (Integer v = 0; v < G.V; v++) {
+                if (!this.marked[v]) {
+                    dfs(G, v);
+                }
+            }
+        }
+
+        private void dfs(Digraph G, Integer v) {
+            this.onStack[v] = true;
+            this.marked[v] = true;
+            for (Integer w : G.adj(v)) {
+                if (this.hasCycle()) {
+                    return;
+                } else if (!this.marked[w]) {  
+                    this.edgeTo[w] = v; 
+                    dfs(G, w);
+                } else if (this.onStack[w]) {
+                    cycle = new List<Integer>();
+                    for (Integer x = v; x != w; x = this.edgeTo[x]) {
+                        cycle.add(x);
+                    }
+                    cycle.add(w); 
+                    cycle.add(v);
+                }
+            }
+            this.onStack[v] = false;
+        }
+
+        public Boolean hasCycle() {
+            return cycle != null; 
+        }
+
+        // public List<Integer> cycle() {
+        //     return cycle;
+        // }
+    }
+
+    public class DepthFirstOrder {
+        private List<Boolean> marked;
+        private List<Integer> pre; // Queue
+        private List<Integer> post; // Queue
+
+        public DepthFirstOrder(Digraph G) {
+            pre = new List<Integer>(); 
+            post = new List<Integer>(); 
+            marked = new List<Boolean>();
+
+            for (Integer v = 0; v < G.V; v++) {
+                marked.add(false);
+            }
+            
+            for (Integer v = 0; v < G.V; v++) {
+                if (!marked[v]) {
+                    dfs(G, v);
+                }
+            }
+        }
+
+        private void dfs(Digraph G, Integer v) {
+            pre.add(v);
+            marked[v] = true;
+            for (Integer w : G.adj(v)) {
+                if (!marked[w]) {
+                    dfs(G, w);
+                }
+            }
+                    
+            post.add(v);
+        }
+
+        // public List<Integer> pre() {  
+        //     return pre;  
+        // }
+
+        // public List<Integer> post() {  
+        //     return post;  
+        // }
+
+        public List<Integer> reversePost(){
+            List<Integer> reversePost = new List<Integer>();
+            for (Integer i = post.size(); i > 0; i--) {
+                reversePost.add(post[i - 1]);
+            }
+            return reversePost;
+        }
+    }
+
+    public class Topological {
+        private List<Integer> order;
+        public Topological(Digraph G) {
+            DirectedCycle cyclefinder = new DirectedCycle(G); 
+            if (!cyclefinder.hasCycle()) {
+                DepthFirstOrder dfs = new DepthFirstOrder(G);
+                order = dfs.reversePost(); 
+            }
+        }
+
+        public List<Integer> order(){  
+            return order;  
+        }
+
+        public Boolean isDAG() {  
+            return order != null;  
+        }
+    }
+
+    public class SymbolDigraph {
+        private Map<Object, Integer> indexMap;
+        private List<Object> keys;
+        private Digraph G;
+     
+        public SymbolDigraph(List<Object> objects) {
+            indexMap = new Map<Object, Integer>(); 
+            keys = new List<Object>();
+
+            for (Object obj : objects) {
+                if (!this.indexMap.containsKey(obj)) {
+                    this.indexMap.put(obj, indexMap.size());
+                    this.keys.add(obj);
+                }
+            }
+            G = new Digraph(objects.size());
+        }
+
+        public void addEdge(Object a, Object b) {
+            G.addEdge(indexMap.get(a), indexMap.get(b)); 
+        }
+
+        // public Boolean contains(Object s) { 
+        //     return indexMap.containsKey(s); 
+        // }
+
+        // public Integer index(Object s) { 
+        //     return indexMap.get(s); 
+        // }
+
+        public Object keyAt(Integer i) {
+            return keys[i];
+        }
+
+        public Digraph G() {
+            return G; 
+        }
+    }
+
+    // #endregion
+    // ************************
 }
