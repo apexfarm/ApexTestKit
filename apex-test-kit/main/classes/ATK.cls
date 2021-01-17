@@ -74,16 +74,16 @@ public with sharing class ATK implements Entity, Field {
     }
 
     public SaveResult save(Boolean doInsert) {
-        return generate(doInsert == true, false);
+        ATKCore.SAVE_GENERATOR.generate(this.matrix, doInsert);
+        return generateResult();
     }
 
     public SaveResult mock() {
-        return generate(false, true);
+        ATKCore.MOCK_GENERATOR.generate(this.matrix, false);
+        return generateResult();
     }
 
-
-    private SaveResult generate(Boolean doInsert, Boolean doMock) {
-        ATKCore.GENERATOR.generate(this.matrix, doInsert, doMock);
+    private SaveResult generateResult() {
         SaveResult result = new SaveResult();
         for (ATKCore.EntityNode node : matrix.entityNodeCache) {
             if (!result.result.containsKey(node.objectType)) {

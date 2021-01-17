@@ -18,8 +18,8 @@
 @IsTest
 public with sharing class ATKCoreTest {
     @IsTest
-    static void test_Generator_AssignFields() {
-        ATKCore.Generator generator = new ATKCore.Generator();
+    static void test_Generator_Save_AssignFields() {
+        ATKCore.SaveGenerator generator = new ATKCore.SaveGenerator();
         {
             ATKCore.EntityNode entity = new ATKCore.EntityNode(Account.SObjectType, 10);
             for (Integer i = 0; i < 10; ++i) {
@@ -27,7 +27,7 @@ public with sharing class ATKCoreTest {
             }
             entity.addField(Account.Name);
             entity.currEntityField.fixedValue = 'Name';
-            generator.assignWritableFields(entity);
+            generator.assignFields(entity);
         }
 
         {
@@ -39,7 +39,7 @@ public with sharing class ATKCoreTest {
             entity.currEntityField.arithmetic = ATKCore.EntityFieldArithmetic.ADD_DAYS;
             entity.currEntityField.initValue = Date.newInstance(2020, 1, 1);
             entity.currEntityField.stepValue = 1;
-            generator.assignWritableFields(entity);
+            generator.assignFields(entity);
         }
 
         {
@@ -51,7 +51,7 @@ public with sharing class ATKCoreTest {
             entity.currEntityField.arithmetic = ATKCore.EntityFieldArithmetic.ADD;
             entity.currEntityField.initValue = 0.1;
             entity.currEntityField.stepValue = 0.1;
-            generator.assignWritableFields(entity);
+            generator.assignFields(entity);
         }
 
         {
@@ -65,13 +65,13 @@ public with sharing class ATKCoreTest {
             entity.currEntityField.initValue = DateTime.newInstance(2020, 1, 1, 0, 0, 0);
             entity.currEntityField.stepValue = 1;
             entity.addField(Event.ActivityDateTime);
-            generator.assignWritableFields(entity);
+            generator.assignFields(entity);
         }
     }
 
     @IsTest
-    static void test_Generator_AssignReference() {
-        ATKCore.Generator generator = new ATKCore.Generator();
+    static void test_Generator_Save_AssignReference() {
+        ATKCore.SaveGenerator generator = new ATKCore.SaveGenerator();
         {
             ATKCore.EntityNodeMatrix matrix = new ATKCore.EntityNodeMatrix();
             matrix.add(ATKCore.EntityNodeType.PREPARE, new ATKCore.EntityNode(Account.SObjectType,
@@ -83,34 +83,34 @@ public with sharing class ATKCoreTest {
     }
 
     @IsTest
-    static void test_Generator_Generate() {
-        ATKCore.Generator generator = new ATKCore.Generator();
+    static void test_Generator_Save_Generate() {
+        ATKCore.SaveGenerator generator = new ATKCore.SaveGenerator();
         {
             ATKCore.EntityNodeMatrix matrix = new ATKCore.EntityNodeMatrix();
             matrix.add(ATKCore.EntityNodeType.PREPARE, new ATKCore.EntityNode(Account.SObjectType,
                 new List<Account> {new Account(), new Account(), new Account()}), null);
             matrix.add(ATKCore.EntityNodeType.ONE_TO_MANY, new ATKCore.EntityNode(Contact.SObjectType, 3), Contact.AccountId);
-            generator.generate(matrix, false, false);
+            generator.generate(matrix, false);
         }
     }
 
     @IsTest
-    static void test_Generator_Generate_doInsert() {
-        ATKCore.Generator generator = new ATKCore.Generator();
+    static void test_Generator_Save_doInsert() {
+        ATKCore.SaveGenerator generator = new ATKCore.SaveGenerator();
         {
             ATKCore.EntityNodeMatrix matrix = new ATKCore.EntityNodeMatrix();
             matrix.add(ATKCore.EntityNodeType.PREPARE, new ATKCore.EntityNode(Account.SObjectType,
                 new List<Account> {new Account(), new Account(), new Account()}), null);
             matrix.add(ATKCore.EntityNodeType.ONE_TO_MANY, new ATKCore.EntityNode(Contact.SObjectType, 3), Contact.AccountId);
             try {
-                generator.generate(matrix, true, false);
+                generator.generate(matrix, true);
             } catch(Exception ex) {}
         }
     }
 
     @IsTest
-    static void test_Generator_Generate_doMock_Empty() {
-        ATKCore.Generator generator = new ATKCore.Generator();
+    static void test_Generator_Mock_Empty() {
+        ATKCore.MockGenerator generator = new ATKCore.MockGenerator();
         {
             ATKCore.EntityNodeMatrix matrix = new ATKCore.EntityNodeMatrix();
             matrix.add(ATKCore.EntityNodeType.PREPARE,
@@ -121,7 +121,7 @@ public with sharing class ATKCoreTest {
                 new ATKCore.EntityNode(Contact.SObjectType, 3),
                 Contact.AccountId);
 
-            generator.generate(matrix, false, true);
+            generator.generate(matrix, false);
 
             System.assertEquals(2, matrix.entityNodeCache.size());
             for (ATKCore.EntityNode node : matrix.entityNodeCache) {
@@ -134,27 +134,27 @@ public with sharing class ATKCoreTest {
     }
 
     @IsTest
-    static void test_Generator_Generate_doMock_SystemField() {
-        ATKCore.Generator generator = new ATKCore.Generator();
+    static void test_Generator_Mock_SystemField() {
+        ATKCore.MockGenerator generator = new ATKCore.MockGenerator();
         Id fakeUserId = ATKCore.FakeId.get(User.SObjectType, 1);
         {
             ATKCore.EntityNodeMatrix matrix = new ATKCore.EntityNodeMatrix();
             matrix.add(ATKCore.EntityNodeType.PREPARE,
-                new ATKCore.EntityNode(Account.SObjectType, 3),
+                new ATKCore.EntityNode(Account.SObjectType, 1),
                 null);
             matrix.currEntityNode.addField(Account.CreatedDate);
             matrix.currEntityNode.currEntityField.fixedValue = Datetime.newInstance(2020, 1, 1);
             matrix.currEntityNode.addField(Account.CreatedById);
             matrix.currEntityNode.currEntityField.fixedValue = fakeUserId;
             matrix.add(ATKCore.EntityNodeType.ONE_TO_MANY,
-                new ATKCore.EntityNode(Contact.SObjectType, 3),
+                new ATKCore.EntityNode(Contact.SObjectType, 1),
                 Contact.AccountId);
             matrix.currEntityNode.addField(Contact.CreatedDate);
             matrix.currEntityNode.currEntityField.fixedValue = Datetime.newInstance(2020, 1, 1);
             matrix.currEntityNode.addField(Contact.CreatedById);
             matrix.currEntityNode.currEntityField.fixedValue = fakeUserId;
 
-            generator.generate(matrix, false, true);
+            generator.generate(matrix, false);
             System.assertEquals(2, matrix.entityNodeCache.size());
 
             Datetime expectedDatetime = Datetime.newInstance(2020, 1, 1);
@@ -190,7 +190,7 @@ public with sharing class ATKCoreTest {
             new Account(Name = 'j1')
         };
 
-        List<List<SObject>> pairs = ATKCore.DISTRIBUTOR.distribute(leftList, rightList);
+        List<List<Object>> pairs = ATKCore.DISTRIBUTOR.distribute(leftList, rightList);
         System.assertEquals(5, pairs.size());
         System.assertEquals('i0j0', String.valueOf(((Account)pairs[0][0]).Name) + String.valueOf(((Account)pairs[0][1]).Name));
         System.assertEquals('i1j0', String.valueOf(((Account)pairs[1][0]).Name) + String.valueOf(((Account)pairs[1][1]).Name));
@@ -218,16 +218,17 @@ public with sharing class ATKCoreTest {
         //            |------------------- 2. Contact
         //  1. User <-|               |--- 5. Contact <---|
         //            |- 3. Account <-|                   |- 6. OpportunityContactRole
-        //                            |- 4. Opportunity <-| 
+        //                            |- 4. Opportunity <-|
 
-        matrix.reset();        
+        matrix.generateDAG();
+        matrix.reset();
         System.assertEquals(User.SObjectType, matrix.next().objectType);
         System.assertEquals(Contact.SObjectType, matrix.next().objectType);
         System.assertEquals(Account.SObjectType, matrix.next().objectType);
         System.assertEquals(Opportunity.SObjectType, matrix.next().objectType);
         System.assertEquals(Contact.SObjectType, matrix.next().objectType);
         System.assertEquals(OpportunityContactRole.SObjectType, matrix.next().objectType);
-  
+
         System.assertEquals(false, matrix.hasNext());
         System.assertEquals(null, matrix.next());
 
@@ -689,17 +690,17 @@ public with sharing class ATKCoreTest {
         g.addEdge(9, 10);
         g.addEdge(9, 11);
         g.addEdge(9, 12);
-        g.addEdge(11, 12);  
+        g.addEdge(11, 12);
         return g;
     }
 
     @IsTest
-    static void test_Digraph_DirectedCycle() {   
+    static void test_Digraph_DirectedCycle() {
         {
             ATKCore.Digraph g = makeDigraph();
             ATKCore.DirectedCycle dc = new ATKCore.DirectedCycle(g);
             System.assertEquals(false, dc.hasCycle());
-        } 
+        }
 
         {
             ATKCore.Digraph g = makeDigraph();
@@ -742,7 +743,7 @@ public with sharing class ATKCoreTest {
         System.assertEquals(true, top.isDAG());
         for (Integer v : top.order()) {
             System.assertEquals(String.valueOf(v), g.keyAt(v));
-        }     
+        }
     }
 
     // #endregion
