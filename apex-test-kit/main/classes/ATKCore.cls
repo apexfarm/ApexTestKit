@@ -30,9 +30,9 @@ public with sharing class ATKCore {
     @TestVisible
     private static Integer batchSize = 200;
 
-    // ************************
-    // #region SObject Creation
-    // ************************
+    // *************************
+    // #region SObject Generator
+    // *************************
 
     public abstract class Generator {
         public Map<Schema.SObjectType, Map<Schema.SObjectField, Integer>> indexes { get; set; }
@@ -42,6 +42,7 @@ public with sharing class ATKCore {
         }
 
         public abstract void generate(EntityNodeMatrix matrix, Boolean doInsert);
+        abstract void createObjects(EntityNode entityNode);
         abstract void assignFields(EntityNode entityNode);
         abstract void assignReferences(EntityNode entityNode);
 
@@ -65,48 +66,78 @@ public with sharing class ATKCore {
             matrix.reset();
             while (matrix.hasNext()) {
                 EntityNode entityNode = matrix.next();
-                Boolean needUpsert = true;
-                SObjectMockList objectMocks = entityNode.objectMocks;
-                if (objectMocks.size() == 0) {
-                    needUpsert = false;
-                    objectMocks.addAll(createObjects(entityNode));
-                }
+                createObjects(entityNode);
 
                 if (entityNode.size > 0) {
                     assignFields(entityNode);
                     assignReferences(entityNode);
                 }
+            }
 
-                // Ids should be assigned after reference assignments, because once Ids are
-                // assigned some relationships are no longer updatable.
-                List<Id> ids = FAKEID.generate(entityNode.objectType, objectMocks.size());
-                for (Integer i = 0; i < objectMocks.size(); i++) {
-                    if (objectMocks.get(i).Id == null) {
-                        objectMocks.get(i).Id = ids[i];
-                    }
+            convertMockObjects(matrix);
+
+            matrix.reset();
+            while (matrix.hasNext()) {
+                EntityNode entityNode = matrix.next();
+
+                if (entityNode.size > 0) {
+                    SAVE_GENERATOR.assignFields(entityNode);
+                    SAVE_GENERATOR.assignReferences(entityNode);
                 }
             }
 
+            // Ids should be assigned after reference assignments, because once Ids are
+            // assigned some relationships are no longer updatable.
+            // List<Id> ids = FAKEID.generate(entityNode.objectType, mockObjects.size());
+            // for (Integer i = 0; i < mockObjects.size(); i++) {
+            //     if (mockObjects.get(i).Id == null) {
+            //         mockObjects.get(i).Id = ids[i];
+            //     }
+            // }
+        }
+
+        public void convertMockObjects(EntityNodeMatrix matrix) {
             matrix.reset();
             if (matrix.hasNext()) {
                 EntityNode entityNode = matrix.next();
-                entityNode.objects = entityNode.objectMocks.convert();
+                entityNode.objects = entityNode.mockObjects.convert();
             }
 
+            while (matrix.hasNext()) {
+                EntityNode entityNode = matrix.next();
+                if (entityNode.belongsToRoot) {
+                    for (EntityNodeRelationship relationship : entityNode.relatinoships) {
+                        EntityNode parentNode = relationship.parent;
+                        List<SObject> children = new List<SObject>();
+                        for (SObject obj : parentNode.objects) {
+                            children.addAll(obj.getSObjects(relationship.childRelationship));
+                        }
+                        entityNode.objects = children; // TODO: children should be sorted in the order of creation
+                        break; // only need to collect children from a single relationship
+                    }
+                } else if (entityNode.objects.isEmpty()) {
+                    entityNode.objects.addAll(entityNode.mockObjects.convert());
+                }
+            }
         }
 
-        public List<SObjectMock> createObjects(EntityNode entityNode) {
-            List<SObjectMock> objectMocks = new List<SObjectMock>();
-            String objectName = entityNode.dsr.getName();
-            for (Integer i = 0; i < entityNode.size; ++i) {
-                objectMocks.add(new SObjectMock(objectName));
+        public override void createObjects(EntityNode entityNode) {
+            if (!entityNode.belongsToRoot && entityNode.readonlyFields.isEmpty()) {
+                Schema.SObjectType objectType = entityNode.objectType;
+                for (Integer i = 0; i < entityNode.size; ++i) {
+                    entityNode.objects.add(objectType.newSObject());
+                }
+            } else if (entityNode.mockObjects.isEmpty()) {
+                String objectName = entityNode.dsr.getName();
+                for (Integer i = 0; i < entityNode.size; ++i) {
+                    entityNode.mockObjects.add(new MockSObject(objectName));
+                }
             }
-            return objectMocks;
         }
 
         public override void assignFields(EntityNode entityNode) {
-            SObjectMockList objects = entityNode.objectMocks;
-            Integer size = objects.size();
+            MockSObjectList mockObjects = entityNode.mockObjects;
+            Integer size = mockObjects.size();
             for (EntityField entityField : entityNode.readonlyFields) {
                 if (entityField.isArithmetic) {
                     switch on entityField.dfr.getType() {
@@ -114,28 +145,28 @@ public with sharing class ATKCore {
                             Date init = Converter.toDate(entityField.initValue);
                             Integer step = Converter.toInteger(entityField.stepVAlue);
                             for (Integer i = 0; i < size; ++i) {
-                                objects.get(i).put(entityField.dfr.getName(), CONVERTER.toString(entityField.getValue(init, step, i)));
+                                mockObjects.get(i).put(entityField.dfr.getName(), CONVERTER.toString(entityField.getValue(init, step, i)));
                             }
                         }
                         when DATETIME {
                             Datetime init = Converter.toDatetime(entityField.initValue);
                             Integer step = Converter.toInteger(entityField.stepVAlue);
                             for (Integer i = 0; i < size; ++i) {
-                                objects.get(i).put(entityField.dfr.getName(), CONVERTER.toString(entityField.getValue(init, step, i)));
+                                mockObjects.get(i).put(entityField.dfr.getName(), CONVERTER.toString(entityField.getValue(init, step, i)));
                             }
                         }
                         when TIME {
                             Time init = Converter.toTime(entityField.initValue);
                             Integer step = Converter.toInteger(entityField.stepVAlue);
                             for (Integer i = 0; i < size; ++i) {
-                                objects.get(i).put(entityField.dfr.getName(), String.valueOf(entityField.getValue(init, step, i)));
+                                mockObjects.get(i).put(entityField.dfr.getName(), String.valueOf(entityField.getValue(init, step, i)));
                             }
                         }
                         when DOUBLE, INTEGER, PERCENT, CURRENCY {
                             Decimal init = Converter.toDecimal(entityField.initValue);
                             Decimal step = Converter.toDecimal(entityField.stepVAlue);
                             for (Integer i = 0; i < size; ++i) {
-                                objects.get(i).put(entityField.dfr.getName(), String.valueOf(entityField.getValue(init, step, i)));
+                                mockObjects.get(i).put(entityField.dfr.getName(), String.valueOf(entityField.getValue(init, step, i)));
                             }
                         }
                     }
@@ -143,7 +174,7 @@ public with sharing class ATKCore {
                     Integer start = reserveIndex(entityNode.objectType, entityField.field, size);
                     for (Integer i = 0; i < size; ++i) {
                         Object value = entityField.getValue(i + start);
-                        objects.get(i).put(entityField.dfr.getName(), CONVERTER.toString(value));
+                        mockObjects.get(i).put(entityField.dfr.getName(), CONVERTER.toString(value));
                     }
                 }
             }
@@ -151,39 +182,31 @@ public with sharing class ATKCore {
 
         @TestVisible
         override void assignReferences(EntityNode entityNode) {
-            if (entityNode.referenceToMap != null
-                && entityNode.referenceToMap.size() > 0
-                && entityNode.objectMocks != null) {
+            if (!entityNode.belongsToRoot) {
+                return;
+            }
 
-                SObjectMockList childObjectList = entityNode.objectMocks;
+            if (entityNode.relatinoships != null
+                && !entityNode.relatinoships.isEmpty()
+                && entityNode.mockObjects != null) {
 
-                for (Schema.SObjectField referenceField : entityNode.referenceToMap.keySet()) {
-                    String parentRelationshipId = referenceField.getDescribe().getName();
-                    String parentRelationshipName = referenceField.getDescribe().getRelationshipName();
-                    EntityNode parentNode = entityNode.referenceToMap.get(referenceField);
-                    SObjectMockList parentObjectList = parentNode.objectMocks;
+                MockSObjectList childObjectList = entityNode.mockObjects;
 
-                    String childRelationshipName;
-                    for (Schema.ChildRelationship cr: parentNode.dsr.getChildRelationships()) {
-                        if (cr.getChildSObject() == entityNode.objectType && cr.getField() == referenceField) {
-                            childRelationshipName = cr.getRelationshipName();
-                            break;
-                        }
-                    }
+                for (EntityNodeRelationship relationship : entityNode.relatinoships) {
+                    // String parentRelationshipId = relationship.parentRelationship.getDescribe().getName();
+                    // String parentRelationshipName = relationship.parentRelationship.getDescribe().getRelationshipName();
+                    MockSObjectList parentObjectList = relationship.parent.mockObjects;
+
                     // Open comment for debug purpose
                     // System.debug(String.format('{0} -> {1}', new List<Object> { entityNode.objectType, parentRelationshipName }));
                     // System.debug(String.format('{0} -> {1}', new List<Object> { childObjectList.size(), parentObjectList.size() }));
 
-                    for (List<Object> pair : DISTRIBUTOR.distribute(childObjectList, parentObjectList)) {
-                        System.debug(pair);
+                    for (List<MockSObject> pair : DISTRIBUTOR.distribute(childObjectList, parentObjectList)) {
                         // pair[0] = child
                         // pair[1] = parent
-                        ((SObjectMock)pair[0]).put(parentRelationshipId, ((SObjectMock)pair[1]).Id);
-                        // ((SObjectMock)pair[0]).putParent(parentRelationshipName, (SObjectMock)pair[1]);
-                        if (String.isNotBlank(childRelationshipName)) {
-                            System.debug('put child: ' + childRelationshipName);
-                            ((SObjectMock)pair[1]).putChild(childRelationshipName, (SObjectMock)pair[0]);
-                        }
+                        // pair[0].put(parentRelationshipId, pair[1].Id);
+                        // pair[0].putParent(parentRelationshipName, pair[1]);
+                        pair[1].putChild(relationship.childRelationship, pair[0]);
                     }
                 }
             }
@@ -196,12 +219,7 @@ public with sharing class ATKCore {
             matrix.reset();
             while (matrix.hasNext()) {
                 EntityNode entityNode = matrix.next();
-                Boolean needUpsert = true;
-                List<SObject> objects = entityNode.objects;
-                if (objects.size() == 0) {
-                    needUpsert = false;
-                    objects.addAll(createObjects(entityNode));
-                }
+                createObjects(entityNode);
 
                 if (entityNode.size > 0) {
                     assignFields(entityNode);
@@ -212,36 +230,31 @@ public with sharing class ATKCore {
                     continue;
                 }
 
-                if (needUpsert) {
-                    // upsert doesn't work on list of generic sObject types
-                    List<SObject> updateList = new List<SObject>();
-                    List<SObject> insertList = new List<SObject>();
-                    for (SObject obj : entityNode.objects) {
-                        if (obj.Id == null) {
-                            insertList.add(obj);
-                        } else {
-                            updateList.add(obj);
-                        }
+                List<SObject> updateList = new List<SObject>();
+                List<SObject> insertList = new List<SObject>();
+                for (SObject obj : entityNode.objects) {
+                    if (obj.Id == null) {
+                        insertList.add(obj);
+                    } else {
+                        updateList.add(obj);
                     }
-                    if (updateList.size() > 0) {
-                        Database.update(updateList);
-                    }
-                    if (insertList.size() > 0) {
-                        Database.insert(insertList);
-                    }
-                } else {
-                    Database.insert(entityNode.objects);
+                }
+                if (!updateList.isEmpty()) {
+                    Database.update(updateList);
+                }
+                if (!insertList.isEmpty()) {
+                    Database.insert(insertList);
                 }
             }
         }
 
-        public List<SObject> createObjects(EntityNode entityNode) {
-            List<SObject> objects = new List<SObject>();
-            Schema.SObjectType objectType = entityNode.objectType;
-            for (Integer i = 0; i < entityNode.size; ++i) {
-                objects.add(objectType.newSObject());
+        public override void createObjects(EntityNode entityNode) {
+            if (entityNode.objects.isEmpty()) {
+                Schema.SObjectType objectType = entityNode.objectType;
+                for (Integer i = 0; i < entityNode.size; ++i) {
+                    entityNode.objects.add(objectType.newSObject());
+                }
             }
-            return objects;
         }
 
         public override void assignFields(EntityNode entityNode) {
@@ -292,25 +305,24 @@ public with sharing class ATKCore {
 
         @TestVisible
         override void assignReferences(EntityNode entityNode) {
-            if (entityNode.referenceToMap != null
-                && entityNode.referenceToMap.size() > 0
+            if (entityNode.relatinoships != null
+                && entityNode.relatinoships.size() > 0
                 && entityNode.objects != null) {
 
-                List<SObject> childObjectList = entityNode.objects;
-
-                for (Schema.SObjectField referenceField : entityNode.referenceToMap.keySet()) {
-                    String relationshipName = referenceField.getDescribe().getRelationshipName();
-                    List<SObject> parentObjectList = entityNode.referenceToMap.get(referenceField).objects;
+                for (EntityNodeRelationship relationship : entityNode.relatinoships) {
+                    String relationshipName = relationship.parentRelationship.getDescribe().getRelationshipName();
+                    List<SObject> parentObjectList = relationship.parent.objects;
+                    List<SObject> childObjectList = relationship.child.objects;
 
                     // Open comment for debug purpose
                     // System.debug(String.format('{0} -> {1}', new List<Object> { entityNode.objectType, relationshipName }));
                     // System.debug(String.format('{0} -> {1}', new List<Object> { childObjectList.size(), parentObjectList.size() }));
 
-                    for (List<Object> pair : DISTRIBUTOR.distribute(childObjectList, parentObjectList)) {
+                    for (List<SObject> pair : DISTRIBUTOR.distribute(childObjectList, parentObjectList)) {
                         // pair[0] = child
                         // pair[1] = parent
-                        ((SObject)pair[0]).put(referenceField, ((SObject)pair[1]).Id);
-                        ((SObject)pair[0]).putSObject(relationshipName, (SObject)pair[1]);
+                        pair[0].put(relationship.parentRelationship, pair[1].Id);
+                        pair[0].putSObject(relationshipName, pair[1]);
                     }
                 }
             }
@@ -318,8 +330,8 @@ public with sharing class ATKCore {
     }
 
     public class Distributor {
-        public List<List<Object>> distribute(SObjectMockList leftGroup, SObjectMockList rightGroup) {
-            List<List<Object>> groups = new List<List<Object>>();
+        public List<List<MockSObject>> distribute(MockSObjectList leftGroup, MockSObjectList rightGroup) {
+            List<List<MockSObject>> groups = new List<List<MockSObject>>();
 
             Integer l = leftGroup.size();
             Integer r = rightGroup.size();
@@ -342,15 +354,15 @@ public with sharing class ATKCore {
                 } else {
                     j = (i - remainder) / s;
                 }
-                groups.add(new List<Object>{
+                groups.add(new List<MockSObject>{
                     leftGroup.get(i), rightGroup.get(j)
                 });
             }
             return groups;
         }
 
-        public List<List<Object>> distribute(List<Object> leftGroup, List<Object> rightGroup) {
-            List<List<Object>> groups = new List<List<Object>>();
+        public List<List<SObject>> distribute(List<SObject> leftGroup, List<SObject> rightGroup) {
+            List<List<SObject>> groups = new List<List<SObject>>();
 
             Integer l = leftGroup.size();
             Integer r = rightGroup.size();
@@ -373,7 +385,7 @@ public with sharing class ATKCore {
                 } else {
                     j = (i - remainder) / s;
                 }
-                groups.add(new List<Object>{
+                groups.add(new List<SObject>{
                     leftGroup[i], rightGroup[j]
                 });
             }
@@ -388,28 +400,36 @@ public with sharing class ATKCore {
     // #region [Model] => JSON Representable
     // *************************************
 
-    private class SObjectMockList {
-        private List<SObjectMock> objectMocks = new List<SObjectMock>();
+    private class MockSObjectList {
+        private List<MockSObject> mockObjects { get; set; }
 
-        void add(SObjectMock objectMock) {
-            objectMocks.add(objectMock);
+        MockSObjectList() {
+            mockObjects = new List<MockSObject>();
         }
 
-        void addAll(List<SObjectMock> objectMocks) {
-            this.objectMocks.addAll(objectMocks);
+        void add(MockSObject objectMock) {
+            mockObjects.add(objectMock);
         }
 
-        SObjectMock get(Integer i) {
-            return objectMocks[i];
+        void addAll(List<MockSObject> mockObjects) {
+            this.mockObjects.addAll(mockObjects);
+        }
+
+        MockSObject get(Integer i) {
+            return mockObjects[i];
+        }
+
+        Boolean isEmpty() {
+            return mockObjects.isEmpty();
         }
 
         Integer size() {
-            return objectMocks.size();
+            return mockObjects.size();
         }
 
         public override String toString() {
             StringBuilder builder = new StringBuilder();
-            for (SObjectMock objectMock : objectMocks) {
+            for (MockSObject objectMock : mockObjects) {
                 builder.append(String.valueOf(objectMock));
             }
             return '[' + builder.toString(',') + ']';
@@ -422,9 +442,9 @@ public with sharing class ATKCore {
         }
     }
 
-    private class SObjectMock {
+    private class MockSObject {
         private String objectName { get; set; }
-        private Map<String, Object> fieldMap = new Map<String, Object>();
+        private Map<String, Object> fieldMap { get; set; }
 
         Id id {
             get {
@@ -436,24 +456,25 @@ public with sharing class ATKCore {
             }
         }
 
-        SObjectMock(String objectName) {
+        MockSObject(String objectName) {
             this.objectName = objectName;
+            this.fieldMap = new Map<String, Object>();
         }
 
         void put(String name, Object value) {
             fieldMap.put(name, '"' + value + '"');
         }
 
-        void putParent(String name, SObjectMock value) {
+        void putParent(String name, MockSObject value) {
             fieldMap.put(name, value);
         }
 
-        void putChild(String name, SObjectMock value) {
+        void putChild(String name, MockSObject value) {
             if (!fieldMap.containsKey(name)) {
-                fieldMap.put(name, new SObjecMockChildren());
+                fieldMap.put(name, new MockSObjectChildren());
             }
-            SObjecMockChildren children = (SObjecMockChildren)fieldMap.get(name);
-            ((SObjecMockChildren)children).add(value);
+            MockSObjectChildren children = (MockSObjectChildren)fieldMap.get(name);
+            ((MockSObjectChildren)children).add(value);
         }
 
         public override String toString() {
@@ -467,28 +488,32 @@ public with sharing class ATKCore {
         }
     }
 
-    private class SObjecMockChildren {
-        private List<SObjectMock> objectMocks = new List<SObjectMock>();
+    private class MockSObjectChildren {
+        private List<MockSObject> mockObjects { get; set; }
 
-        void add(SObjectMock objectMock) {
-            objectMocks.add(objectMock);
+        MockSObjectChildren() {
+            this.mockObjects = new List<MockSObject>();
+        }
+
+        void add(MockSObject objectMock) {
+            mockObjects.add(objectMock);
         }
 
         public override String toString() {
             StringBuilder builder = new StringBuilder();
-            for (SObjectMock objectMock : objectMocks) {
+            for (MockSObject objectMock : mockObjects) {
                 builder.append(String.valueOf(objectMock));
             }
-            return '{"totalSize":' + objectMocks.size() + ',"records":[' + builder.toString(',') + ']}';
+            return '{"totalSize":' + mockObjects.size() + ',"records":[' + builder.toString(',') + ']}';
         }
     }
 
     // #endregion
     // *************************************
 
-    // *************************************
+    // ************************************
     // #region [Model] => Entity and Fields
-    // *************************************
+    // ************************************
 
     public class EntityNodeMatrix implements Iterator<EntityNode> {
         public EntityNode currEntityNode { get; private set; }
@@ -513,6 +538,20 @@ public with sharing class ATKCore {
             }
 
             this.top = new Topological(graph.G());
+
+            if (this.top.isDAG() && this.top.order().size() > 0) {
+                List<Integer> queue = new List<Integer>();
+                Integer rootVertex = this.top.order()[0];
+                queue.add(rootVertex);
+                while(!queue.isEmpty()) {
+                    Integer vertex = queue.remove(0);
+                    EntityNode entityNode = (EntityNode)this.graph.keyAt(vertex);
+                    entityNode.belongsToRoot = true;
+                    for (Integer childVertex : this.graph.G().adj(vertex)) {
+                        queue.add(childVertex);
+                    }
+                }
+            }
         }
 
         public void reset() {
@@ -536,12 +575,12 @@ public with sharing class ATKCore {
             }
         }
 
-        public void add(EntityNodeType nodeType, EntityNode nextEntityNode, Schema.SObjectField referenceField) {
-            addEntityNode(nodeType, nextEntityNode, referenceField);
+        public void add(EntityNodeType nodeType, EntityNode nextEntityNode, Schema.SObjectField parentRelationship) {
+            addEntityNode(nodeType, nextEntityNode, parentRelationship);
             entityNodeCache.add(nextEntityNode);
         }
 
-        public void add(EntityNodeType nodeType, Schema.SObjectType objectType, Schema.SObjectField referenceField) {
+        public void add(EntityNodeType nodeType, Schema.SObjectType objectType, Schema.SObjectField parentRelationship) {
             EntityNode nextEntityNode;
             for (EntityNode entityNode : this.entityNodeCache) {
                 if (entityNode.objectType == objectType) {
@@ -550,28 +589,23 @@ public with sharing class ATKCore {
                 }
             }
             if (nextEntityNode != null) {
-                addEntityNode(nodeType, nextEntityNode, referenceField);
+                addEntityNode(nodeType, nextEntityNode, parentRelationship);
             }
         }
 
-        private void addEntityNode(EntityNodeType nodeType, EntityNode nextEntityNode, Schema.SObjectField referenceField) {
+        private void addEntityNode(EntityNodeType nodeType, EntityNode nextEntityNode, Schema.SObjectField parentRelationship) {
+            // currEntityNode: child
+            // nextEntityNode: parent
             switch on nodeType {
                 when MANY_TO_ONE {
-                    this.entityNodeRelationships.add(new EntityNodeRelationship(nextEntityNode, this.currEntityNode, referenceField));
+                    EntityNodeRelationship relationship = new EntityNodeRelationship(nextEntityNode, this.currEntityNode, parentRelationship);
+                    entityNodeRelationships.add(relationship);
+                    currEntityNode.relatinoships.add(relationship);
                 }
                 when ONE_TO_MANY {
-                    this.entityNodeRelationships.add(new EntityNodeRelationship(this.currEntityNode, nextEntityNode, referenceField));
-                }
-            }
-
-            switch on nodeType {
-                // currEntityNode: child
-                // nextEntityNode: parent
-                when MANY_TO_ONE {
-                    currEntityNode.referenceToMap.put(referenceField, nextEntityNode);
-                }
-                when ONE_TO_MANY {
-                    nextEntityNode.referenceToMap.put(referenceField, currEntityNode);
+                    EntityNodeRelationship relationship = new EntityNodeRelationship(this.currEntityNode, nextEntityNode, parentRelationship);
+                    entityNodeRelationships.add(relationship);
+                    nextEntityNode.relatinoships.add(relationship);
                 }
             }
 
@@ -600,12 +634,20 @@ public with sharing class ATKCore {
     class EntityNodeRelationship {
         EntityNode parent { get; set; }
         EntityNode child { get; set; }
-        Schema.SObjectField referenceField { get; set; }
+        Schema.SObjectField parentRelationship { get; set; }
+        String childRelationship { get; set; }
 
-        EntityNodeRelationship(EntityNode parent, EntityNode child, Schema.SObjectField referenceField) {
+        EntityNodeRelationship(EntityNode parent, EntityNode child, Schema.SObjectField parentRelationship) {
             this.parent = parent;
             this.child = child;
-            this.referenceField = referenceField;
+            this.parentRelationship = parentRelationship;
+
+            for (Schema.ChildRelationship cr: parent.dsr.getChildRelationships()) {
+                if (cr.getChildSObject() == child.objectType && cr.getField() == parentRelationship) {
+                    this.childRelationship = cr.getRelationshipName();
+                    break;
+                }
+            }
         }
     }
 
@@ -614,37 +656,39 @@ public with sharing class ATKCore {
         public Schema.DescribeSObjectResult dsr { get; set; }
         public Integer size { get; set; }
 
-        public Map<Schema.SObjectField, EntityNode> referenceToMap { get; set; }
+        public List<EntityNodeRelationship> relatinoships { get; set; }
         public List<SObject> objects { get; set; }
-        public SObjectMockList objectMocks { get; set; }
+        public MockSObjectList mockObjects { get; set; }
 
         public EntityField currEntityField { get; set; }
-        public Map<Schema.SObjectField, EntityField> fieldMap { get; set; }
+        private Map<Schema.SObjectField, EntityField> fieldMap { get; set; }
         private List<EntityField> writableFields { get; set; }
         private List<EntityField> readonlyFields { get; set; }
+        private Boolean belongsToRoot { get; set; }
 
         public EntityNode(Schema.SObjectType objectType) {
             this.objectType = objectType;
             this.dsr = objectType.getDescribe();
 
-            this.referenceToMap = new Map<Schema.SObjectField, EntityNode>();
+            this.relatinoships = new List<EntityNodeRelationship>();
             this.fieldMap = new Map<Schema.SObjectField, EntityField>();
             this.writableFields = new List<EntityField>();
             this.readonlyFields = new List<EntityField>();
+            this.belongsToRoot = false;
         }
 
         public EntityNode(Schema.SObjectType objectType, Integer size) {
             this(objectType);
             this.size = size;
             this.objects = new List<SObject>();
-            this.objectMocks = new SObjectMockList();
+            this.mockObjects = new MockSObjectList();
         }
 
         public EntityNode(Schema.SObjectType objectType, List<SObject> objects) {
             this(objectType);
             this.size = objects.size();
             this.objects = objects;
-            this.objectMocks = new SObjectMockList();
+            this.mockObjects = new MockSObjectList();
         }
 
         public void addField(SObjectField field) {
