@@ -104,33 +104,33 @@ public with sharing class ATK implements Entity, Field {
         return result;
     }
 
-    public Entity withParents(Schema.SObjectType objectType, Schema.SObjectField parentRelationship) {
-        this.matrix.add(ATKCore.EntityNodeType.MANY_TO_ONE, objectType, parentRelationship);
+    public Entity withParents(Schema.SObjectType objectType, Schema.SObjectField parentIdField) {
+        this.matrix.add(ATKCore.EntityNodeType.MANY_TO_ONE, objectType, parentIdField);
         return sharedCommand;
     }
 
-    public Entity withParents(Schema.SObjectType objectType, Schema.SObjectField parentRelationship, Integer size) {
-        this.matrix.add(ATKCore.EntityNodeType.MANY_TO_ONE, new ATKCore.EntityNode(objectType, size), parentRelationship);
+    public Entity withParents(Schema.SObjectType objectType, Schema.SObjectField parentIdField, Integer size) {
+        this.matrix.add(ATKCore.EntityNodeType.MANY_TO_ONE, new ATKCore.EntityNode(objectType, size), parentIdField);
         return sharedCommand;
     }
 
-    public Entity withParents(Schema.SObjectType objectType, Schema.SObjectField parentRelationship, List<SObject> objects) {
-        this.matrix.add(ATKCore.EntityNodeType.MANY_TO_ONE, new ATKCore.EntityNode(objectType, objects), parentRelationship);
+    public Entity withParents(Schema.SObjectType objectType, Schema.SObjectField parentIdField, List<SObject> objects) {
+        this.matrix.add(ATKCore.EntityNodeType.MANY_TO_ONE, new ATKCore.EntityNode(objectType, objects), parentIdField);
         return sharedCommand;
     }
 
-    public Entity withChildren(Schema.SObjectType objectType, Schema.SObjectField parentRelationship) {
-        this.matrix.add(ATKCore.EntityNodeType.ONE_TO_MANY, objectType, parentRelationship);
+    public Entity withChildren(Schema.SObjectType objectType, Schema.SObjectField parentIdField) {
+        this.matrix.add(ATKCore.EntityNodeType.ONE_TO_MANY, objectType, parentIdField);
         return sharedCommand;
     }
 
-    public Entity withChildren(Schema.SObjectType objectType, Schema.SObjectField parentRelationship, Integer size) {
-        this.matrix.add(ATKCore.EntityNodeType.ONE_TO_MANY, new ATKCore.EntityNode(objectType, size), parentRelationship);
+    public Entity withChildren(Schema.SObjectType objectType, Schema.SObjectField parentIdField, Integer size) {
+        this.matrix.add(ATKCore.EntityNodeType.ONE_TO_MANY, new ATKCore.EntityNode(objectType, size), parentIdField);
         return sharedCommand;
     }
 
-    public Entity withChildren(Schema.SObjectType objectType, Schema.SObjectField parentRelationship, List<SObject> objects) {
-        this.matrix.add(ATKCore.EntityNodeType.ONE_TO_MANY, new ATKCore.EntityNode(objectType, objects), parentRelationship);
+    public Entity withChildren(Schema.SObjectType objectType, Schema.SObjectField parentIdField, List<SObject> objects) {
+        this.matrix.add(ATKCore.EntityNodeType.ONE_TO_MANY, new ATKCore.EntityNode(objectType, objects), parentIdField);
         return sharedCommand;
     }
 
@@ -316,12 +316,12 @@ public with sharing class ATK implements Entity, Field {
     // ******************
     public interface Entity {
         // keywords to start new context
-        Entity withParents(Schema.SObjectType objectType, Schema.SObjectField parentRelationship);
-        Entity withParents(Schema.SObjectType objectType, Schema.SObjectField parentRelationship, Integer size);
-        Entity withParents(Schema.SObjectType objectType, Schema.SObjectField parentRelationship, List<SObject> objects);
-        Entity withChildren(Schema.SObjectType objectType, Schema.SObjectField parentRelationship);
-        Entity withChildren(Schema.SObjectType objectType, Schema.SObjectField parentRelationship, Integer size);
-        Entity withChildren(Schema.SObjectType objectType, Schema.SObjectField parentRelationship, List<SObject> objects);
+        Entity withParents(Schema.SObjectType objectType, Schema.SObjectField parentIdField);
+        Entity withParents(Schema.SObjectType objectType, Schema.SObjectField parentIdField, Integer size);
+        Entity withParents(Schema.SObjectType objectType, Schema.SObjectField parentIdField, List<SObject> objects);
+        Entity withChildren(Schema.SObjectType objectType, Schema.SObjectField parentIdField);
+        Entity withChildren(Schema.SObjectType objectType, Schema.SObjectField parentIdField, Integer size);
+        Entity withChildren(Schema.SObjectType objectType, Schema.SObjectField parentIdField, List<SObject> objects);
 
         // keywords to build graph
         Entity also();

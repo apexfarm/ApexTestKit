@@ -76,24 +76,24 @@ public with sharing class ATKCore {
 
             convertMockObjects(matrix);
 
+            // Generate Writable Fields
             matrix.reset();
             while (matrix.hasNext()) {
                 EntityNode entityNode = matrix.next();
 
                 if (entityNode.size > 0) {
                     SAVE_GENERATOR.assignFields(entityNode);
-                    SAVE_GENERATOR.assignReferences(entityNode);
                 }
 
                 // Ids should be assigned after reference assignments, because once Ids are
                 // assigned some relationships are no longer updatable.
-                List<SObject> objects = entityNode.objects;
-                List<Id> ids = FAKEID.generate(entityNode.objectType, objects.size());
-                for (Integer i = 0; i < objects.size(); i++) {
-                    if (objects.get(i).Id == null) {
-                        objects.get(i).Id = ids[i];
-                    }
-                }
+                // List<SObject> objects = entityNode.objects;
+                // List<Id> ids = FAKEID.generate(entityNode.objectType, objects.size());
+                // for (Integer i = 0; i < objects.size(); i++) {
+                //     if (objects.get(i).Id == null) {
+                //         objects.get(i).Id = ids[i];
+                //     }
+                // }
             }
         }
 
@@ -105,36 +105,40 @@ public with sharing class ATKCore {
             }
 
             while (matrix.hasNext()) {
-                EntityNode entityNode = matrix.next();
-                if (entityNode.belongsToRoot) {
-                    for (EntityNodeRelationship relationship : entityNode.relatinoships) {
-                        EntityNode parentNode = relationship.parent;
-                        for (SObject obj : parentNode.objects) {
-                            System.debug(obj);
-                            for (SObject childObj : obj.getSObjects(relationship.childRelationship)) {
-                                System.debug(childObj);
-                                entityNode.objects.add(childObj);
+                EntityNode childNode = matrix.next();
+                for (EntityNodeRelationship relationship : childNode.relatinoships) {
+                    EntityNode parentNode = relationship.parent;
+                    if (parentNode.objects.size() > 0) {
+                        for (SObject parentObj : parentNode.objects) {
+                            for (SObject childObj : parentObj.getSObjects(relationship.childRelationshipName)) {
+                                if (childNode.mockIds.contains(childObj.id)) {
+                                    childObj.putSObject(relationship.parentRelationshipName, parentObj);
+                                    childNode.objects.add(childObj);
+                                }
                             }
                         }
                         break; // only need to collect children from a single relationship
                     }
-                } else if (entityNode.objects.isEmpty()) {
-                    entityNode.objects.addAll(entityNode.mockObjects.convert());
                 }
             }
         }
 
         public override void createObjects(EntityNode entityNode) {
-            // if (!entityNode.belongsToRoot && entityNode.readonlyFields.isEmpty()) {
-            //     Schema.SObjectType objectType = entityNode.objectType;
-            //     for (Integer i = 0; i < entityNode.size; ++i) {
-            //         entityNode.objects.add(objectType.newSObject());
-            //     }
-            // } else
             if (entityNode.mockObjects.isEmpty()) {
                 String objectName = entityNode.dsr.getName();
-                for (Integer i = 0; i < entityNode.size; ++i) {
-                    entityNode.mockObjects.add(new MockSObject(objectName));
+                List<Id> ids = FAKEID.generate(entityNode.objectType, entityNode.size);
+                entityNode.mockIds.addAll(ids);
+
+                if (!entityNode.objects.isEmpty()) {
+                    for (Integer i = 0; i < entityNode.size; ++i) {
+                        entityNode.mockObjects.add(new MockSObject(objectName, ids[i],
+                            (Map<String, Object>)JSON.deserializeUntyped(JSON.serialize(entityNode.objects[i]))));
+                    }
+                    entityNode.objects.clear();
+                } else {
+                    for (Integer i = 0; i < entityNode.size; ++i) {
+                        entityNode.mockObjects.add(new MockSObject(objectName, ids[i]));
+                    }
                 }
             }
         }
@@ -186,10 +190,6 @@ public with sharing class ATKCore {
 
         @TestVisible
         override void assignReferences(EntityNode entityNode) {
-            if (!entityNode.belongsToRoot) {
-                return;
-            }
-
             if (entityNode.relatinoships != null
                 && !entityNode.relatinoships.isEmpty()
                 && entityNode.mockObjects != null) {
@@ -197,8 +197,6 @@ public with sharing class ATKCore {
                 MockSObjectList childObjectList = entityNode.mockObjects;
 
                 for (EntityNodeRelationship relationship : entityNode.relatinoships) {
-                    // String parentRelationshipId = relationship.parentRelationship.getDescribe().getName();
-                    String parentRelationshipName = relationship.parentRelationship.getDescribe().getRelationshipName();
                     MockSObjectList parentObjectList = relationship.parent.mockObjects;
 
                     // Open comment for debug purpose
@@ -208,11 +206,11 @@ public with sharing class ATKCore {
                     for (List<MockSObject> pair : DISTRIBUTOR.distribute(childObjectList, parentObjectList)) {
                         // pair[0] = child
                         // pair[1] = parent
-                        // pair[0].put(parentRelationshipId, pair[1].Id);
+                        pair[0].put(relationship.parentRelationshipId, pair[1].Id);
                         if (relationship.parent.belongsToRoot || !relationship.child.belongsToRoot) {
-                            pair[1].putChild(relationship.childRelationship, pair[0]);
+                            pair[1].putChild(relationship.childRelationshipName, pair[0]);
                         } else {
-                            pair[0].putParent(parentRelationshipName, pair[1]);
+                            pair[0].putParent(relationship.parentRelationshipName, pair[1]);
                         }
                     }
                 }
@@ -317,7 +315,7 @@ public with sharing class ATKCore {
                 && entityNode.objects != null) {
 
                 for (EntityNodeRelationship relationship : entityNode.relatinoships) {
-                    String relationshipName = relationship.parentRelationship.getDescribe().getRelationshipName();
+                    String relationshipName = relationship.parentIdField.getDescribe().getRelationshipName();
                     List<SObject> parentObjectList = relationship.parent.objects;
                     List<SObject> childObjectList = relationship.child.objects;
 
@@ -328,7 +326,7 @@ public with sharing class ATKCore {
                     for (List<SObject> pair : DISTRIBUTOR.distribute(childObjectList, parentObjectList)) {
                         // pair[0] = child
                         // pair[1] = parent
-                        pair[0].put(relationship.parentRelationship, pair[1].Id);
+                        pair[0].put(relationship.parentIdField, pair[1].Id);
                         pair[0].putSObject(relationshipName, pair[1]);
                     }
                 }
@@ -444,7 +442,6 @@ public with sharing class ATKCore {
 
         public List<SObject> convert() {
             String jsonStr = String.valueOf(this);
-            System.debug(jsonStr);
             return (List<SObject>)JSON.deserialize(jsonStr, List<SObject>.class);
         }
     }
@@ -466,6 +463,23 @@ public with sharing class ATKCore {
         MockSObject(String objectName) {
             this.objectName = objectName;
             this.fieldMap = new Map<String, Object>();
+        }
+
+        MockSObject(String objectName, Id objectId) {
+            this(objectName);
+            this.id = objectId;
+        }
+
+        MockSObject(String objectName, Id objectId, Map<String, Object> fieldMap) {
+            this(objectName);
+            this.id = objectId;
+            for (String fieldName : fieldMap.keySet()) {
+                if (fieldName == 'attributes' || fieldMap.get(fieldName) instanceof Map<String, Object>) {
+                    continue;
+                } else {
+                    this.put(fieldName, fieldMap.get(fieldName));
+                }
+            }
         }
 
         void put(String name, Object value) {
@@ -582,12 +596,12 @@ public with sharing class ATKCore {
             }
         }
 
-        public void add(EntityNodeType nodeType, EntityNode nextEntityNode, Schema.SObjectField parentRelationship) {
-            addEntityNode(nodeType, nextEntityNode, parentRelationship);
+        public void add(EntityNodeType nodeType, EntityNode nextEntityNode, Schema.SObjectField parentIdField) {
+            addEntityNode(nodeType, nextEntityNode, parentIdField);
             entityNodeCache.add(nextEntityNode);
         }
 
-        public void add(EntityNodeType nodeType, Schema.SObjectType objectType, Schema.SObjectField parentRelationship) {
+        public void add(EntityNodeType nodeType, Schema.SObjectType objectType, Schema.SObjectField parentIdField) {
             EntityNode nextEntityNode;
             for (EntityNode entityNode : this.entityNodeCache) {
                 if (entityNode.objectType == objectType) {
@@ -596,21 +610,21 @@ public with sharing class ATKCore {
                 }
             }
             if (nextEntityNode != null) {
-                addEntityNode(nodeType, nextEntityNode, parentRelationship);
+                addEntityNode(nodeType, nextEntityNode, parentIdField);
             }
         }
 
-        private void addEntityNode(EntityNodeType nodeType, EntityNode nextEntityNode, Schema.SObjectField parentRelationship) {
+        private void addEntityNode(EntityNodeType nodeType, EntityNode nextEntityNode, Schema.SObjectField parentIdField) {
             // currEntityNode: child
             // nextEntityNode: parent
             switch on nodeType {
                 when MANY_TO_ONE {
-                    EntityNodeRelationship relationship = new EntityNodeRelationship(nextEntityNode, this.currEntityNode, parentRelationship);
+                    EntityNodeRelationship relationship = new EntityNodeRelationship(nextEntityNode, this.currEntityNode, parentIdField);
                     entityNodeRelationships.add(relationship);
                     currEntityNode.relatinoships.add(relationship);
                 }
                 when ONE_TO_MANY {
-                    EntityNodeRelationship relationship = new EntityNodeRelationship(this.currEntityNode, nextEntityNode, parentRelationship);
+                    EntityNodeRelationship relationship = new EntityNodeRelationship(this.currEntityNode, nextEntityNode, parentIdField);
                     entityNodeRelationships.add(relationship);
                     nextEntityNode.relatinoships.add(relationship);
                 }
@@ -641,17 +655,21 @@ public with sharing class ATKCore {
     class EntityNodeRelationship {
         EntityNode parent { get; set; }
         EntityNode child { get; set; }
-        Schema.SObjectField parentRelationship { get; set; }
-        String childRelationship { get; set; }
+        Schema.SObjectField parentIdField { get; set; }
+        String childRelationshipName { get; set; }
+        String parentRelationshipName { get; set; }
+        String parentRelationshipId { get; set; }
 
-        EntityNodeRelationship(EntityNode parent, EntityNode child, Schema.SObjectField parentRelationship) {
+        EntityNodeRelationship(EntityNode parent, EntityNode child, Schema.SObjectField parentIdField) {
             this.parent = parent;
             this.child = child;
-            this.parentRelationship = parentRelationship;
+            this.parentIdField = parentIdField;
 
+            this.parentRelationshipId = parentIdField.getDescribe().getName();
+            this.parentRelationshipName = parentIdField.getDescribe().getRelationshipName();
             for (Schema.ChildRelationship cr: parent.dsr.getChildRelationships()) {
-                if (cr.getChildSObject() == child.objectType && cr.getField() == parentRelationship) {
-                    this.childRelationship = cr.getRelationshipName();
+                if (cr.getChildSObject() == child.objectType && cr.getField() == parentIdField) {
+                    this.childRelationshipName = cr.getRelationshipName();
                     break;
                 }
             }
@@ -666,6 +684,7 @@ public with sharing class ATKCore {
         public List<EntityNodeRelationship> relatinoships { get; set; }
         public List<SObject> objects { get; set; }
         public MockSObjectList mockObjects { get; set; }
+        public List<Id> mockIds { get; set; }
 
         public EntityField currEntityField { get; set; }
         @TestVisible
@@ -683,20 +702,21 @@ public with sharing class ATKCore {
             this.writableFields = new List<EntityField>();
             this.readonlyFields = new List<EntityField>();
             this.belongsToRoot = false;
+
+            this.mockObjects = new MockSObjectList();
+            this.mockIds = new List<Id>();
         }
 
         public EntityNode(Schema.SObjectType objectType, Integer size) {
             this(objectType);
             this.size = size;
             this.objects = new List<SObject>();
-            this.mockObjects = new MockSObjectList();
         }
 
         public EntityNode(Schema.SObjectType objectType, List<SObject> objects) {
             this(objectType);
             this.size = objects.size();
             this.objects = objects;
-            this.mockObjects = new MockSObjectList();
         }
 
         public void addField(SObjectField field) {
