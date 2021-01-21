@@ -23,6 +23,14 @@ public with sharing class ATK implements Entity, Field {
         matrix = new ATKCore.EntityNodeMatrix();
     }
 
+    public static Id fakeId(Schema.SObjectType objectType) {
+        return ATKCore.FAKEID.get(objectType);
+    }
+
+    public static Id fakeId(Schema.SObjectType objectType, Integer index) {
+        return ATKCore.FAKEID.get(objectType, index);
+    }
+
     public static Entity prepare(Schema.SObjectType objectType, Integer size) {
         if (sharedCommand == null) {
             sharedCommand = new ATK();

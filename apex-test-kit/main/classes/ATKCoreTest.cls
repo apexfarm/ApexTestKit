@@ -177,6 +177,11 @@ public with sharing class ATKCoreTest {
     }
 
     @IsTest
+    static void test_Generator_Mock_Off_Main_Stem() {
+        ATKCore.MockGenerator generator = new ATKCore.MockGenerator();
+    }
+
+    @IsTest
     static void test_Distributor() {
         List<Account> leftList = new List<Account> {
             new Account(Name = 'i0'),
@@ -663,10 +668,14 @@ public with sharing class ATKCoreTest {
 
     @IsTest
     static void test_Util_FakeId() {
-        system.assert(ATKCore.FAKEID.get(Account.SObjectType, 1).endsWith('00001'));
-        system.assert(ATKCore.FAKEID.get(Account.SObjectType, 1).endsWith('00001'));
-        system.assert(ATKCore.FAKEID.get(Account.SObjectType, 2).endsWith('00002'));
-        system.assert(ATKCore.FAKEID.get(Contact.SObjectType, 2).endsWith('00002'));
+        System.assertEquals('00001', ((String)ATKCore.FAKEID.get(Account.SObjectType, 1)).subString(10, 15));
+        System.assertEquals('00001', ((String)ATKCore.FAKEID.get(Account.SObjectType, 1)).subString(10, 15));
+        System.assertEquals('00002', ((String)ATKCore.FAKEID.get(Account.SObjectType, 2)).subString(10, 15));
+        System.assertEquals('00002', ((String)ATKCore.FAKEID.get(Contact.SObjectType, 2)).subString(10, 15));
+
+        System.assertEquals('00001', ((String)ATKCore.FAKEID.get(Account.SObjectType)).subString(10, 15));
+        System.assertEquals('00002', ((String)ATKCore.FAKEID.get(Account.SObjectType)).subString(10, 15));
+        System.assertEquals('00003', ((String)ATKCore.FAKEID.get(Account.SObjectType)).subString(10, 15));
     }
 
     // #endregion

@@ -1139,13 +1139,16 @@ public with sharing class ATKCore {
             objectIdIndexes = new Map<Schema.SObjectType, Indexer>();
         }
 
-        public String get(Schema.SObjectType objectType, Integer i) {
-            return objectType.getDescribe().getKeyPrefix()
-                + '000zzzz'
+        public Id get(Schema.SObjectType objectType) {
+            return generate(objectType, 1)[0];
+        }
+
+        public Id get(Schema.SObjectType objectType, Integer i) {
+            return objectType.getDescribe().getKeyPrefix() + '000zzzz'
                 + String.valueOf(i).leftPad(5, '0');
         }
 
-        public List<Id> generate(Schema.SObjectType objectType, Integer size) {
+        private List<Id> generate(Schema.SObjectType objectType, Integer size) {
             List<Id> ids = new List<Id>();
             if (!objectIdIndexes.containsKey(objectType)) {
                 objectIdIndexes.put(objectType, new Indexer());
