@@ -1,3 +1,5 @@
+// 1. Enable FLS of HierarchyNumberOfContacts of Campaign
+
 Savepoint sp = Database.setSavepoint();
 
 CampaignBuilder campaignBuilder = new CampaignBuilder();

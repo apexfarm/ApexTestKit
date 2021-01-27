@@ -1,3 +1,6 @@
+/**
+ * Vanilla Database Insert
+ */
 Savepoint sp = Database.setSavepoint();
 Datetime startTime = Datetime.now();
 List<Account> accounts = new List<Account>();
@@ -11,7 +14,9 @@ Datetime endTime = Datetime.now();
 System.debug(endTime.getTime() - startTime.getTime());
 Database.rollback(sp);
 
-
+/**
+ * ApexTextKit Save
+ */
 Savepoint sp = Database.setSavepoint();
 Datetime startTime = Datetime.now();
 ATK.prepare(Account.SObjectType, 1000)
@@ -23,7 +28,9 @@ Datetime endTime = Datetime.now();
 System.debug(endTime.getTime() - startTime.getTime());
 Database.rollback(sp);
 
-
+/**
+ * ApexTextKit Mock
+ */
 Savepoint sp = Database.setSavepoint();
 Datetime startTime = Datetime.now();
 ATK.prepare(Account.SObjectType, 1000)
