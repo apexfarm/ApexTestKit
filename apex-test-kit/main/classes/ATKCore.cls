@@ -34,105 +34,64 @@ public with sharing class ATKCore {
     // #region SObject Generator
     // *************************
 
-    public abstract class Generator {
-        public Map<Schema.SObjectType, Map<Schema.SObjectField, Integer>> indexes { get; set; }
-
-        {
-            indexes = new Map<Schema.SObjectType, Map<Schema.SObjectField, Integer>>();
-        }
-
-        public abstract void generate(EntityNodeMatrix matrix, Boolean doInsert);
-        abstract void createObjects(EntityNode entityNode);
-        abstract void assignFields(EntityNode entityNode);
-        abstract void assignReferences(EntityNode entityNode);
-
-        public Integer reserveIndex(SObjectType objectType, SObjectField field, Integer size) {
-            if(!indexes.containsKey(objectType)) {
-                indexes.put(objectType, new Map<Schema.SObjectField, Integer> {
-                    field => 0
-                });
-            } else if (!indexes.get(objectType).containsKey(field)) {
-                indexes.get(objectType).put(field, 0);
-            }
-            Integer index = indexes.get(objectType).get(field);
-            indexes.get(objectType).put(field, index + size);
-            return index;
-        }
+    public interface Generator {
+        void generate(EntityNodeMatrix matrix, Boolean doInsert);
     }
 
-    public class MockGenerator extends Generator {
+    public class MockGenerator extends SaveGenerator {
         public override void generate(EntityNodeMatrix matrix, Boolean doInsert) {
             matrix.generateDAG();
+
+            // step 1
             matrix.reset();
             while (matrix.hasNext()) {
                 EntityNode entityNode = matrix.next();
-                createObjects(entityNode);
-
-                if (entityNode.size > 0) {
-                    assignFields(entityNode);
-                    assignReferences(entityNode);
+                if (entityNode.isRoot || entityNode.isRootChild) {
+                    createMockObjects(entityNode);
+                    assignMockObjectFields(entityNode);
+                    assignMockeObjectReferences(entityNode);
                 }
             }
 
-            convertMockObjects(matrix);
-
-            // Generate Writable Fields
+            // step 2
             matrix.reset();
             while (matrix.hasNext()) {
                 EntityNode entityNode = matrix.next();
-
-                if (entityNode.size > 0) {
-                    SAVE_GENERATOR.assignFields(entityNode);
+                if (entityNode.isRoot) {
+                    entityNode.convertToSObjects();
+                } else if (entityNode.isRootChild) {
+                    entityNode.convertToSObjectsFromParent();
                 }
-
-                // Ids should be assigned after reference assignments, because once Ids are
-                // assigned some relationships are no longer updatable.
-                // List<SObject> objects = entityNode.objects;
-                // List<Id> ids = FAKEID.generate(entityNode.objectType, objects.size());
-                // for (Integer i = 0; i < objects.size(); i++) {
-                //     if (objects.get(i).Id == null) {
-                //         objects.get(i).Id = ids[i];
-                //     }
-                // }
             }
-        }
 
-        public void convertMockObjects(EntityNodeMatrix matrix) {
+            // step 3
             matrix.reset();
-            if (matrix.hasNext()) {
-                EntityNode entityNode = matrix.next();
-                entityNode.objects = entityNode.mockObjects.convert();
-            }
-
             while (matrix.hasNext()) {
-                EntityNode childNode = matrix.next();
-                for (EntityNodeRelationship relationship : childNode.relatinoships) {
-                    EntityNode parentNode = relationship.parent;
-                    if (parentNode.objects.size() > 0) {
-                        for (SObject parentObj : parentNode.objects) {
-                            for (SObject childObj : parentObj.getSObjects(relationship.childRelationshipName)) {
-                                if (childNode.mockIds.contains(childObj.id)) {
-                                    childObj.putSObject(relationship.parentRelationshipName, parentObj);
-                                    childNode.objects.add(childObj);
-                                }
-                            }
-                        }
-                        break; // only need to collect children from a single relationship
+                EntityNode entityNode = matrix.next();
+                if (!entityNode.isConverted) {
+                    if (entityNode.readonlyFields.size() > 0) {
+                        createMockObjects(entityNode);
+                        assignMockObjectFields(entityNode);
+                        entityNode.convertToSObjects();
+                    } else {
+                        createObjects(entityNode);
                     }
                 }
+                assignFields(entityNode);
+                assignReferences2(entityNode);
             }
         }
 
-        public override void createObjects(EntityNode entityNode) {
+        public void createMockObjects(EntityNode entityNode) {
             if (entityNode.mockObjects.isEmpty()) {
                 String objectName = entityNode.dsr.getName();
                 List<Id> ids = FAKEID.generate(entityNode.objectType, entityNode.size);
                 entityNode.mockIds.addAll(ids);
 
                 if (!entityNode.objects.isEmpty()) {
+                    // convert objects to mock objects
                     for (Integer i = 0; i < entityNode.size; ++i) {
-                        entityNode.mockObjects.add(new MockSObject(objectName, ids[i],
-                            (Map<String, Object>)JSON.deserializeUntyped(JSON.serialize(entityNode.objects[i]))));
+                        entityNode.mockObjects.add(new MockSObject(objectName, ids[i], entityNode.objects[i]));
                     }
                     entityNode.objects.clear();
                 } else {
@@ -143,7 +102,7 @@ public with sharing class ATKCore {
             }
         }
 
-        public override void assignFields(EntityNode entityNode) {
+        public void assignMockObjectFields(EntityNode entityNode) {
             MockSObjectList mockObjects = entityNode.mockObjects;
             Integer size = mockObjects.size();
             for (EntityField entityField : entityNode.readonlyFields) {
@@ -189,14 +148,18 @@ public with sharing class ATKCore {
         }
 
         @TestVisible
-        override void assignReferences(EntityNode entityNode) {
-            if (entityNode.relatinoships != null
-                && !entityNode.relatinoships.isEmpty()
+        public void assignMockeObjectReferences(EntityNode entityNode) {
+            if (entityNode.isRootChild
+                && entityNode.relatinoships != null
                 && entityNode.mockObjects != null) {
 
                 MockSObjectList childObjectList = entityNode.mockObjects;
 
                 for (EntityNodeRelationship relationship : entityNode.relatinoships) {
+                    if (!relationship.parent.isRoot) {
+                        continue;
+                    }
+
                     MockSObjectList parentObjectList = relationship.parent.mockObjects;
 
                     // Open comment for debug purpose
@@ -207,29 +170,59 @@ public with sharing class ATKCore {
                         // pair[0] = child
                         // pair[1] = parent
                         pair[0].put(relationship.parentRelationshipId, pair[1].Id);
-                        if (relationship.parent.belongsToRoot || !relationship.child.belongsToRoot) {
-                            pair[1].putChild(relationship.childRelationshipName, pair[0]);
-                        } else {
-                            pair[0].putParent(relationship.parentRelationshipName, pair[1]);
-                        }
+                        // pair[0].putParent(relationship.parentRelationshipName, pair[1]);
+                        pair[1].putChild(relationship.childRelationshipName, pair[0]);
+                    }
+                }
+            }
+        }
+
+        @TestVisible
+        void assignReferences2(EntityNode entityNode) {
+            if (entityNode.relatinoships != null
+                && entityNode.relatinoships.size() > 0
+                && entityNode.objects != null
+                && entityNode.size > 0) {
+
+                for (EntityNodeRelationship relationship : entityNode.relatinoships) {
+                    if (relationship.parent.isRoot && relationship.child.isRootChild) {
+                        continue;
+                    }
+
+                    String relationshipName = relationship.parentIdField.getDescribe().getRelationshipName();
+                    List<SObject> parentObjectList = relationship.parent.objects;
+                    List<SObject> childObjectList = relationship.child.objects;
+
+                    // Open comment for debug purpose
+                    // System.debug(String.format('{0} -> {1}', new List<Object> { entityNode.objectType, relationshipName }));
+                    // System.debug(String.format('{0} -> {1}', new List<Object> { childObjectList.size(), parentObjectList.size() }));
+
+                    for (List<SObject> pair : DISTRIBUTOR.distribute(childObjectList, parentObjectList)) {
+                        // pair[0] = child
+                        // pair[1] = parent
+                        pair[0].put(relationship.parentIdField, pair[1].Id);
+                        pair[0].putSObject(relationshipName, pair[1]);
                     }
                 }
             }
         }
     }
 
-    public class SaveGenerator extends Generator {
-        public override void generate(EntityNodeMatrix matrix, Boolean doInsert) {
+    public virtual class SaveGenerator implements Generator {
+        private Map<Schema.SObjectType, Map<Schema.SObjectField, Integer>> indexes { get; set; }
+
+        {
+            indexes = new Map<Schema.SObjectType, Map<Schema.SObjectField, Integer>>();
+        }
+
+        public virtual void generate(EntityNodeMatrix matrix, Boolean doInsert) {
             matrix.generateDAG();
             matrix.reset();
             while (matrix.hasNext()) {
                 EntityNode entityNode = matrix.next();
                 createObjects(entityNode);
-
-                if (entityNode.size > 0) {
-                    assignFields(entityNode);
-                    assignReferences(entityNode);
-                }
+                assignFields(entityNode);
+                assignReferences(entityNode);
 
                 if (!doInsert) {
                     continue;
@@ -253,7 +246,7 @@ public with sharing class ATKCore {
             }
         }
 
-        public override void createObjects(EntityNode entityNode) {
+        protected void createObjects(EntityNode entityNode) {
             if (entityNode.objects.isEmpty()) {
                 Schema.SObjectType objectType = entityNode.objectType;
                 for (Integer i = 0; i < entityNode.size; ++i) {
@@ -262,7 +255,12 @@ public with sharing class ATKCore {
             }
         }
 
-        public override void assignFields(EntityNode entityNode) {
+        @TestVisible
+        protected void assignFields(EntityNode entityNode) {
+            if (entityNode.size <= 0) {
+                return;
+            }
+
             List<SObject> objects = entityNode.objects;
             Integer size = objects.size();
 
@@ -309,10 +307,11 @@ public with sharing class ATKCore {
         }
 
         @TestVisible
-        override void assignReferences(EntityNode entityNode) {
+        protected void assignReferences(EntityNode entityNode) {
             if (entityNode.relatinoships != null
                 && entityNode.relatinoships.size() > 0
-                && entityNode.objects != null) {
+                && entityNode.objects != null
+                && entityNode.size > 0) {
 
                 for (EntityNodeRelationship relationship : entityNode.relatinoships) {
                     String relationshipName = relationship.parentIdField.getDescribe().getRelationshipName();
@@ -331,6 +330,19 @@ public with sharing class ATKCore {
                     }
                 }
             }
+        }
+
+        protected Integer reserveIndex(SObjectType objectType, SObjectField field, Integer size) {
+            if(!indexes.containsKey(objectType)) {
+                indexes.put(objectType, new Map<Schema.SObjectField, Integer> {
+                    field => 0
+                });
+            } else if (!indexes.get(objectType).containsKey(field)) {
+                indexes.get(objectType).put(field, 0);
+            }
+            Integer index = indexes.get(objectType).get(field);
+            indexes.get(objectType).put(field, index + size);
+            return index;
         }
     }
 
@@ -470,9 +482,10 @@ public with sharing class ATKCore {
             this.id = objectId;
         }
 
-        MockSObject(String objectName, Id objectId, Map<String, Object> fieldMap) {
+        MockSObject(String objectName, Id objectId, SObject obj) {
             this(objectName);
             this.id = objectId;
+            Map<String, Object> fieldMap = (Map<String, Object>)JSON.deserializeUntyped(JSON.serialize(obj));
             for (String fieldName : fieldMap.keySet()) {
                 if (fieldName == 'attributes' || fieldMap.get(fieldName) instanceof Map<String, Object>) {
                     continue;
@@ -567,7 +580,6 @@ public with sharing class ATKCore {
                 while(!queue.isEmpty()) {
                     Integer vertex = queue.remove(0);
                     EntityNode entityNode = (EntityNode)this.graph.keyAt(vertex);
-                    entityNode.belongsToRoot = true;
                     for (Integer childVertex : this.graph.G().adj(vertex)) {
                         queue.add(childVertex);
                     }
@@ -615,19 +627,23 @@ public with sharing class ATKCore {
         }
 
         private void addEntityNode(EntityNodeType nodeType, EntityNode nextEntityNode, Schema.SObjectField parentIdField) {
-            // currEntityNode: child
-            // nextEntityNode: parent
+            EntityNodeRelationship relationship;
             switch on nodeType {
+                when PREPARE {
+                    nextEntityNode.isRoot = true;
+                }
                 when MANY_TO_ONE {
-                    EntityNodeRelationship relationship = new EntityNodeRelationship(nextEntityNode, this.currEntityNode, parentIdField);
-                    entityNodeRelationships.add(relationship);
-                    currEntityNode.relatinoships.add(relationship);
+                    relationship = new EntityNodeRelationship(nextEntityNode, this.currEntityNode, parentIdField);
                 }
                 when ONE_TO_MANY {
-                    EntityNodeRelationship relationship = new EntityNodeRelationship(this.currEntityNode, nextEntityNode, parentIdField);
-                    entityNodeRelationships.add(relationship);
-                    nextEntityNode.relatinoships.add(relationship);
+                    relationship = new EntityNodeRelationship(this.currEntityNode, nextEntityNode, parentIdField);
                 }
+            }
+
+            if (relationship != null) {
+                entityNodeRelationships.add(relationship);
+                relationship.child.relatinoships.add(relationship);
+                relationship.child.isRootChild = relationship.parent.isRoot;
             }
 
             entityNodeStack.add(nextEntityNode);
@@ -683,15 +699,20 @@ public with sharing class ATKCore {
 
         public List<EntityNodeRelationship> relatinoships { get; set; }
         public List<SObject> objects { get; set; }
+
+        // Used for mock objects generation
         public MockSObjectList mockObjects { get; set; }
         public List<Id> mockIds { get; set; }
+        private Boolean isRoot { get; set; }
+        private Boolean isRootChild { get; set; }
+        private Boolean isConverted { get; set; }
 
+        // Used for fields generation
         public EntityField currEntityField { get; set; }
         @TestVisible
         private Map<Schema.SObjectField, EntityField> fieldMap { get; set; }
         private List<EntityField> writableFields { get; set; }
         private List<EntityField> readonlyFields { get; set; }
-        private Boolean belongsToRoot { get; set; }
 
         public EntityNode(Schema.SObjectType objectType) {
             this.objectType = objectType;
@@ -701,7 +722,9 @@ public with sharing class ATKCore {
             this.fieldMap = new Map<Schema.SObjectField, EntityField>();
             this.writableFields = new List<EntityField>();
             this.readonlyFields = new List<EntityField>();
-            this.belongsToRoot = false;
+            this.isRoot = false;
+            this.isRootChild = false;
+            this.isConverted = false;
 
             this.mockObjects = new MockSObjectList();
             this.mockIds = new List<Id>();
@@ -733,6 +756,30 @@ public with sharing class ATKCore {
                 }
             }
             this.currEntityField = entityField;
+        }
+
+        public void convertToSObjects() {
+            this.objects = this.mockObjects.convert();
+            this.mockObjects = null;
+            this.isConverted = true;
+        }
+
+        public void convertToSObjectsFromParent() {
+            for (EntityNodeRelationship relationship : this.relatinoships) {
+                EntityNode parentNode = relationship.parent;
+                if (parentNode.isRoot && parentNode.objects.size() > 0) {
+                    for (SObject parentObj : parentNode.objects) {
+                        for (SObject childObj : parentObj.getSObjects(relationship.childRelationshipName)) {
+                            if (this.mockIds.contains(childObj.id)) {
+                                childObj.putSObject(relationship.parentRelationshipName, parentObj);
+                                this.objects.add(childObj);
+                                // TODO: sort this.objects by id order
+                            }
+                        }
+                    }
+                    this.isConverted = true;
+                }
+            }
         }
     }
 
