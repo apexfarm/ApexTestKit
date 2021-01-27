@@ -51,6 +51,8 @@ public with sharing class ATKTest {
 
     @IsTest
     static void test_OneToMany_Mock() {
+        // Account(10) --|------------------|--> Case(40)
+        //               |--> Contact(20) --|
         ATK.SaveResult result = ATK.prepare(Account.SObjectType, 10)
             .withChildren(Case.SObjectType, Case.AccountId, 40)
             .also()
@@ -66,6 +68,9 @@ public with sharing class ATKTest {
             Case case2 = (Case)result.get(Case.SObjectType)[i * 4 + 1];
             Case case3 = (Case)result.get(Case.SObjectType)[i * 4 + 2];
             Case case4 = (Case)result.get(Case.SObjectType)[i * 4 + 3];
+
+            System.assertEquals(2, acc.Contacts.size());
+            System.assertEquals(4, acc.Cases.size());
 
             System.assertEquals(acc.Id, contact1.Account.Id);
             System.assertEquals(acc.Id, contact2.Account.Id);

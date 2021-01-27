@@ -32,7 +32,7 @@ Apex Test Kit can help generate massive records for Apex test classes. It solves
   - [Performance](#performance)
   - [Demos](#demos)
 - [Relationship](#relationship)
-  - [Principle](#principle) 
+  - [Principle](#principle)
   - [One to Many](#one-to-many)
   - [Many to One](#many-to-one)
   - [Many to Many](#many-to-many)
@@ -106,8 +106,8 @@ The scripts used to perform benchmark testing are documented under `scripts/apex
 
 | 1000 * Account | Database.insert | ATK Save | ATK Mock | ATK Mock Perf. |
 | -------------- | --------------- | -------- | -------- | -------------- |
-| CPU Time       | 0               | 0        | 558      | N/A            |
-| Real Time (ms) | 6300            | 6631     | 461      | ~14x faster    |
+| CPU Time       | 0               | 0        | 487      | N/A            |
+| Real Time (ms) | 6300            | 6631     | 656      | ~10x faster    |
 
 ### Demos
 
@@ -135,7 +135,7 @@ ATK.prepare(Account.SObjectType, 10)
         .field(Contact.LastName).index('Name-{0000}')
         .field(Contact.Email).index('test.user+{0000}@email.com')
         .field(Contact.MobilePhone).index('+86 186 7777 {0000}')
-        .withParent(Account.SObjectType, Contact.AccountId) 
+        .withParent(Account.SObjectType, Contact.AccountId)
         // withParent without a 3rd param of size/list indicate a lookup previously created Accunts
     .save();
 ```
