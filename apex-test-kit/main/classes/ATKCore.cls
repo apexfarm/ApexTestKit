@@ -163,7 +163,8 @@ public with sharing class ATKCore {
             }
         }
 
-        public void createMockObjects(EntityNode entityNode) {
+        @TestVisible
+        private void createMockObjects(EntityNode entityNode) {
             if (entityNode.mockObjects.isEmpty()) {
                 String objectName = entityNode.dsr.getName();
                 List<Id> ids = FAKEID.generate(entityNode.objectType, entityNode.size);
@@ -183,7 +184,8 @@ public with sharing class ATKCore {
             }
         }
 
-        public void assignMockObjectFields(EntityNode entityNode) {
+        @TestVisible
+        private void assignMockObjectFields(EntityNode entityNode) {
             MockSObjectList mockObjects = entityNode.mockObjects;
             Integer size = mockObjects.size();
             for (EntityField entityField : entityNode.readonlyFields) {
@@ -430,10 +432,6 @@ public with sharing class ATKCore {
             mockObjects.add(objectMock);
         }
 
-        void addAll(List<MockSObject> mockObjects) {
-            this.mockObjects.addAll(mockObjects);
-        }
-
         MockSObject get(Integer i) {
             return mockObjects[i];
         }
@@ -444,6 +442,10 @@ public with sharing class ATKCore {
 
         Integer size() {
             return mockObjects.size();
+        }
+
+        void clear() {
+            mockObjects.clear();
         }
 
         public override String toString() {
@@ -489,7 +491,9 @@ public with sharing class ATKCore {
             this.id = objectId;
             Map<String, Object> fieldMap = (Map<String, Object>)JSON.deserializeUntyped(JSON.serialize(obj));
             for (String fieldName : fieldMap.keySet()) {
-                if (fieldName == 'attributes' || fieldMap.get(fieldName) instanceof Map<String, Object>) {
+                if (fieldName == 'attributes'
+                    || fieldMap.get(fieldName) instanceof Map<String, Object>) {
+                    // TODO: tests to cover these conditions
                     continue;
                 } else {
                     this.put(fieldName, fieldMap.get(fieldName));
@@ -501,9 +505,9 @@ public with sharing class ATKCore {
             fieldMap.put(name, '"' + value + '"');
         }
 
-        void putParent(String name, MockSObject value) {
-            fieldMap.put(name, value);
-        }
+        // void putParent(String name, MockSObject value) {
+        //     fieldMap.put(name, value);
+        // }
 
         void putChild(String name, MockSObject value) {
             if (!fieldMap.containsKey(name)) {
@@ -716,6 +720,7 @@ public with sharing class ATKCore {
         @TestVisible
         private Map<Schema.SObjectField, EntityField> fieldMap { get; set; }
         private List<EntityField> writableFields { get; set; }
+        @TestVisible
         private List<EntityField> readonlyFields { get; set; }
 
         private EntityNode(Schema.SObjectType objectType) {
@@ -742,8 +747,9 @@ public with sharing class ATKCore {
 
         public EntityNode(Schema.SObjectType objectType, List<SObject> objects) {
             this(objectType);
-            this.size = objects.size();
-            this.objects = objects;
+            this.objects = new List<SObject> ();
+            this.objects.addAll(objects);
+            this.size = this.objects.size();
         }
 
         public void addField(SObjectField field) {
@@ -764,7 +770,7 @@ public with sharing class ATKCore {
 
         public void convertToSObjects() {
             this.objects = this.mockObjects.convert();
-            this.mockObjects = null;
+            this.mockObjects.clear();
             this.isConverted = true;
         }
 

@@ -16,13 +16,16 @@ Apex Test Kit can help generate massive records for Apex test classes. It solves
 
 ### **v3.4 Release Notes**
 
-**[Command API](#command-api)**:
+- **[Command API](#command-api)**: `mock()` now supports one level of children relationship and many levels of parent relationships.
 
-- `mock()` now supports assigning read-only fields, such as *formula fields*, *rollup summary fields*, and *system fields*. For example `.field(Account.CreatedDate).repeat(Datetime.newInstance(2020, 1, 1))`.
+- **[Relationship](#relationship)**: The validation of no cyclic relationship is enforced. Exception will be thrown if the validation is failed, i.e. A -> B -> C -> A is not allowed.
+- Account, Contact and User are the only three sObjects used in test classes now. Case and Opprotunity are removed from test classes.
 
-**[Principle](#principle)**:
+**Next Release**:
 
-- The validation of no cyclic relationships defined within a ATK statement is enforced. Exception will be thrown if the validation is failed.
+- Next release will fine tune the object relationship distribution rules. For exmaple when two sObjects A and B shares same parents, and there is also one-to-many relationship between A and B. The current distribution rule will not satisfy the business when the level of relationship become deep.
+
+
 
 ------
 
@@ -32,7 +35,6 @@ Apex Test Kit can help generate massive records for Apex test classes. It solves
   - [Performance](#performance)
   - [Demos](#demos)
 - [Relationship](#relationship)
-  - [Principle](#principle)
   - [One to Many](#one-to-many)
   - [Many to One](#many-to-one)
   - [Many to Many](#many-to-many)
@@ -50,12 +52,10 @@ Apex Test Kit can help generate massive records for Apex test classes. It solves
 
 ## Introduction
 
-Imagine the complexity to generate the following sObjects and establish all the relationships in the diagram.
-
 <p align="center">
 <img src="docs/images/sales-objects.png#2020-5-31" width="400" alt="Sales Object Graph">
 </p>
-With ATK we can create them within just one Apex statement. Here, we are generating:
+Imagine the complexity to generate all sObjects and relationships in the above diagram. With ATK we can create them within just one Apex statement. Here, we are generating:
 
 1. *200* accounts with names: `Name-0001, Name-0002, Name-0003...`
 2. Each of the accounts has *2* contacts.
@@ -91,7 +91,7 @@ ATK.SaveResult result = ATK.prepare(Account.SObjectType, 200)
     .save();
 ```
 
-`withChildren()` and `withParents()` without a third size parameter indicate they will back reference the sObjects created previously in the statement. If the third size param is supplied, new sObjects will be created.
+**Note**: `withChildren()` and `withParents()` without a third size parameter indicate they will back reference the sObjects created previously in the statement.
 
 ### Performance
 
@@ -115,7 +115,7 @@ There are five demos under the `scripts/apex` folder, they can be successfully r
 
 | Subject  | File Path                         | Description                                                  |
 | -------- | --------------------------------- | ------------------------------------------------------------ |
-| Campaign | `scripts/apex/demo-campaign.apex` | How to genereate campaigns with hierarchy relationships. `ATK.FieldBuilder` is implemented to reuse the field population logic. |
+| Campaign | `scripts/apex/demo-campaign.apex` | How to genereate campaigns with hierarchy relationships. `ATK.EntityBuilder` is implemented to reuse the field population logic. |
 | Cases    | `scripts/apex/demo-cases.apex`    | How to generate Accounts, Contacts and Cases.                |
 | Products | `scripts/apex/demo-products.apex` | How to generate Products for standard Price Book.            |
 | Sales    | `scripts/apex/demo-sales.apex`    | You've already seen it in the above paragraph.               |
@@ -123,24 +123,7 @@ There are five demos under the `scripts/apex` folder, they can be successfully r
 
 ## Relationship
 
-### Principle
-
-Directed Acyclic Graph ([DAG](https://en.wikipedia.org/wiki/Directed_acyclic_graph)) validation is enforced since version 3.4. The object relationships you built must be a DAG, thus no cyclic relationships. If the validation is failed, an exception will be thrown. An cyclic relationship example that violates DAG definition would be:
-
-```java
-// WRONG EXAMPEL, please don't do this
-ATK.prepare(Account.SObjectType, 10)
-    .field(Account.Name).index('Name-{0000}')
-    .withChildren(Contact.SObjectType, Contact.AccountId, 20)
-        .field(Contact.LastName).index('Name-{0000}')
-        .field(Contact.Email).index('test.user+{0000}@email.com')
-        .field(Contact.MobilePhone).index('+86 186 7777 {0000}')
-        .withParent(Account.SObjectType, Contact.AccountId)
-        // withParent without a 3rd param of size/list indicate a lookup previously created Accunts
-    .save();
-```
-
-And such cyclic reference is meaningless, hopefully you will never encounter such relationships in real applications.
+The object relationships established must be a Directed Acyclic Graph ([DAG](https://en.wikipedia.org/wiki/Directed_acyclic_graph)) , thus no cyclic relationships. If the validation is failed, an exception will bIe thrown.
 
 ### One to Many
 
@@ -196,11 +179,61 @@ ATK.prepare(Contact.SObjectType, 40)
 
 There are three ways to create the sObjects.
 
-| Method API                          | Description                                                  |
-| ----------------------------------- | ------------------------------------------------------------ |
-| `SaveResult save()                  | Actual DMLs will be performed to insert/update sObjects into Salesforce. |
-| SaveResult save(Boolean *doInsert*) | If `doInsert` is `false`, no actual DMLs will be performed, just the in-memory generated SObjects will be returned. |
-| SaveResult *mock()*                 | 1. No actual DMLs will be performed, and extremely large fake IDs of the sObjectType will be assigned to sObjects.<br />2. Support assigning values to read-only fields, such as *formula fields*, *rollup summary fields*, and *system fields*.<br />3. Can only work with [Entity Creation Keywords](#entity-creation-keywords). |
+| Method API                              | Description                                                  |
+| --------------------------------------- | ------------------------------------------------------------ |
+| ATK.SaveResult save()                   | Actual DMLs will be performed to insert/update sObjects into Salesforce. |
+| ATK.SaveResult save(Boolean *doInsert*) | If `doInsert` is `false`, no actual DMLs will be performed, just in-memory generated SObjects will be returned. |
+| ATK.SaveResult *mock()*                 | No actual DMLs will be performed, but sObjects will be returned in SaveResult as if they are newly retrieved from database. `mock()` supports the followings:<br />1. Assign extremely large fake IDs to the generated sObjects<br />2. Assign values to read-only fields, such as *formula fields*, *rollup summary fields*, and *system fields*.<br />3. Assign one level children relationship and multiple level parent relationships. |
+
+### &#9749; Mock()
+
+#### Mock with Children 
+
+<p style="height:280px">
+  <img src="docs/images/mock-releaionship.png#2021-1-32" style="float:right" width="250" alt="Sales Object Graph">
+  To establish a relationship graph as the picture on the right, we can start from any node. However in order to generate correct child relationshp references we need to pick up the right one to start with. Only the sObjects created in the prepare statement can have child relationship referencing their direct children. <br><br>
+  All the nodes in green are reachable from node B: <br>
+  1. Node B can access node A from parent relationship. <br>
+  2. Node B can access node D and E from child relationship. <br>
+  3. Node D can access node C but cannot access node F
+</p>
+
+```java
+ATK.SaveResult result = ATK.prepare(B__c.SObjectType, 10)
+    .withParents(A__c.SObjectType, B__c.A_ID__c, 10)
+    .also()
+    .withChildren(D__c.SObjectType, D__c.B_ID__c, 10)
+        .withParents(C__c.SObjectType, D__c.C_ID__c, 10)
+        .also()
+        .withChildren(F__c.SObjectType, F__c.D_ID__c, 10)
+    .also(2)
+    .withChildren(E__c.SObjectType, E__c.B_ID__c, 10)
+    .mock();
+
+List<B__c> listOfB = (List<B__c>)result.get(B__c.SObjectType);
+for (B__c itemB : listOfB) {
+    System.assertEquals(1, itemB.D__r.size());
+    System.assertEquals(1, itemB.E__r.size());
+}
+```
+
+#### Mock with Predefined List
+
+Mock also supports predefined list or SOQL query results. But for prededined list used in `prepare()` statement and its direct children, if there are any parent and child relationships, they are going to be trimmed in the generated mock sObjects.
+
+```java
+List<B__c> listOfB = [SELECT X__r.Id, (SELECT Id FROM Y__r) FROM B__c LIMIT 3];
+
+ATK.SaveResult result = ATK.prepare(B__c.SObjectType, listOfB)
+    .withParents(A__c.SObjectType, B__c.A_ID__c, 1)
+    .also()
+    .withChildren(D__c.SObjectType, D__c.B_ID__c, 6)
+    .mock()
+
+List<B__c> mockOfB = (List<B__c>)result.get(B__c.SObjectType);
+// The B__c in mockOfB cannot reference X__r and Y__r any more.
+// The B__c in listOfB can still reference X__r and Y__r.
+```
 
 ## Entity Keywords
 

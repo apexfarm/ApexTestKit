@@ -31,18 +31,6 @@ public with sharing class ATKCoreTest {
         }
 
         {
-            ATKCore.EntityNode entity = new ATKCore.EntityNode(Contact.SObjectType, 10);
-            for (Integer i = 0; i < 10; ++i) {
-                entity.objects.add(new Contact());
-            }
-            entity.addField(Contact.Birthdate);
-            entity.currEntityField.arithmetic = ATKCore.EntityFieldArithmetic.ADD_DAYS;
-            entity.currEntityField.initValue = Date.newInstance(2020, 1, 1);
-            entity.currEntityField.stepValue = 1;
-            generator.assignFields(entity);
-        }
-
-        {
             ATKCore.EntityNode entity = new ATKCore.EntityNode(Account.SObjectType, 10);
             for (Integer i = 0; i < 10; ++i) {
                 entity.objects.add(new Account());
@@ -51,6 +39,18 @@ public with sharing class ATKCoreTest {
             entity.currEntityField.arithmetic = ATKCore.EntityFieldArithmetic.ADD;
             entity.currEntityField.initValue = 0.1;
             entity.currEntityField.stepValue = 0.1;
+            generator.assignFields(entity);
+        }
+
+        {
+            ATKCore.EntityNode entity = new ATKCore.EntityNode(Contact.SObjectType, 10);
+            for (Integer i = 0; i < 10; ++i) {
+                entity.objects.add(new Contact());
+            }
+            entity.addField(Contact.Birthdate);
+            entity.currEntityField.arithmetic = ATKCore.EntityFieldArithmetic.ADD_DAYS;
+            entity.currEntityField.initValue = Date.newInstance(2020, 1, 1);
+            entity.currEntityField.stepValue = 1;
             generator.assignFields(entity);
         }
 
@@ -105,6 +105,58 @@ public with sharing class ATKCoreTest {
             try {
                 generator.generate(matrix, true);
             } catch(Exception ex) {}
+        }
+    }
+
+    static void assignReadonlyField(ATKCore.EntityNode entity, Schema.SObjectField field) {
+        ATKCore.EntityField entityField = new ATKCore.EntityField(field);
+        entity.fieldMap.put(field, entityField);
+        entity.readonlyFields.add(entityField);
+        entity.currEntityField = entityField;
+    }
+
+    @IsTest
+    static void test_Generator_Mock_AssignFields() {
+        ATKCore.MockGenerator generator = new ATKCore.MockGenerator();
+        {
+            ATKCore.EntityNode entity = new ATKCore.EntityNode(Account.SObjectType, 10);
+            generator.createMockObjects(entity);
+
+            assignReadonlyField(entity, Account.Name);
+            entity.currEntityField.fixedValue = 'Name';
+            generator.assignMockObjectFields(entity);
+        }
+
+        {
+            ATKCore.EntityNode entity = new ATKCore.EntityNode(Account.SObjectType, 10);
+            generator.createMockObjects(entity);
+
+            assignReadonlyField(entity, Account.AnnualRevenue);
+            entity.currEntityField.arithmetic = ATKCore.EntityFieldArithmetic.ADD;
+            entity.currEntityField.initValue = 0.1;
+            entity.currEntityField.stepValue = 0.1;
+            generator.assignMockObjectFields(entity);
+        }
+
+        {
+            ATKCore.EntityNode entity = new ATKCore.EntityNode(Contact.SObjectType, 10);
+            generator.createMockObjects(entity);
+
+            assignReadonlyField(entity, Contact.Birthdate);
+            entity.currEntityField.arithmetic = ATKCore.EntityFieldArithmetic.ADD_DAYS;
+            entity.currEntityField.initValue = Date.newInstance(2020, 1, 1);
+            entity.currEntityField.stepValue = 1;
+            generator.assignMockObjectFields(entity);
+        }
+
+        {
+            ATKCore.EntityNode entity = new ATKCore.EntityNode(Event.SObjectType, 10);
+            generator.createMockObjects(entity);
+            assignReadonlyField(entity, Event.ActivityDateTime);
+            entity.currEntityField.arithmetic = ATKCore.EntityFieldArithmetic.ADD_DAYS;
+            entity.currEntityField.initValue = DateTime.newInstance(2020, 1, 1, 0, 0, 0);
+            entity.currEntityField.stepValue = 1;
+            generator.assignMockObjectFields(entity);
         }
     }
 
@@ -163,11 +215,13 @@ public with sharing class ATKCoreTest {
                     Account acc = (Account)obj;
                     System.assertEquals(expectedDatetime, acc.CreatedDate);
                     System.assertEquals(fakeUserId, acc.CreatedById);
+                    System.assertEquals(1, acc.Contacts.size());
                 }
                 if (node.objectType == Contact.SObjectType) {
                     Contact con = (Contact)obj;
                     System.assertEquals(expectedDatetime, con.CreatedDate);
                     System.assertEquals(fakeUserId, con.CreatedById);
+                    // System.assertEquals(con.AccountId, con.Account.Id);
                 }
             }
         }
@@ -175,19 +229,52 @@ public with sharing class ATKCoreTest {
 
     @IsTest
     static void test_Generator_Mock_Off_Main_Stem() {
+        //              |-- Contact(3)
+        // Account(3) --|
+        //     |        |-- Contact(3)
+        //   User(3)           |
+        //                   User(3)
         ATKCore.MockGenerator generator = new ATKCore.MockGenerator();
         ATKCore.EntityNodeMatrix matrix = new ATKCore.EntityNodeMatrix();
         matrix.add(ATKCore.EntityNodeType.PREPARE,
             new ATKCore.EntityNode(Account.SObjectType, 3),
             null);
+        matrix.add(ATKCore.EntityNodeType.MANY_TO_ONE,
+            new ATKCore.EntityNode(User.SObjectType, 3),
+            Account.OwnerId);
+        matrix.pop(1);
         matrix.add(ATKCore.EntityNodeType.ONE_TO_MANY,
-            new ATKCore.EntityNode(Contact.SObjectType, 3),
+            new ATKCore.EntityNode(Contact.SObjectType, new List<Contact>{
+                new Contact(LastName = 'LastName'), new Contact(LastName = 'LastName'), new Contact(LastName = 'LastName')
+            }),
             Contact.AccountId);
         matrix.pop(1);
         matrix.add(ATKCore.EntityNodeType.ONE_TO_MANY,
             new ATKCore.EntityNode(Contact.SObjectType, 3),
             Contact.AccountId);
+        matrix.add(ATKCore.EntityNodeType.MANY_TO_ONE,
+            new ATKCore.EntityNode(User.SObjectType, 3),
+            Contact.OwnerId);
+        matrix.currEntityNode.addField(Contact.CreatedDate);
+        matrix.currEntityNode.currEntityField.fixedValue = Datetime.newInstance(2020, 1, 1);
+
         generator.generate(matrix, false);
+
+        System.assertEquals(5, matrix.entityNodeCache.size());
+
+        for (ATKCore.EntityNode node : matrix.entityNodeCache) {
+            System.assertEquals(3, node.objects.size());
+            for (SObject obj : node.objects) {
+                if (node.objectType == Account.SObjectType) {
+                    Account acc = (Account)obj;
+                    System.assertEquals(2, acc.Contacts.size());
+                }
+                if (node.objectType == Contact.SObjectType) {
+                    Contact con = (Contact)obj;
+                    // System.assertEquals(con.AccountId, con.Account.Id);
+                }
+            }
+        }
     }
 
     @IsTest
@@ -220,38 +307,64 @@ public with sharing class ATKCoreTest {
     @IsTest
     static void test_Model_EntityNodeMatrix() {
         ATKCore.EntityNodeMatrix matrix = new ATKCore.EntityNodeMatrix();
-        matrix.add(ATKCore.EntityNodeType.PREPARE, new ATKCore.EntityNode(Account.SObjectType, new List<Account>{ new Account() }), null);
-        matrix.currEntityNode.currEntityField = new ATKCore.EntityField(Account.Name);
-        matrix.add(ATKCore.EntityNodeType.ONE_TO_MANY, new ATKCore.EntityNode(Contact.SObjectType, 1), Contact.AccountId);
-        matrix.add(ATKCore.EntityNodeType.ONE_TO_MANY, new ATKCore.EntityNode(OpportunityContactRole.SObjectType, 1), OpportunityContactRole.ContactId);
-        matrix.add(ATKCore.EntityNodeType.MANY_TO_ONE, new ATKCore.EntityNode(Opportunity.SObjectType, 1), OpportunityContactRole.OpportunityId);
-        matrix.add(ATKCore.EntityNodeType.MANY_TO_ONE, Account.SObjectType, Opportunity.AccountId);
-        matrix.add(ATKCore.EntityNodeType.MANY_TO_ONE, new ATKCore.EntityNode(User.SObjectType, 1), Account.OwnerId);
+        matrix.add(ATKCore.EntityNodeType.PREPARE, new ATKCore.EntityNode(User.SObjectType, 1), null);
         matrix.add(ATKCore.EntityNodeType.ONE_TO_MANY, new ATKCore.EntityNode(Contact.SObjectType, 1), Contact.OwnerId);
+        matrix.add(ATKCore.EntityNodeType.MANY_TO_ONE, new ATKCore.EntityNode(Account.SObjectType, 1), Contact.AccountId);
+        matrix.add(ATKCore.EntityNodeType.MANY_TO_ONE, User.SObjectType, Account.OwnerId);
 
-        //            |------------------- 2. Contact
-        //  1. User <-|               |--- 5. Contact <---|
-        //            |- 3. Account <-|                   |- 6. OpportunityContactRole
-        //                            |- 4. Opportunity <-|
+        //            |----------------|-- 3. Contact
+        //  1. User --|                |
+        //            |-- 2. Account --|
 
         matrix.generateDAG();
         matrix.reset();
         System.assertEquals(User.SObjectType, matrix.next().objectType);
-        System.assertEquals(Contact.SObjectType, matrix.next().objectType);
         System.assertEquals(Account.SObjectType, matrix.next().objectType);
-        System.assertEquals(Opportunity.SObjectType, matrix.next().objectType);
         System.assertEquals(Contact.SObjectType, matrix.next().objectType);
-        System.assertEquals(OpportunityContactRole.SObjectType, matrix.next().objectType);
 
         System.assertEquals(false, matrix.hasNext());
         System.assertEquals(null, matrix.next());
 
-        matrix.pop(3);
-        System.assertEquals(Opportunity.SObjectType, matrix.currEntityNode.objectType);
-
         matrix.pop(2);
         System.assertEquals(Contact.SObjectType, matrix.currEntityNode.objectType);
     }
+
+    // Limit the usage of sObject Types to only Account and Contact
+    // @IsTest
+    // static void test_Model_EntityNodeMatrix() {
+    //     ATKCore.EntityNodeMatrix matrix = new ATKCore.EntityNodeMatrix();
+    //     matrix.add(ATKCore.EntityNodeType.PREPARE, new ATKCore.EntityNode(Account.SObjectType, new List<Account>{ new Account() }), null);
+    //     matrix.currEntityNode.currEntityField = new ATKCore.EntityField(Account.Name);
+    //     matrix.add(ATKCore.EntityNodeType.ONE_TO_MANY, new ATKCore.EntityNode(Contact.SObjectType, 1), Contact.AccountId);
+    //     matrix.add(ATKCore.EntityNodeType.ONE_TO_MANY, new ATKCore.EntityNode(OpportunityContactRole.SObjectType, 1), OpportunityContactRole.ContactId);
+    //     matrix.add(ATKCore.EntityNodeType.MANY_TO_ONE, new ATKCore.EntityNode(Opportunity.SObjectType, 1), OpportunityContactRole.OpportunityId);
+    //     matrix.add(ATKCore.EntityNodeType.MANY_TO_ONE, Account.SObjectType, Opportunity.AccountId);
+    //     matrix.add(ATKCore.EntityNodeType.MANY_TO_ONE, new ATKCore.EntityNode(User.SObjectType, 1), Account.OwnerId);
+    //     matrix.add(ATKCore.EntityNodeType.ONE_TO_MANY, new ATKCore.EntityNode(Contact.SObjectType, 1), Contact.OwnerId);
+
+    //     //            |------------------- 2. Contact
+    //     //  1. User <-|               |--- 5. Contact <---|
+    //     //            |- 3. Account <-|                   |- 6. OpportunityContactRole
+    //     //                            |- 4. Opportunity <-|
+
+    //     matrix.generateDAG();
+    //     matrix.reset();
+    //     System.assertEquals(User.SObjectType, matrix.next().objectType);
+    //     System.assertEquals(Contact.SObjectType, matrix.next().objectType);
+    //     System.assertEquals(Account.SObjectType, matrix.next().objectType);
+    //     System.assertEquals(Opportunity.SObjectType, matrix.next().objectType);
+    //     System.assertEquals(Contact.SObjectType, matrix.next().objectType);
+    //     System.assertEquals(OpportunityContactRole.SObjectType, matrix.next().objectType);
+
+    //     System.assertEquals(false, matrix.hasNext());
+    //     System.assertEquals(null, matrix.next());
+
+    //     matrix.pop(3);
+    //     System.assertEquals(Opportunity.SObjectType, matrix.currEntityNode.objectType);
+
+    //     matrix.pop(2);
+    //     System.assertEquals(Contact.SObjectType, matrix.currEntityNode.objectType);
+    // }
 
     @IsTest
     static void test_Model_EntityNode() {

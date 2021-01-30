@@ -21,31 +21,23 @@ public with sharing class ATKTest {
     @IsTest
     static void test_OneToMany() {
         ATK.SaveResult result = ATK.prepare(Account.SObjectType, 10)
-            .withChildren(Case.SObjectType, Case.AccountId, 40)
+            .withChildren(Contact.SObjectType, Case.AccountId, 20)
             .also()
             .withChildren(Contact.SObjectType, Contact.AccountId, 20)
-                .withChildren(Case.SObjectType, Case.ContactId)
             .save(false);
 
         for (Integer i = 0; i < 10; i++) {
             Account acc = (Account)result.get(Account.SObjectType)[i];
-            Contact contact1 = (Contact)result.get(Contact.SObjectType)[i * 2];
-            Contact contact2 = (Contact)result.get(Contact.SObjectType)[i * 2 + 1];
-            Case case1 = (Case)result.get(Case.SObjectType)[i * 4];
-            Case case2 = (Case)result.get(Case.SObjectType)[i * 4 + 1];
-            Case case3 = (Case)result.get(Case.SObjectType)[i * 4 + 2];
-            Case case4 = (Case)result.get(Case.SObjectType)[i * 4 + 3];
+
+            Contact contact1 = (Contact)result.get(Contact.SObjectType)[i * 4];
+            Contact contact2 = (Contact)result.get(Contact.SObjectType)[i * 4 + 1];
+            Contact contact3 = (Contact)result.get(Contact.SObjectType)[i * 4 + 2];
+            Contact contact4 = (Contact)result.get(Contact.SObjectType)[i * 4 + 3];
 
             System.assertEquals(acc, contact1.Account);
             System.assertEquals(acc, contact2.Account);
-            System.assertEquals(acc, case1.Account);
-            System.assertEquals(acc, case2.Account);
-            System.assertEquals(acc, case3.Account);
-            System.assertEquals(acc, case4.Account);
-            System.assertEquals(contact1, case1.Contact);
-            System.assertEquals(contact1, case2.Contact);
-            System.assertEquals(contact2, case3.Contact);
-            System.assertEquals(contact2, case4.Contact);
+            System.assertEquals(acc, contact3.Account);
+            System.assertEquals(acc, contact4.Account);
         }
     }
 
