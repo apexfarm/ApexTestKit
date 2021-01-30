@@ -190,13 +190,14 @@ There are three ways to create the sObjects.
 #### Mock with Children 
 
 <p style="height:280px">
-  <img src="docs/images/mock-releaionship.png#2021-1-32" style="float:right" width="250" alt="Sales Object Graph">
+  <img src="docs/images/mock-relationship.png#2021-1-32" align="right" width="250" alt="Mock Relationship">
   To establish a relationship graph as the picture on the right, we can start from any node. However in order to generate correct child relationshp references we need to pick up the right one to start with. Only the sObjects created in the prepare statement can have child relationship referencing their direct children. <br><br>
   All the nodes in green are reachable from node B: <br>
   1. Node B can access node A from parent relationship. <br>
   2. Node B can access node D and E from child relationship. <br>
   3. Node D can access node C but cannot access node F
 </p>
+
 
 ```java
 ATK.SaveResult result = ATK.prepare(B__c.SObjectType, 10)
