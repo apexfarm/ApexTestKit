@@ -9,14 +9,14 @@ Apex Test Kit can help generate massive records for Apex test classes. It solves
 
 | Environment           | Installation Link                                            | Version |
 | --------------------- | ------------------------------------------------------------ | ------- |
-| Production, Developer | <a target="_blank" href="https://login.salesforce.com/packaging/installPackage.apexp?p0=04t2v000007GQuwAAG"><img src="docs/images/deploy-button.png"></a> | ver 3.4 |
-| Sandbox               | <a target="_blank" href="https://test.salesforce.com/packaging/installPackage.apexp?p0=04t2v000007GQuwAAG"><img src="docs/images/deploy-button.png"></a> | ver 3.4 |
+| Production, Developer | <a target="_blank" href="https://login.salesforce.com/packaging/installPackage.apexp?p0=04t2v0000079BS0AAM"><img src="docs/images/deploy-button.png"></a> | ver 3.4 |
+| Sandbox               | <a target="_blank" href="https://test.salesforce.com/packaging/installPackage.apexp?p0=04t2v0000079BS0AAM"><img src="docs/images/deploy-button.png"></a> | ver 3.4 |
 
 ------
 
 ### **v3.4 Release Notes**
 
-- **[&#9749;Mock](#-mock)**: `mock()` now supports one level of children relationship and many levels of parent relationships.
+- **[&#9749;Mock](#-mock)**: `mock()` now supports one level of children relationship and many levels of parent relationships. Till now `mock()` should be able to return any sObject graph that would be returned from a valid SOQL. If not please help to raise an issue, I will try to fix it as high priority.
 
 - **[Relationship](#relationship)**: The validation of no cyclic relationship is enforced. Exception will be thrown if the validation is failed, i.e. A -> B -> C -> A is not allowed.
 - Account, Contact, Case and User are the only sObjects used in test classes.
@@ -189,7 +189,7 @@ There are three ways to create the sObjects.
 
 <p style="height:280px">
   <img src="docs/images/mock-relationship.png#2021-1-32" align="right" width="250" alt="Mock Relationship">
-  To establish a relationship graph as the picture on the right, we can start from any node. However in order to generate correct child relationshp references we need to pick up the right one to start with. Only the sObjects created in the prepare statement can have child relationship references to their direct children. But all sObjects can have parent relationship and readonly fields assigned. <br><br>
+  To establish a relationship graph as the picture on the right, we can start from any node. However in order to generate correct child relationshp references we need to pick up the right one to start with. <b>Only the sObjects created in the prepare statement can have child relationship references to their direct children.</b> But all sObjects will have parent relationship and readonly fields generated during mocking. <br><br>
   All the nodes in green are reachable from node B. <br>
   1. Node B can access node A from parent relationship. <br>
   2. Node B can access node D and E from child relationship. <br>
