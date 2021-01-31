@@ -30,6 +30,16 @@ public with sharing class ATKCore {
     @TestVisible
     private static Integer batchSize = 200;
 
+    public class NoneDAGException extends Exception {
+        String msg = 'The object relationships described in a single ATK statement must be '
+        + 'a Directed Acyclic Graph, thus no cyclic relationships. '
+        + 'https://github.com/apexfarm/ApexTestKit/tree/develop#relationship';
+
+        {
+            this.setMessage(msg);
+        }
+    }
+
     // *************************
     // #region SObject Generator
     // *************************
@@ -246,7 +256,7 @@ public with sharing class ATKCore {
                     MockSObjectList parentObjectList = relationship.parent.mockObjects;
 
                     // Open comment for debug purpose
-                    // System.debug(String.format('{0} -> {1}', new List<Object> { entityNode.objectType, parentRelationshipName }));
+                    // System.debug(String.format('{0} -> {1}', new List<Object> { entityNode.objectType, relationship.parentRelationshipName }));
                     // System.debug(String.format('{0} -> {1}', new List<Object> { childObjectList.size(), parentObjectList.size() }));
 
                     for (List<MockSObject> pair : DISTRIBUTOR.distribute(childObjectList, parentObjectList)) {
@@ -510,6 +520,9 @@ public with sharing class ATKCore {
         // }
 
         void putChild(String name, MockSObject value) {
+            if (String.isBlank(name)) {
+                return;
+            }
             if (!fieldMap.containsKey(name)) {
                 fieldMap.put(name, new MockSObjectChildren());
             }
@@ -597,7 +610,7 @@ public with sharing class ATKCore {
             if (this.top.isDAG()) {
                 currentIndex = -1;
             } else {
-                // throw Exception
+                throw new NoneDAGException();
             }
         }
 
@@ -649,9 +662,6 @@ public with sharing class ATKCore {
             if (relationship != null) {
                 entityNodeRelationships.add(relationship);
                 relationship.child.relatinoships.add(relationship);
-                if (relationship.parent.isRoot) {
-                    relationship.child.isRootChild = true;
-                }
             }
 
             entityNodeStack.add(nextEntityNode);
@@ -696,6 +706,10 @@ public with sharing class ATKCore {
                     this.childRelationshipName = cr.getRelationshipName();
                     break;
                 }
+            }
+
+            if (this.parent.isRoot && String.isNotEmpty(this.childRelationshipName)) {
+                this.child.isRootChild = true;
             }
         }
     }
@@ -779,6 +793,10 @@ public with sharing class ATKCore {
                 EntityNode parentNode = relationship.parent;
                 if (parentNode.isRoot && parentNode.objects.size() > 0) {
                     for (SObject parentObj : parentNode.objects) {
+                        if (String.isBlank(relationship.childRelationshipName)) {
+                            continue;
+                        }
+
                         for (SObject childObj : parentObj.getSObjects(relationship.childRelationshipName)) {
                             if (this.mockIds.contains(childObj.id)) {
                                 childObj.putSObject(relationship.parentRelationshipName, parentObj);

@@ -16,10 +16,10 @@ Apex Test Kit can help generate massive records for Apex test classes. It solves
 
 ### **v3.4 Release Notes**
 
-- **[Command API](#command-api)**: `mock()` now supports one level of children relationship and many levels of parent relationships.
+- **[&#9749;Mock](#-mock)**: `mock()` now supports one level of children relationship and many levels of parent relationships.
 
 - **[Relationship](#relationship)**: The validation of no cyclic relationship is enforced. Exception will be thrown if the validation is failed, i.e. A -> B -> C -> A is not allowed.
-- Account, Contact and User are the only three sObjects used in test classes now. Case and Opprotunity are removed from test classes.
+- Account, Contact, Case and User are the only sObjects used in test classes.
 
 **Next Release**:
 
@@ -39,6 +39,8 @@ Apex Test Kit can help generate massive records for Apex test classes. It solves
   - [Many to One](#many-to-one)
   - [Many to Many](#many-to-many)
 - [Command API](#command-api)
+  - [&#9749;Mock](#-mock)
+  - [Fake Id](#fake-id)
 - [Entity Keywords](#entity-keywords)
   - [Entity Creation Keywords](#entity-creation-keywords)
   - [Entity Updating Keywords](#entity-updating-keywords)
@@ -123,7 +125,7 @@ There are five demos under the `scripts/apex` folder, they can be successfully r
 
 ## Relationship
 
-The object relationships established must be a Directed Acyclic Graph ([DAG](https://en.wikipedia.org/wiki/Directed_acyclic_graph)) , thus no cyclic relationships. If the validation is failed, an exception will bIe thrown.
+The object relationships described in a single ATK statement must be a Directed Acyclic Graph ([DAG](https://en.wikipedia.org/wiki/Directed_acyclic_graph)) , thus no cyclic relationships. If the validation is failed, an exception will bIe thrown.
 
 ### One to Many
 
@@ -185,17 +187,17 @@ There are three ways to create the sObjects.
 | ATK.SaveResult save(Boolean *doInsert*) | If `doInsert` is `false`, no actual DMLs will be performed, just in-memory generated SObjects will be returned. |
 | ATK.SaveResult *mock()*                 | No actual DMLs will be performed, but sObjects will be returned in SaveResult as if they are newly retrieved from database. `mock()` supports the followings:<br />1. Assign extremely large fake IDs to the generated sObjects<br />2. Assign values to read-only fields, such as *formula fields*, *rollup summary fields*, and *system fields*.<br />3. Assign one level children relationship and multiple level parent relationships. |
 
-### &#9749; Mock()
+### &#9749; Mock
 
-#### Mock with Children 
+#### Mock with Children
 
 <p style="height:280px">
   <img src="docs/images/mock-relationship.png#2021-1-32" align="right" width="250" alt="Mock Relationship">
-  To establish a relationship graph as the picture on the right, we can start from any node. However in order to generate correct child relationshp references we need to pick up the right one to start with. Only the sObjects created in the prepare statement can have child relationship referencing their direct children. <br><br>
-  All the nodes in green are reachable from node B: <br>
+  To establish a relationship graph as the picture on the right, we can start from any node. However in order to generate correct child relationshp references we need to pick up the right one to start with. Only the sObjects created in the prepare statement can have child relationship references to their direct children. But all sObjects can have parent relationship and readonly fields assigned. <br><br>
+  All the nodes in green are reachable from node B. <br>
   1. Node B can access node A from parent relationship. <br>
   2. Node B can access node D and E from child relationship. <br>
-  3. Node D can access node C but cannot access node F
+  3. Node D can access node C but cannot access node F. <br>
 </p>
 
 
@@ -235,6 +237,22 @@ List<B__c> mockOfB = (List<B__c>)result.get(B__c.SObjectType);
 // The B__c in mockOfB cannot reference X__r and Y__r any more.
 // The B__c in listOfB can still reference X__r and Y__r.
 ```
+
+### Fake Id
+
+These methods are exposed in case we need manually control the ID assignments such as:
+
+```java
+Id fakeUserId = ATK.fakeId(User.SObjectType, 1);
+ATK.SaveResult result = ATK.prepare(Account.SObjectType, 9)
+    .field(Account.OwnerId).repeat(fakeUserId)
+    .mock()
+```
+
+| Keyword API                                                 | Description                                                  |
+| ----------------------------------------------------------- | ------------------------------------------------------------ |
+| Id fakeId(Schema.SObjectType *objectType*)                  | Return self incrementing fake ID. It will start over from each transaction, so it is also unique in each transaction.<br>`ATK.fakeId(Account.SObjectType) == ATK.fakeId(Account.SObjectType, 1)` |
+| Id fakeId(Schema.SObjectType *objectType*, Integer *index*) | Return the fake ID specified.                                |
 
 ## Entity Keywords
 
