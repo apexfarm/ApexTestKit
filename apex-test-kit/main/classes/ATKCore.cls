@@ -118,10 +118,23 @@ public with sharing class ATKCore {
                         }
                     }
                 } else {
-                    Integer index = reserveIndex(entityNode.objectType, entityField.field, size);
-                    for (Integer i = 0; i < size; ++i) {
-                        Object value = entityField.getValue(i + index);
-                        objects[i].put(entityField.field, value);
+                    switch on entityField.dfr.getType() {
+                        when REFERENCE {
+                            for (Integer i = 0; i < size; ++i) {
+                                Object value = entityField.getValue(i);
+                                Id tempId = objects[i].Id;
+                                objects[i].Id = null;
+                                objects[i].put(entityField.field, value);
+                                objects[i].Id = tempId;
+                            }
+                        }
+                        when else {
+                            Integer index = reserveIndex(entityNode.objectType, entityField.field, size);
+                            for (Integer i = 0; i < size; ++i) {
+                                Object value = entityField.getValue(i + index);
+                                objects[i].put(entityField.field, value);
+                            }
+                        }
                     }
                 }
             }
@@ -293,8 +306,11 @@ public with sharing class ATKCore {
                     for (List<SObject> pair : DISTRIBUTOR.distribute(childObjectList, parentObjectList)) {
                         // pair[0] = child
                         // pair[1] = parent
+                        Id tempId = pair[0].Id;
+                        pair[0].Id = null;
                         pair[0].put(relationship.parentIdField, pair[1].Id);
                         pair[0].putSObject(relationshipName, pair[1]);
+                        pair[0].Id = tempId;
                     }
                 }
             }
@@ -799,7 +815,10 @@ public with sharing class ATKCore {
 
                         for (SObject childObj : parentObj.getSObjects(relationship.childRelationshipName)) {
                             if (this.mockIds.contains(childObj.id)) {
+                                Id tempId = childObj.id;
+                                childObj.id = null;
                                 childObj.putSObject(relationship.parentRelationshipName, parentObj);
+                                childObj.id = tempId;
                                 this.objects.add(childObj);
                                 // TODO: sort this.objects by id order
                             }

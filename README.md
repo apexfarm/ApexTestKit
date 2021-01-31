@@ -97,10 +97,6 @@ ATK.SaveResult result = ATK.prepare(Account.SObjectType, 200)
 
 ### Performance
 
-To `.save()` the above 2200 records, it will take ~3000 CPU time. That's already 1/3 of the Maximum CPU time. However, if we use `.mock()` to just create them in the memory, it will take ~700 CPU time.
-
-#### Benchmark
-
 The scripts used to perform benchmark testing are documented under `scripts/apex/benchmark.apex`. All tests will insert 1000 accounts under the following conditions:
 
 1. No duplicate rules, process builders, and triggers etc.
@@ -251,7 +247,7 @@ ATK.SaveResult result = ATK.prepare(Account.SObjectType, 9)
 
 | Keyword API                                                 | Description                                                  |
 | ----------------------------------------------------------- | ------------------------------------------------------------ |
-| Id fakeId(Schema.SObjectType *objectType*)                  | Return self incrementing fake ID. It will start over from each transaction, so it is also unique in each transaction.<br>`ATK.fakeId(Account.SObjectType) == ATK.fakeId(Account.SObjectType, 1)` |
+| Id fakeId(Schema.SObjectType *objectType*)                  | Return self incrementing fake ID. It will start over from each transaction, so it is also unique within each transaction. By default Ids will start from `ATK.fakeId(Account.SObjectType, 1)`. |
 | Id fakeId(Schema.SObjectType *objectType*, Integer *index*) | Return the fake ID specified.                                |
 
 ## Entity Keywords
