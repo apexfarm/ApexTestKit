@@ -1,6 +1,6 @@
 # Apex Test Kit
 
-![](https://img.shields.io/badge/version-3.3.1-brightgreen.svg) ![](https://img.shields.io/badge/build-passing-brightgreen.svg) ![](https://img.shields.io/badge/coverage-95%25-brightgreen.svg)
+![](https://img.shields.io/badge/version-3.4-brightgreen.svg) ![](https://img.shields.io/badge/build-passing-brightgreen.svg) ![](https://img.shields.io/badge/coverage-95%25-brightgreen.svg)
 
 Apex Test Kit can help generate massive records for Apex test classes. It solves two pain points during record creation:
 
@@ -9,26 +9,23 @@ Apex Test Kit can help generate massive records for Apex test classes. It solves
 
 | Environment           | Installation Link                                            | Version |
 | --------------------- | ------------------------------------------------------------ | ------- |
-| Production, Developer | <a target="_blank" href="https://login.salesforce.com/packaging/installPackage.apexp?p0=04t2v000007GQuwAAG"><img src="docs/images/deploy-button.png"></a> | ver 3.3.1 |
-| Sandbox               | <a target="_blank" href="https://test.salesforce.com/packaging/installPackage.apexp?p0=04t2v000007GQuwAAG"><img src="docs/images/deploy-button.png"></a> | ver 3.3.1 |
+| Production, Developer | <a target="_blank" href="https://login.salesforce.com/packaging/installPackage.apexp?p0=04t2v0000079BS0AAM"><img src="docs/images/deploy-button.png"></a> | ver 3.4 |
+| Sandbox               | <a target="_blank" href="https://test.salesforce.com/packaging/installPackage.apexp?p0=04t2v0000079BS0AAM"><img src="docs/images/deploy-button.png"></a> | ver 3.4 |
 
 ------
 
-### **v3.3 Release Notes**
+### **v3.4 Release Notes**
 
-**[Lookup Field Keywords](#lookup-field-keywords)** has some **breaking changes**:
+- **[&#9749;Mock](#-mock)**: `mock()` now supports one level of children relationship and many levels of parent relationships. Till now `mock()` should be able to return any sObject graph that would be returned from a valid SOQL. If not please help to raise an issue, I will try to fix it as high priority.
 
-- `recordType()` will only support developer name as param, and become *case sensitive*.
+- **[Relationship](#relationship)**: The validation of no cyclic relationship is enforced. Exception will be thrown if the validation is failed, i.e. A -> B -> C -> A is not allowed.
+- Account, Contact, Case and User are the only sObjects used in test classes.
 
-**[Command API](#command-api)**:
+**Next Release**:
 
-- `mock()` now supports assigning read-only fields, such as *formula fields*, *rollup summary fields*, and *system fields*. For example `.field(Account.CreatedDate).repeat(Datetime.newInstance(2020, 1, 1))`.
-- Fix:  Fake Id assignments of sObjects during `mock()`  blocking some relationships to be updated.
-
-**[Performance](#performance)** adds **benchmark** to give a feel how fast it is to use `mock()` compared with `save()`.
+- Next release will fine tune the object relationship distribution rules. For exmaple when two sObjects A and B shares same parents, and there is also one-to-many relationship between A and B. The current distribution rule will not satisfy the business when the level of relationship become deep.
 
 
-Happy hacking!
 
 ------
 
@@ -42,6 +39,8 @@ Happy hacking!
   - [Many to One](#many-to-one)
   - [Many to Many](#many-to-many)
 - [Command API](#command-api)
+  - [&#9749;Mock](#-mock)
+  - [Fake Id](#fake-id)
 - [Entity Keywords](#entity-keywords)
   - [Entity Creation Keywords](#entity-creation-keywords)
   - [Entity Updating Keywords](#entity-updating-keywords)
@@ -55,12 +54,10 @@ Happy hacking!
 
 ## Introduction
 
-Imagine the complexity to generate the following sObjects and establish all the relationships in the diagram.
-
 <p align="center">
 <img src="docs/images/sales-objects.png#2020-5-31" width="400" alt="Sales Object Graph">
 </p>
-With ATK we can create them within just one Apex statement. Here, we are generating:
+Imagine the complexity to generate all sObjects and relationships in the above diagram. With ATK we can create them within just one Apex statement. Here, we are generating:
 
 1. *200* accounts with names: `Name-0001, Name-0002, Name-0003...`
 2. Each of the accounts has *2* contacts.
@@ -96,37 +93,35 @@ ATK.SaveResult result = ATK.prepare(Account.SObjectType, 200)
     .save();
 ```
 
-`withChildren()` and `withParents()` without a third size parameter indicate they will back reference the sObjects created previously in the statement. If the third size param is supplied, new sObjects will be created.
+**Note**: `withChildren()` and `withParents()` without a third size parameter indicate they will back reference the sObjects created previously in the statement.
 
 ### Performance
-
-To `.save()` the above 2200 records, it will take ~3000 CPU time. That's already 1/3 of the Maximum CPU time. However, if we use `.mock()` to just create them in the memory, it will take ~700 CPU time.
-
-#### Benchmark
 
 The scripts used to perform benchmark testing are documented under `scripts/apex/benchmark.apex`. All tests will insert 1000 accounts under the following conditions:
 
 1. No duplicate rules, process builders, and triggers etc.
 2. ApexCode debug level is set to DEBUG.
 
-| 1000 * Account | Database.insert | ATK Save | ATK Mock | ATK Save/Mock |
-| -------------- | --------------- | -------- | -------- | ------------- |
-| CPU Time       | 0               | 2024     | 401      | ~5x           |
-| Real Time (ms) | 6803            | 6430     | 526      | ~12x          |
+| 1000 * Account | Database.insert | ATK Save | ATK Mock | ATK Mock Perf. |
+| -------------- | --------------- | -------- | -------- | -------------- |
+| CPU Time       | 0               | 0        | 487      | N/A            |
+| Real Time (ms) | 6300            | 6631     | 656      | ~10x faster    |
 
 ### Demos
 
-There are four demos under the `scripts/apex` folder, they can be successfully run in a clean Salesforce CRM organization. If not, please try to fix them with FLS, validation rules or duplicate rules etc.
+There are five demos under the `scripts/apex` folder, they can be successfully run in a clean Salesforce CRM organization. If not, please try to fix them with FLS, validation rules or duplicate rules etc.
 
 | Subject  | File Path                         | Description                                                  |
 | -------- | --------------------------------- | ------------------------------------------------------------ |
-| Campaign | `scripts/apex/demo-campaign.apex` | How to genereate campaigns with hierarchy relationships. `ATK.FieldBuilder` is implemented to reuse the field population logic. |
+| Campaign | `scripts/apex/demo-campaign.apex` | How to genereate campaigns with hierarchy relationships. `ATK.EntityBuilder` is implemented to reuse the field population logic. |
 | Cases    | `scripts/apex/demo-cases.apex`    | How to generate Accounts, Contacts and Cases.                |
 | Products | `scripts/apex/demo-products.apex` | How to generate Products for standard Price Book.            |
 | Sales    | `scripts/apex/demo-sales.apex`    | You've already seen it in the above paragraph.               |
 | Users    | `scripts/apex/demo-users.apex`    | How to generate community users in one goal.                 |
 
 ## Relationship
+
+The object relationships described in a single ATK statement must be a Directed Acyclic Graph ([DAG](https://en.wikipedia.org/wiki/Directed_acyclic_graph)) , thus no cyclic relationships. If the validation is failed, an exception will bIe thrown.
 
 ### One to Many
 
@@ -182,11 +177,78 @@ ATK.prepare(Contact.SObjectType, 40)
 
 There are three ways to create the sObjects.
 
-| Method API                          | Description                                                  |
-| ----------------------------------- | ------------------------------------------------------------ |
-| `SaveResult save()                  | Actual DMLs will be performed to insert/update sObjects into Salesforce. |
-| SaveResult save(Boolean *doInsert*) | If `doInsert` is `false`, no actual DMLs will be performed, just the in-memory generated SObjects will be returned. |
-| SaveResult *mock()*                 | 1. No actual DMLs will be performed, and extremely large fake IDs of the sObjectType will be assigned to sObjects.<br />2. Support assigning values to read-only fields, such as *formula fields*, *rollup summary fields*, and *system fields*.<br />3. Can only work with [Entity Creation Keywords](#entity-creation-keywords). |
+| Method API                              | Description                                                  |
+| --------------------------------------- | ------------------------------------------------------------ |
+| ATK.SaveResult save()                   | Actual DMLs will be performed to insert/update sObjects into Salesforce. |
+| ATK.SaveResult save(Boolean *doInsert*) | If `doInsert` is `false`, no actual DMLs will be performed, just in-memory generated SObjects will be returned. |
+| ATK.SaveResult *mock()*                 | No actual DMLs will be performed, but sObjects will be returned in SaveResult as if they are newly retrieved from database. `mock()` supports the followings:<br />1. Assign extremely large fake IDs to the generated sObjects<br />2. Assign values to read-only fields, such as *formula fields*, *rollup summary fields*, and *system fields*.<br />3. Assign one level children relationship and multiple level parent relationships. |
+
+### &#9749; Mock
+
+#### Mock with Children
+
+<p style="height:280px">
+  <img src="docs/images/mock-relationship.png#2021-1-32" align="right" width="250" alt="Mock Relationship">
+  To establish a relationship graph as the picture on the right, we can start from any node. However in order to generate correct child relationshp references we need to pick up the right one to start with. <b>Only the sObjects created in the prepare statement can have child relationship references to their direct children.</b> But all sObjects will have parent relationship and readonly fields generated during mocking. <br><br>
+  All the nodes in green are reachable from node B. <br>
+  1. Node B can access node A from parent relationship. <br>
+  2. Node B can access node D and E from child relationship. <br>
+  3. Node D can access node C but cannot access node F. <br>
+</p>
+
+
+```java
+ATK.SaveResult result = ATK.prepare(B__c.SObjectType, 10)
+    .withParents(A__c.SObjectType, B__c.A_ID__c, 10)
+    .also()
+    .withChildren(D__c.SObjectType, D__c.B_ID__c, 10)
+        .withParents(C__c.SObjectType, D__c.C_ID__c, 10)
+        .also()
+        .withChildren(F__c.SObjectType, F__c.D_ID__c, 10)
+    .also(2)
+    .withChildren(E__c.SObjectType, E__c.B_ID__c, 10)
+    .mock();
+
+List<B__c> listOfB = (List<B__c>)result.get(B__c.SObjectType);
+for (B__c itemB : listOfB) {
+    System.assertEquals(1, itemB.D__r.size());
+    System.assertEquals(1, itemB.E__r.size());
+}
+```
+
+#### Mock with Predefined List
+
+Mock also supports predefined list or SOQL query results. But for prededined list used in `prepare()` statement and its direct children, if there are any parent and child relationships, they are going to be trimmed in the generated mock sObjects.
+
+```java
+List<B__c> listOfB = [SELECT X__r.Id, (SELECT Id FROM Y__r) FROM B__c LIMIT 3];
+
+ATK.SaveResult result = ATK.prepare(B__c.SObjectType, listOfB)
+    .withParents(A__c.SObjectType, B__c.A_ID__c, 1)
+    .also()
+    .withChildren(D__c.SObjectType, D__c.B_ID__c, 6)
+    .mock()
+
+List<B__c> mockOfB = (List<B__c>)result.get(B__c.SObjectType);
+// The B__c in mockOfB cannot reference X__r and Y__r any more.
+// The B__c in listOfB can still reference X__r and Y__r.
+```
+
+### Fake Id
+
+These methods are exposed in case we need manually control the ID assignments such as:
+
+```java
+Id fakeUserId = ATK.fakeId(User.SObjectType, 1);
+ATK.SaveResult result = ATK.prepare(Account.SObjectType, 9)
+    .field(Account.OwnerId).repeat(fakeUserId)
+    .mock()
+```
+
+| Keyword API                                                 | Description                                                  |
+| ----------------------------------------------------------- | ------------------------------------------------------------ |
+| Id fakeId(Schema.SObjectType *objectType*)                  | Return self incrementing fake ID. It will start over from each transaction, so it is also unique within each transaction. By default Ids will start from `ATK.fakeId(Account.SObjectType, 1)`. |
+| Id fakeId(Schema.SObjectType *objectType*, Integer *index*) | Return the fake ID specified.                                |
 
 ## Entity Keywords
 
@@ -261,7 +323,7 @@ All the following APIs without a third param at the last, indicate a back refere
 
 ## Field Keywords
 
-These keywords are used to generate field values based on simple rules automatically. Here is a dummy example to demo the use of field keywords.
+These keywords are used to generate field values based on simple rules automatically. Here is a dummy example to demo the use of each field keywords.
 
 ```java
 ATK.prepare(A__c.SObjectType, 10)
@@ -277,15 +339,15 @@ ATK.prepare(A__c.SObjectType, 10)
 ### Basic Field Keywords
 | Keyword API                                               | Description                                                  |
 | --------------------------------------------------------- | ------------------------------------------------------------ |
-| index(String *format*)                                    | Formated string with `{0000}`, can recogonize left padding. For example: 0001, 0002, 0003 etc. |
-| repeat(Object *value*)                                    | Repeat with a fixed value.                                   |
+| index(String *format*)                                    | Formated string with `{0000}`, can recogonize left padding. i.e. `Name-{0000}` will generate Name-0001, Name-0002, Name-0003 etc. |
+| repeat(Object *value*)                                    | Repeat with a single fixed value.                            |
 | repeat(Object *value1*, Object *value2*)                  | Repeat with the provided values alternatively.               |
 | repeat(Object *value1*, Object *value2*, Object *value3*) | Repeat with the provided values alternatively.               |
 | repeat(List\<Object\> *values*)                           | Repeat with the provided values alternatively.               |
 
 ### Lookup Field Keywords
 
-These are field keywords in nature, but don't need to be chained after `.field(Schema.SObjectField)`. Because ATK automatically helps resolving the correct fields for them.
+These are field keywords in nature, but don't need to be chained after `.field(Schema.SObjectField)`. Because ATK helps to look up the reference Ids to the correct fields automatically.
 
 ```java
 ATK.prepare(User.SObjectType, 10)
@@ -296,18 +358,20 @@ ATK.prepare(Account.SObjectType, 10)
     .recordType('Business_Account');
 ```
 
-| Keyword API                                                  | Description                                                 |
-| ------------------------------------------------------------ | ----------------------------------------------------------- |
-| recordType(String *name*)                                    | Assign record type ID by developer name and case sensitive. |
-| profile(String *name*)                                       | Assign profile ID by profile name.                          |
-| permissionSet(String *name*)                                 | Assign the permission set to users by developer name.       |
-| permissionSet(String name1, String *name2*)                  | Assign all the permission sets to users by developer names. |
-| permissionSet(String *name1*, String *name2*, String *name3*) | Assign all the permission sets to users by developer names. |
-| permissionSet(List\<String\> *names*)                        | Assign all the permission sets to users by developer names. |
+| Keyword API                                                  | Description                                                  |
+| ------------------------------------------------------------ | ------------------------------------------------------------ |
+| recordType(String *name*)                                    | Assign record type ID by developer name, the name is case sensitive due the `getRecordTypeInfosByDeveloperName()` API. |
+| profile(String *name*)                                       | Assign profile ID by profile name.                           |
+| permissionSet(String *name*)                                 | Assign the permission set to users by developer name.        |
+| permissionSet(String name1, String *name2*)                  | Assign all the permission sets to users by developer names.  |
+| permissionSet(String *name1*, String *name2*, String *name3*) | Assign all the permission sets to users by developer names.  |
+| permissionSet(List\<String\> *names*)                        | Assign all the permission sets to users by developer names.  |
 
 ### Arithmetic Field Keywords
 
-These keywords will increase/decrease the init values by the provided step values. They must be applied to the correct field data types that support them.
+These keywords will increase/decrease the init values by the provided step values.
+
+#### Number Arithmetic
 
 | Keyword API                                | Description                                    |
 | ------------------------------------------ | ---------------------------------------------- |
@@ -315,6 +379,11 @@ These keywords will increase/decrease the init values by the provided step value
 | substract(Decimal *init*, Decimal *step*)  | Must be applied to a number type field.        |
 | divide(Decimal *init*, Decimal *factor*)   | Must be applied to a number type field.        |
 | multiply(Decimal *init*, Decimal *factor*) | Must be applied to a number type field.        |
+
+#### Date/Time Arithmetic
+
+| Keyword API                                | Description                                    |
+| ------------------------------------------ | ---------------------------------------------- |
 | addYears(Object *init*, Integer *step*)    | Must be applied to a Datetime/Date type field. |
 | addMonths(Object *init*, Integer *step*)   | Must be applied to a Datetime/Date type field. |
 | addDays(Object *init*, Integer *step*)     | Must be applied to a Datetime/Date type field. |
