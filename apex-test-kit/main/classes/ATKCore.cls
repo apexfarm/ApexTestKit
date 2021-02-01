@@ -118,23 +118,10 @@ public with sharing class ATKCore {
                         }
                     }
                 } else {
-                    switch on entityField.dfr.getType() {
-                        when REFERENCE {
-                            for (Integer i = 0; i < size; ++i) {
-                                Object value = entityField.getValue(i);
-                                Id tempId = objects[i].Id;
-                                objects[i].Id = null;
-                                objects[i].put(entityField.field, value);
-                                objects[i].Id = tempId;
-                            }
-                        }
-                        when else {
-                            Integer index = reserveIndex(entityNode.objectType, entityField.field, size);
-                            for (Integer i = 0; i < size; ++i) {
-                                Object value = entityField.getValue(i + index);
-                                objects[i].put(entityField.field, value);
-                            }
-                        }
+                    Integer index = reserveIndex(entityNode.objectType, entityField.field, size);
+                    for (Integer i = 0; i < size; ++i) {
+                        Object value = entityField.getValue(i + index);
+                        objects[i].put(entityField.field, value);
                     }
                 }
             }
@@ -149,11 +136,10 @@ public with sharing class ATKCore {
             matrix.reset();
             while (matrix.hasNext()) {
                 EntityNode entityNode = matrix.next();
-
                 if (entityNode.isRoot || entityNode.isRootChild) {
                     createMockObjects(entityNode);
                     assignMockObjectFields(entityNode);
-                    assignMockeObjectReferences(entityNode);
+                    assignMockObjectReferences(entityNode);
                 }
             }
 
@@ -173,16 +159,14 @@ public with sharing class ATKCore {
             while (matrix.hasNext()) {
                 EntityNode entityNode = matrix.next();
                 if (!entityNode.isConverted) {
-                    if (entityNode.readonlyFields.size() > 0) {
-                        createMockObjects(entityNode);
-                        assignMockObjectFields(entityNode);
-                        entityNode.convertToSObjects();
-                    } else {
-                        createObjects(entityNode);
-                    }
+                    createMockObjects(entityNode);
+                    assignMockObjectFields(entityNode);
+                    entityNode.convertToSObjects();
                 }
+                entityNode.stashObjectIds();
                 assignFields(entityNode);
                 assignReferences(entityNode);
+                entityNode.applyObjectIds();
             }
         }
 
@@ -254,7 +238,7 @@ public with sharing class ATKCore {
         }
 
         @TestVisible
-        public void assignMockeObjectReferences(EntityNode entityNode) {
+        public void assignMockObjectReferences(EntityNode entityNode) {
             if (entityNode.isRootChild
                 && entityNode.relatinoships != null
                 && entityNode.mockObjects != null) {
@@ -306,11 +290,8 @@ public with sharing class ATKCore {
                     for (List<SObject> pair : DISTRIBUTOR.distribute(childObjectList, parentObjectList)) {
                         // pair[0] = child
                         // pair[1] = parent
-                        Id tempId = pair[0].Id;
-                        pair[0].Id = null;
                         pair[0].put(relationship.parentIdField, pair[1].Id);
                         pair[0].putSObject(relationshipName, pair[1]);
-                        pair[0].Id = tempId;
                     }
                 }
             }
@@ -798,31 +779,56 @@ public with sharing class ATKCore {
             this.currEntityField = entityField;
         }
 
-        public void convertToSObjects() {
+        // Used for mock objects generation
+        private void stashObjectIds() {
+            if (this.mockIds.isEmpty()) {
+                for (SObject obj : this.objects) {
+                    this.mockIds.add(obj.Id);
+                }
+            }
+            for (SObject obj : this.objects) {
+                obj.Id = null;
+            }
+        }
+
+        // Used for mock objects generation
+        private void applyObjectIds() {
+            for (Integer i = 0; i < this.size; ++i) {
+                this.objects[i].Id = this.mockIds[i];
+            }
+        }
+
+        // Used for mock objects generation
+        private void convertToSObjects() {
             this.objects = this.mockObjects.convert();
             this.mockObjects.clear();
             this.isConverted = true;
         }
 
-        public void convertToSObjectsFromParent() {
+        // Used for mock objects generation
+        private void convertToSObjectsFromParent() {
             for (EntityNodeRelationship relationship : this.relatinoships) {
                 EntityNode parentNode = relationship.parent;
                 if (parentNode.isRoot && parentNode.objects.size() > 0) {
+                    Map<Id, SObject> objectMap = new Map<Id, SObject>();
                     for (SObject parentObj : parentNode.objects) {
                         if (String.isBlank(relationship.childRelationshipName)) {
                             continue;
                         }
 
                         for (SObject childObj : parentObj.getSObjects(relationship.childRelationshipName)) {
-                            if (this.mockIds.contains(childObj.id)) {
+                            if (this.mockIds.contains(childObj.Id)) {
                                 Id tempId = childObj.id;
                                 childObj.id = null;
                                 childObj.putSObject(relationship.parentRelationshipName, parentObj);
                                 childObj.id = tempId;
-                                this.objects.add(childObj);
-                                // TODO: sort this.objects by id order
+                                objectMap.put(childObj.Id, childObj);
                             }
                         }
+                    }
+
+                    for (Id id : this.mockIds) {
+                        this.objects.add(objectMap.get(id));
                     }
                     this.isConverted = true;
                 }

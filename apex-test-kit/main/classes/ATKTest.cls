@@ -244,7 +244,6 @@ public with sharing class ATKTest {
                 .withChildren(Case.SObjectType, Case.ContactId)
             .also(2)
             .withParents(User.SObjectType, Account.OwnerId, 10)
-                .field(Account.CreatedDate).repeat(Datetime.newInstance(2020, 1, 1))
             .mock();
 
         for (Integer i = 0; i < 10; i++) {
@@ -260,6 +259,7 @@ public with sharing class ATKTest {
             System.assertEquals(2, acc.Contacts.size());
             System.assertEquals(4, acc.Cases.size());
 
+            System.assertNotEquals(null, owner.Id);
             System.assertEquals(owner.Id, acc.OwnerId);
             System.assertEquals(acc.Id, contact1.Account.Id);
             System.assertEquals(acc.Id, contact2.Account.Id);
