@@ -1,23 +1,23 @@
 # Apex Test Kit
 
-![](https://img.shields.io/badge/version-3.4-brightgreen.svg) ![](https://img.shields.io/badge/build-passing-brightgreen.svg) ![](https://img.shields.io/badge/coverage-95%25-brightgreen.svg)
+![](https://img.shields.io/badge/version-3.4.1-orange.svg) ![](https://img.shields.io/badge/build-passing-brightgreen.svg) ![](https://img.shields.io/badge/coverage-95%25-brightgreen.svg)
 
 Apex Test Kit can help generate massive records for Apex test classes. It solves two pain points during record creation:
 
 1. Establish arbitrary levels of many-to-one, one-to-many relationships.
 2. Generate field values based on simple rules automatically.
 
-| Environment           | Installation Link                                            | Version |
-| --------------------- | ------------------------------------------------------------ | ------- |
-| Production, Developer | <a target="_blank" href="https://login.salesforce.com/packaging/installPackage.apexp?p0=04t2v0000079BS0AAM"><img src="docs/images/deploy-button.png"></a> | ver 3.4 |
-| Sandbox               | <a target="_blank" href="https://test.salesforce.com/packaging/installPackage.apexp?p0=04t2v0000079BS0AAM"><img src="docs/images/deploy-button.png"></a> | ver 3.4 |
+| Environment           | Installation Link                                            | Version   |
+| --------------------- | ------------------------------------------------------------ | --------- |
+| Production, Developer | <a target="_blank" href="https://login.salesforce.com/packaging/installPackage.apexp?p0=04t2v0000079BSFAA2"><img src="docs/images/deploy-button.png"></a> | ver 3.4.1 |
+| Sandbox               | <a target="_blank" href="https://test.salesforce.com/packaging/installPackage.apexp?p0=04t2v0000079BSFAA2"><img src="docs/images/deploy-button.png"></a> | ver 3.4.1 |
 
 ------
 
 ### **v3.4 Release Notes**
 
+- **!!! Version 3.4.1 Issue**: The mock() method has some performance issue needs to be fine tuned. When the debug level is Finest rather than Debug, a stack limitation exception is encountered. Please wait 3.4.2 to fix this, targeted to be released by this week.
 - **[&#9749;Mock](#-mock)**: `mock()` now supports one level of children relationship and many levels of parent relationships. Till now `mock()` should be able to return any sObject graph that would be returned from a valid SOQL. If not please help to raise an issue, I will try to fix it as high priority.
-
 - **[Relationship](#relationship)**: The validation of no cyclic relationship is enforced. Exception will be thrown if the validation is failed, i.e. A -> B -> C -> A is not allowed.
 - Account, Contact, Case and User are the only sObjects used in test classes.
 
