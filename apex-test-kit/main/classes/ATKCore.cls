@@ -151,14 +151,7 @@ public with sharing class ATKCore {
                     entityNode.convertToSObjects();
                 } else if (entityNode.isRootChild) {
                     entityNode.convertToSObjectsFromParent();
-                }
-            }
-
-            // step 3
-            matrix.reset();
-            while (matrix.hasNext()) {
-                EntityNode entityNode = matrix.next();
-                if (!entityNode.isConverted) {
+                } else {
                     createMockObjects(entityNode);
                     assignMockObjectFields(entityNode);
                     entityNode.convertToSObjects();
@@ -229,9 +222,20 @@ public with sharing class ATKCore {
                     }
                 } else {
                     Integer start = reserveIndex(entityNode.objectType, entityField.field, size);
-                    for (Integer i = 0; i < size; ++i) {
-                        Object value = entityField.getValue(i + start);
-                        mockObjects.get(i).put(entityField.dfr.getName(), CONVERTER.toString(value));
+
+                    // fix: https://github.com/apexfarm/ApexTestKit/issues/31
+                    if (entityField.dfr.getName() == 'Id') {
+                        entityNode.mockIds.clear();
+                        for (Integer i = 0; i < size; ++i) {
+                            Object value = entityField.getValue(i + start);
+                            mockObjects.get(i).Id = CONVERTER.toString(value);
+                            entityNode.mockIds.add(mockObjects.get(i).Id);
+                        }
+                    } else {
+                        for (Integer i = 0; i < size; ++i) {
+                            Object value = entityField.getValue(i + start);
+                            mockObjects.get(i).put(entityField.dfr.getName(), CONVERTER.toString(value));
+                        }
                     }
                 }
             }
@@ -255,6 +259,10 @@ public with sharing class ATKCore {
                     // Open comment for debug purpose
                     // System.debug(String.format('{0} -> {1}', new List<Object> { entityNode.objectType, relationship.parentRelationshipName }));
                     // System.debug(String.format('{0} -> {1}', new List<Object> { childObjectList.size(), parentObjectList.size() }));
+
+                    if (parentObjectList.size() == 0) {
+                        continue;
+                    }
 
                     for (List<MockSObject> pair : DISTRIBUTOR.distribute(childObjectList, parentObjectList)) {
                         // pair[0] = child
@@ -286,6 +294,10 @@ public with sharing class ATKCore {
                     // Open comment for debug purpose
                     // System.debug(String.format('{0} -> {1}', new List<Object> { entityNode.objectType, relationshipName }));
                     // System.debug(String.format('{0} -> {1}', new List<Object> { childObjectList.size(), parentObjectList.size() }));
+
+                    if (parentObjectList.size() == 0) {
+                        continue;
+                    }
 
                     for (List<SObject> pair : DISTRIBUTOR.distribute(childObjectList, parentObjectList)) {
                         // pair[0] = child
@@ -346,6 +358,10 @@ public with sharing class ATKCore {
                     // System.debug(String.format('{0} -> {1}', new List<Object> { entityNode.objectType, relationshipName }));
                     // System.debug(String.format('{0} -> {1}', new List<Object> { childObjectList.size(), parentObjectList.size() }));
 
+                    if (parentObjectList.size() == 0) {
+                        continue;
+                    }
+
                     for (List<SObject> pair : DISTRIBUTOR.distribute(childObjectList, parentObjectList)) {
                         // pair[0] = child
                         // pair[1] = parent
@@ -394,6 +410,7 @@ public with sharing class ATKCore {
 
             Integer l = leftGroup.size();
             Integer r = rightGroup.size();
+
             Integer s = l / r;
             Integer remainder = Math.mod(l, r);
 
@@ -462,39 +479,21 @@ public with sharing class ATKCore {
             }
             return '[' + builder.toString(',') + ']';
         }
-
-        public List<SObject> convert() {
-            String jsonStr = String.valueOf(this);
-            return (List<SObject>)JSON.deserialize(jsonStr, List<SObject>.class);
-        }
     }
 
     private class MockSObject {
         private String objectName { get; set; }
         private Map<String, Object> fieldMap { get; set; }
 
-        Id id {
-            get {
-                return id;
-            }
-            set {
-                fieldMap.put('id', '"' + value + '"');
-                id = value;
-            }
-        }
-
-        MockSObject(String objectName) {
+        MockSObject(String objectName, Id objectId) {
             this.objectName = objectName;
             this.fieldMap = new Map<String, Object>();
-        }
-
-        MockSObject(String objectName, Id objectId) {
-            this(objectName);
             this.id = objectId;
         }
 
         MockSObject(String objectName, Id objectId, SObject obj) {
-            this(objectName);
+            this.objectName = objectName;
+            this.fieldMap = new Map<String, Object>();
             this.id = objectId;
             Map<String, Object> fieldMap = (Map<String, Object>)JSON.deserializeUntyped(JSON.serialize(obj));
             for (String fieldName : fieldMap.keySet()) {
@@ -508,8 +507,16 @@ public with sharing class ATKCore {
             }
         }
 
+        Id id {
+            get;
+            set {
+                fieldMap.put('Id', value);
+                id = value;
+            }
+        }
+
         void put(String name, Object value) {
-            fieldMap.put(name, '"' + value + '"');
+            fieldMap.put(name, value);
         }
 
         // void putParent(String name, MockSObject value) {
@@ -531,7 +538,11 @@ public with sharing class ATKCore {
             StringBuilder builder = new StringBuilder();
             builder.append('{"attributes":{"type":"' + this.objectName + '"}');
             for(String fieldName: fieldMap.keySet()) {
-                builder.append(',"' + fieldName + '":' + String.valueOf(fieldMap.get(fieldName)));
+                if (fieldMap.get(fieldName) instanceof MockSObjectChildren) {
+                    builder.append(',"' + fieldName + '":' + String.valueOf(fieldMap.get(fieldName)));
+                } else {
+                    builder.append(',"' + fieldName + '":"' + String.valueOf(fieldMap.get(fieldName)) + '"');
+                }
             }
             builder.append('}');
             return builder.toString();
@@ -573,7 +584,7 @@ public with sharing class ATKCore {
 
         private SymbolDigraph graph { get; set; }
         private Topological top { get; set; }
-        private Integer currentIndex { get; set; }
+        private Integer nextIndex { get; set; }
 
         public EntityNodeMatrix() {
             entityNodeStack = new List<EntityNode>();
@@ -605,20 +616,19 @@ public with sharing class ATKCore {
 
         public void reset() {
             if (this.top.isDAG()) {
-                currentIndex = -1;
+                nextIndex = 0;
             } else {
                 throw new NoneDAGException();
             }
         }
 
         public Boolean hasNext() {
-            return currentIndex < this.top.order().size() - 1;
+            return nextIndex < this.top.order().size();
         }
 
         public EntityNode next() {
             if (this.hasNext()) {
-                currentIndex++;
-                return (EntityNode)this.graph.keyAt(this.top.order()[currentIndex]);
+                return (EntityNode)this.graph.keyAt(this.top.order()[nextIndex++]);
             } else {
                 return null;
             }
@@ -724,7 +734,6 @@ public with sharing class ATKCore {
         public List<Id> mockIds { get; set; }
         private Boolean isRoot { get; set; }
         private Boolean isRootChild { get; set; }
-        private Boolean isConverted { get; set; }
 
         // Used for fields generation
         public EntityField currEntityField { get; set; }
@@ -744,7 +753,6 @@ public with sharing class ATKCore {
             this.readonlyFields = new List<EntityField>();
             this.isRoot = false;
             this.isRootChild = false;
-            this.isConverted = false;
 
             this.mockObjects = new MockSObjectList();
             this.mockIds = new List<Id>();
@@ -770,7 +778,7 @@ public with sharing class ATKCore {
             } else {
                 entityField = new EntityField(field);
                 this.fieldMap.put(field, entityField);
-                if (!entityField.dfr.isCreateable()) {
+                if (!entityField.dfr.isCreateable() || entityField.dfr.getName() == 'Id') {
                     this.readonlyFields.add(entityField);
                 } else {
                     this.writableFields.add(entityField);
@@ -781,11 +789,6 @@ public with sharing class ATKCore {
 
         // Used for mock objects generation
         private void stashObjectIds() {
-            if (this.mockIds.isEmpty()) {
-                for (SObject obj : this.objects) {
-                    this.mockIds.add(obj.Id);
-                }
-            }
             for (SObject obj : this.objects) {
                 obj.Id = null;
             }
@@ -793,16 +796,18 @@ public with sharing class ATKCore {
 
         // Used for mock objects generation
         private void applyObjectIds() {
-            for (Integer i = 0; i < this.size; ++i) {
-                this.objects[i].Id = this.mockIds[i];
+            Integer index = 0;
+            for (Id mockId : this.mockIds) {
+                this.objects[index].Id = mockId;
+                index++;
             }
         }
 
         // Used for mock objects generation
         private void convertToSObjects() {
-            this.objects = this.mockObjects.convert();
+            String jsonStr = String.valueOf(mockObjects);
+            this.objects = (List<SObject>)JSON.deserialize(jsonStr, List<SObject>.class);
             this.mockObjects.clear();
-            this.isConverted = true;
         }
 
         // Used for mock objects generation
@@ -830,7 +835,6 @@ public with sharing class ATKCore {
                     for (Id id : this.mockIds) {
                         this.objects.add(objectMap.get(id));
                     }
-                    this.isConverted = true;
                 }
             }
         }

@@ -260,6 +260,10 @@ public with sharing class ATKTest {
             System.assertEquals(4, acc.Cases.size());
 
             System.assertNotEquals(null, owner.Id);
+            System.assertNotEquals(null, acc.Id);
+            System.assertNotEquals(null, contact1.Id);
+            System.assertNotEquals(null, contact2.Id);
+
             System.assertEquals(owner.Id, acc.OwnerId);
             System.assertEquals(acc.Id, contact1.Account.Id);
             System.assertEquals(acc.Id, contact2.Account.Id);
@@ -329,6 +333,14 @@ public with sharing class ATKTest {
             System.assertEquals(2, acc.Contacts.size());
             System.assertEquals(4, acc.Cases.size());
 
+            System.assertNotEquals(null, owner1.Id);
+            System.assertNotEquals(null, owner2.Id);
+            System.assertNotEquals(null, owner3.Id);
+            System.assertNotEquals(null, owner4.Id);
+            System.assertNotEquals(null, acc.Id);
+            System.assertNotEquals(null, contact1.Id);
+            System.assertNotEquals(null, contact2.Id);
+
             System.assertEquals(acc.Id, contact1.Account.Id);
             System.assertEquals(acc.Id, contact2.Account.Id);
             System.assertEquals(acc.Id, case1.Account.Id);
@@ -395,6 +407,29 @@ public with sharing class ATKTest {
             System.assertEquals(fakeUserId, acc.CreatedById);
             System.assertEquals(Datetime.newInstance(2020, 1, 1), acc.CreatedDate);
         }
+    }
+
+    @IsTest
+    static void test_Mock_PredefinedId() {
+        Id accountId0 = ATK.fakeId(Account.SObjectType);
+        Id accountId1 = ATK.fakeId(Account.SObjectType);
+        Id contactId0 = ATK.fakeId(Contact.SObjectType);
+        Id contactId1 = ATK.fakeId(Contact.SObjectType);
+
+        ATK.SaveResult result = ATK.prepare(Account.SObjectType, 2)
+            .field(Account.Id).repeat(accountId0, (String)accountId1)
+            .withChildren(Contact.SObjectType, Contact.AccountId, 2)
+                .field(Contact.Id).repeat(contactId0, (String)contactId1)
+            .mock();
+
+        System.assertEquals(accountId0, result.get(Account.SObjectType)[0].Id);
+        System.assertEquals(accountId1, result.get(Account.SObjectType)[1].Id);
+        System.assertEquals(contactId0, result.get(Contact.SObjectType)[0].Id);
+        System.assertEquals(contactId1, result.get(Contact.SObjectType)[1].Id);
+        System.assertEquals(accountId0, ((Contact)result.get(Contact.SObjectType)[0]).AccountId);
+        System.assertEquals(accountId1, ((Contact)result.get(Contact.SObjectType)[1]).AccountId);
+        System.assertEquals(accountId0, ((Contact)result.get(Contact.SObjectType)[0]).Account.Id);
+        System.assertEquals(accountId1, ((Contact)result.get(Contact.SObjectType)[1]).Account.Id);
     }
     // #endregion
     // ************
