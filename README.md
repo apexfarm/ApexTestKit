@@ -196,6 +196,7 @@ There are three ways to create the sObjects.
   2. Node B can access node D and E from child relationship. <br>
   3. Node D can access node C but cannot access node F. <br>
 </p>
+
 ```java
 ATK.SaveResult result = ATK.prepare(B__c.SObjectType, 10)
     .withParents(A__c.SObjectType, B__c.A_ID__c, 10)
