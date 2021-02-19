@@ -18,7 +18,7 @@ Apex Test Kit can help generate massive records for Apex test classes. It solves
 
 - **[&#9749;Mock](#-mock)**:
   - `mock()` now supports one level of children relationship and many levels of parent relationships. Till now `mock()` should be able to return any sObject graph that would be returned from a valid SOQL. If not please help to raise an issue, I will try to fix it as high priority.
-  - **v3.4.3 Fix**: A **[Known SF Issue](https://trailblazer.salesforce.com/issues_view?id=a1p3A000001Gv4KQAS)** was reported since winter 19. When the Apex debug level is Finest rather than the others, and there is circular reference between sObjects, a Maximum Stack Depth Reached exception is thrown. Currently I have mitigated the issue by breaking the references from children to their parents.
+  - **v3.4.3 Fix**: A **[Known SF Issue](https://trailblazer.salesforce.com/issues_view?id=a1p3A000001Gv4KQAS)** was reported since winter 19. When the Apex debug level is Finest rather than the others, and there is circular reference between sObjects, a Maximum Stack Depth Reached exception is thrown.
 - **[Fake Id](#fake-id)**: `ATK.fakeId(Account.SObjectType) ` can be used to directly generating a fake Id of the specific sObject type.
 - **[Relationship](#relationship)**: The validation of no cyclic relationship is enforced. Exception will be thrown if the validation is failed, i.e. A -> B -> C -> A is not allowed.
 - Account, Contact, Case and User are the only sObjects used in test classes.
@@ -196,8 +196,6 @@ There are three ways to create the sObjects.
   2. Node B can access node D and E from child relationship. <br>
   3. Node D can access node C but cannot access node F. <br>
 </p>
-
-
 ```java
 ATK.SaveResult result = ATK.prepare(B__c.SObjectType, 10)
     .withParents(A__c.SObjectType, B__c.A_ID__c, 10)
