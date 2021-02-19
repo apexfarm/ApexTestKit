@@ -265,12 +265,6 @@ public with sharing class ATKTest {
             System.assertNotEquals(null, contact2.Id);
 
             System.assertEquals(owner.Id, acc.OwnerId);
-            System.assertEquals(acc.Id, contact1.Account.Id);
-            System.assertEquals(acc.Id, contact2.Account.Id);
-            System.assertEquals(acc.Id, case1.Account.Id);
-            System.assertEquals(acc.Id, case2.Account.Id);
-            System.assertEquals(acc.Id, case3.Account.Id);
-            System.assertEquals(acc.Id, case4.Account.Id);
             System.assertEquals(contact1.Id, case1.Contact.Id);
             System.assertEquals(contact1.Id, case2.Contact.Id);
             System.assertEquals(contact2.Id, case3.Contact.Id);
@@ -289,12 +283,6 @@ public with sharing class ATKTest {
             System.assertEquals(contact2.Id, case4.ContactId);
 
             System.assertEquals(owner, acc.Owner);
-            System.assertEquals(acc, contact1.Account);
-            System.assertEquals(acc, contact2.Account);
-            System.assertEquals(acc, case1.Account);
-            System.assertEquals(acc, case2.Account);
-            System.assertEquals(acc, case3.Account);
-            System.assertEquals(acc, case4.Account);
             System.assertEquals(contact1, case1.Contact);
             System.assertEquals(contact1, case2.Contact);
             System.assertEquals(contact2, case3.Contact);
@@ -341,12 +329,6 @@ public with sharing class ATKTest {
             System.assertNotEquals(null, contact1.Id);
             System.assertNotEquals(null, contact2.Id);
 
-            System.assertEquals(acc.Id, contact1.Account.Id);
-            System.assertEquals(acc.Id, contact2.Account.Id);
-            System.assertEquals(acc.Id, case1.Account.Id);
-            System.assertEquals(acc.Id, case2.Account.Id);
-            System.assertEquals(acc.Id, case3.Account.Id);
-            System.assertEquals(acc.Id, case4.Account.Id);
             System.assertEquals(contact1.Id, case1.Contact.Id);
             System.assertEquals(contact1.Id, case2.Contact.Id);
             System.assertEquals(contact2.Id, case3.Contact.Id);
@@ -371,12 +353,6 @@ public with sharing class ATKTest {
             System.assertEquals(owner3.Id, case3.OwnerId);
             System.assertEquals(owner4.Id, case4.OwnerId);
 
-            System.assertEquals(acc, contact1.Account);
-            System.assertEquals(acc, contact2.Account);
-            System.assertEquals(acc, case1.Account);
-            System.assertEquals(acc, case2.Account);
-            System.assertEquals(acc, case3.Account);
-            System.assertEquals(acc, case4.Account);
             System.assertEquals(contact1, case1.Contact);
             System.assertEquals(contact1, case2.Contact);
             System.assertEquals(contact2, case3.Contact);
@@ -428,8 +404,6 @@ public with sharing class ATKTest {
         System.assertEquals(contactId1, result.get(Contact.SObjectType)[1].Id);
         System.assertEquals(accountId0, ((Contact)result.get(Contact.SObjectType)[0]).AccountId);
         System.assertEquals(accountId1, ((Contact)result.get(Contact.SObjectType)[1]).AccountId);
-        System.assertEquals(accountId0, ((Contact)result.get(Contact.SObjectType)[0]).Account.Id);
-        System.assertEquals(accountId1, ((Contact)result.get(Contact.SObjectType)[1]).Account.Id);
     }
     // #endregion
     // ************

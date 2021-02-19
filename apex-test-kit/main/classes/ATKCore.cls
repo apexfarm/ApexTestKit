@@ -825,7 +825,8 @@ public with sharing class ATKCore {
                             if (this.mockIds.contains(childObj.Id)) {
                                 Id tempId = childObj.id;
                                 childObj.id = null;
-                                childObj.putSObject(relationship.parentRelationshipName, parentObj);
+                                // Commented out due to issues/30, will bring it back once Salesforce fixes it.
+                                // childObj.putSObject(relationship.parentRelationshipName, parentObj);
                                 childObj.id = tempId;
                                 objectMap.put(childObj.Id, childObj);
                             }

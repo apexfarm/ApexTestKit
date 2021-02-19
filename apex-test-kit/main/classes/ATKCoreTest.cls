@@ -266,24 +266,45 @@ public with sharing class ATKCoreTest {
         matrix.reset();
         matrix.next(); // User
         matrix.next(); // User
+
         ATKCore.EntityNode accountNode = matrix.next();
         System.assertEquals(3, accountNode.objects.size());
+        System.assertEquals(Account.SObjectType, accountNode.objectType);
         for (SObject obj : accountNode.objects) {
             Account acc = (Account)obj;
             System.assertEquals(2, acc.Contacts.size());
             System.assertEquals(1, acc.Cases.size());
+            System.assertNotEquals(null, acc.OwnerId);
         }
-        ATKCore.EntityNode contactNode = matrix.next();
-        System.assertEquals(3, contactNode.objects.size());
-        for (SObject obj : contactNode.objects) {
-            if (contactNode.objectType == Contact.SObjectType) {
-                Contact con = (Contact)obj;
-                System.assertEquals(con.AccountId, con.Account.Id);
-                System.assertEquals(0, con.Cases.size());
+
+        ATKCore.EntityNode contactNode1 = matrix.next();
+        System.assertEquals(3, contactNode1.objects.size());
+        System.assertEquals(Contact.SObjectType, contactNode1.objectType);
+        for (SObject obj : contactNode1.objects) {
+            Contact con = (Contact)obj;
+            System.assertEquals(null, con.Account);
+            System.assertNotEquals(null, con.OwnerId);
+        }
+
+        ATKCore.EntityNode contactNode2 = matrix.next();
+        System.assertEquals(3, contactNode2.objects.size());
+        System.assertEquals(Contact.SObjectType, contactNode2.objectType);
+        for (SObject obj : contactNode2.objects) {
+            Contact con = (Contact)obj;
+            System.assertEquals(null, con.Account);
+            System.assertEquals(null, con.OwnerId);
+        }
+
+        ATKCore.EntityNode caseNode = matrix.next();
+        System.assertEquals(3, caseNode.objects.size());
+        System.assertEquals(Case.SObjectType, caseNode.objectType);
+        for (SObject obj : caseNode.objects) {
+            if (caseNode.objectType == Contact.SObjectType) {
+                Case cas = (Case)obj;
+                System.assertEquals(null, cas.Account);
+                System.assertNotEquals(null, cas.Contact);
             }
         }
-        matrix.next(); // Contact
-        ATKCore.EntityNode caseNode = matrix.next();
     }
     // #endregion
     // **********************
