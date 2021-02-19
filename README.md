@@ -18,7 +18,7 @@ Apex Test Kit can help generate massive records for Apex test classes. It solves
 
 - **[&#9749;Mock](#-mock)**:
   - `mock()` now supports one level of children relationship and many levels of parent relationships. Till now `mock()` should be able to return any sObject graph that would be returned from a valid SOQL. If not please help to raise an issue, I will try to fix it as high priority.
-  - **!!! Issue of mock API**: When the Apex debug level is Finest rather than the others, a stack limitation exception is encountered. Currently there seems no quick solution to it, please follow [Issues/30](https://github.com/apexfarm/ApexTestKit/issues/30) for detail. However `save()` is unaffected.
+  - **!!! [A Known SF Issue](https://trailblazer.salesforce.com/issues_view?id=a1p3A000001Gv4KQAS)**: When the Apex debug level is Finest rather than the others, a Maximum Stack Depth Reached exception is encountered. Currently there seems no quick solution to it, please follow [Issues/30](https://github.com/apexfarm/ApexTestKit/issues/30) for detail. However this only affects `mock()` but not `save()`.
 - **[Fake Id](#fake-id)**: `ATK.fakeId(Account.SObjectType) ` can be used to directly generating a fake Id of the specific sObject type.
 - **[Relationship](#relationship)**: The validation of no cyclic relationship is enforced. Exception will be thrown if the validation is failed, i.e. A -> B -> C -> A is not allowed.
 - Account, Contact, Case and User are the only sObjects used in test classes.
