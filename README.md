@@ -1,6 +1,6 @@
 # Apex Test Kit
 
-![](https://img.shields.io/badge/version-3.4.2-orange.svg) ![](https://img.shields.io/badge/build-passing-brightgreen.svg) ![](https://img.shields.io/badge/coverage-95%25-brightgreen.svg)
+![](https://img.shields.io/badge/version-3.4.3-brightgreen.svg) ![](https://img.shields.io/badge/build-passing-brightgreen.svg) ![](https://img.shields.io/badge/coverage-97%25-brightgreen.svg)
 
 Apex Test Kit can help generate massive records for Apex test classes. It solves two pain points during record creation:
 
@@ -9,8 +9,8 @@ Apex Test Kit can help generate massive records for Apex test classes. It solves
 
 | Environment           | Installation Link                                            | Version   |
 | --------------------- | ------------------------------------------------------------ | --------- |
-| Production, Developer | <a target="_blank" href="https://login.salesforce.com/packaging/installPackage.apexp?p0=04t2v0000079BfzAAE"><img src="docs/images/deploy-button.png"></a> | ver 3.4.2 |
-| Sandbox               | <a target="_blank" href="https://test.salesforce.com/packaging/installPackage.apexp?p0=04t2v0000079BfzAAE"><img src="docs/images/deploy-button.png"></a> | ver 3.4.2 |
+| Production, Developer | <a target="_blank" href="https://login.salesforce.com/packaging/installPackage.apexp?p0=04t2v0000079Bg9AAE"><img src="docs/images/deploy-button.png"></a> | ver 3.4.3 |
+| Sandbox               | <a target="_blank" href="https://test.salesforce.com/packaging/installPackage.apexp?p0=04t2v0000079Bg9AAE"><img src="docs/images/deploy-button.png"></a> | ver 3.4.3 |
 
 ------
 
@@ -18,7 +18,7 @@ Apex Test Kit can help generate massive records for Apex test classes. It solves
 
 - **[&#9749;Mock](#-mock)**:
   - `mock()` now supports one level of children relationship and many levels of parent relationships. Till now `mock()` should be able to return any sObject graph that would be returned from a valid SOQL. If not please help to raise an issue, I will try to fix it as high priority.
-  - **!!! [A Known SF Issue](https://trailblazer.salesforce.com/issues_view?id=a1p3A000001Gv4KQAS)**: When the Apex debug level is Finest rather than the others, a Maximum Stack Depth Reached exception is encountered. Currently there seems no quick solution to it, please follow [Issues/30](https://github.com/apexfarm/ApexTestKit/issues/30) for detail. However this only affects `mock()` but not `save()`.
+  - **v3.4.3 Fix**: A **[Known SF Issue](https://trailblazer.salesforce.com/issues_view?id=a1p3A000001Gv4KQAS)** was reported since winter 19. When the Apex debug level is Finest rather than the others, and there is circular reference between sObjects, a Maximum Stack Depth Reached exception is thrown. Currently I have mitigated the issue by breaking the references from children to their parents.
 - **[Fake Id](#fake-id)**: `ATK.fakeId(Account.SObjectType) ` can be used to directly generating a fake Id of the specific sObject type.
 - **[Relationship](#relationship)**: The validation of no cyclic relationship is enforced. Exception will be thrown if the validation is failed, i.e. A -> B -> C -> A is not allowed.
 - Account, Contact, Case and User are the only sObjects used in test classes.
@@ -187,15 +187,15 @@ There are three ways to create the sObjects.
 
 #### Mock with Children
 
-<p style="height:280px">
-  <img src="docs/images/mock-relationship.png#2021-1-32" align="right" width="250" alt="Mock Relationship">
-  To establish a relationship graph as the picture on the right, we can start from any node. However in order to generate correct child relationshp references we need to pick up the right one to start with. <b>Only the sObjects created in the prepare statement can have child relationships referencing to their direct children.</b> But all sObjects can have parent relationship and readonly fields generated during mocking. <br><br>
+<p>
+  <img src="docs/images/mock-relationship.png#2021-2-19" align="right" width="250" alt="Mock Relationship">
+  To establish a relationship graph as the picture on the right, we can start from any node. <b>However only the sObjects created in the prepare statement can have child relationships referencing their direct children.</b><br><br>
+  <b>Caution</b>: As the diagram illustrated the direct children D and E can no longer reference back to B. The decision is made to prevent a <a href="https://trailblazer.salesforce.com/issues_view?id=a1p3A000001Gv4KQAS">Known Salesforce Issue</a> reported since winter 19. Here we are trying to avoid forming circular references. But D and E can still have parent relationship referencing other sObject during mock, such as D to C. <br><br>
   All the nodes in green are reachable from node B. <br>
   1. Node B can access node A from parent relationship. <br>
   2. Node B can access node D and E from child relationship. <br>
   3. Node D can access node C but cannot access node F. <br>
 </p>
-
 
 
 ```java
