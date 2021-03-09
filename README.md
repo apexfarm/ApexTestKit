@@ -121,7 +121,7 @@ There are five demos under the `scripts/apex` folder, they can be successfully r
 
 ## Relationship
 
-The object relationships described in a single ATK statement must be a Directed Acyclic Graph ([DAG](https://en.wikipedia.org/wiki/Directed_acyclic_graph)) , thus no cyclic relationships. If the validation is failed, an exception will bIe thrown.
+The object relationships described in a single ATK statement must be a Directed Acyclic Graph ([DAG](https://en.wikipedia.org/wiki/Directed_acyclic_graph)) , thus no cyclic relationships. If the validation is failed, an exception will be thrown.
 
 ### One to Many
 
@@ -180,22 +180,33 @@ There are three ways to create the sObjects.
 | Method API                              | Description                                                  |
 | --------------------------------------- | ------------------------------------------------------------ |
 | ATK.SaveResult save()                   | Actual DMLs will be performed to insert/update sObjects into Salesforce. |
-| ATK.SaveResult save(Boolean *doInsert*) | If `doInsert` is `false`, no actual DMLs will be performed, just in-memory generated SObjects will be returned. |
-| ATK.SaveResult *mock()*                 | No actual DMLs will be performed, but sObjects will be returned in SaveResult as if they are newly retrieved from database. `mock()` supports the followings:<br />1. Assign extremely large fake IDs to the generated sObjects<br />2. Assign values to read-only fields, such as *formula fields*, *rollup summary fields*, and *system fields*.<br />3. Assign one level children relationship and multiple level parent relationships. |
+| ATK.SaveResult save(Boolean *doInsert*) | If `doInsert` is `false`, no actual DMLs will be performed, just in-memory generated SObjects will be returned. Only writable fields can be populated. |
+| ATK.SaveResult mock()                   | No actual DMLs will be performed, but sObjects will be returned in SaveResult as if they are newly retrieved by SOQL with fake Ids. Both writable and read-only fields can be populated |
 
 ### &#9749; Mock
+
+The followings are suppored, when generate sObjects with `mock()` API:
+
+1. Assign extremely large fake IDs to the generated sObjects
+2. Assign values to read-only fields, such as *formula fields*, *rollup summary fields*, and *system fields*.
+3. Assign one level children relationship and multiple level parent relationships.
 
 #### Mock with Children
 
 <p>
-  <img src="docs/images/mock-relationship.png#2021-2-19" align="right" width="250" alt="Mock Relationship">
+  <img src="docs/images/mock-relationship.png#2021-3-9" align="right" width="250" alt="Mock Relationship">
   To establish a relationship graph as the picture on the right, we can start from any node. <b>However only the sObjects created in the prepare statement can have child relationships referencing their direct children.</b><br><br>
-  <b>Caution</b>: As the diagram illustrated the direct children D and E can no longer reference back to B. The decision is made to prevent a <a href="https://trailblazer.salesforce.com/issues_view?id=a1p3A000001Gv4KQAS">Known Salesforce Issue</a> reported since winter 19. Here we are trying to avoid forming circular references. But D and E can still have parent relationship referencing other sObject during mock, such as D to C. <br><br>
-  All the nodes in green are reachable from node B. <br>
-  1. Node B can access node A from parent relationship. <br>
-  2. Node B can access node D and E from child relationship. <br>
-  3. Node D can access node C but cannot access node F. <br>
+  <b>Note</b>: As the diagram illustrated the direct children D and E of B can no longer reference back to B. The decision is made to prevent a <a href="https://trailblazer.salesforce.com/issues_view?id=a1p3A000001Gv4KQAS">Known Salesforce Issue</a> reported since winter 19. Here we are trying to avoid forming circular references. But D and E can still have parent relationship referencing other sObject during mock, such as D to C. <br><br>
+  All the nodes in green are reachable from node B. The diagram can be interpreted as the following SOQL statement:
 </p>
+
+
+```SQL
+SELECT Id, A__r.Id, (SELECT Id FROM E__r), (SELECT Id, C__r.Id FROM D__r)
+FROM B__c
+```
+
+And we can generate them with the following ATK statement:
 
 ```java
 ATK.SaveResult result = ATK.prepare(B__c.SObjectType, 10)
@@ -218,7 +229,7 @@ for (B__c itemB : listOfB) {
 
 #### Mock with Predefined List
 
-Mock also supports predefined list or SOQL query results. But for prededined list used in `prepare()` statement and its direct children, if there are any parent or child relationships, they are going to be trimmed in the generated mock sObjects.
+Mock also supports predefined list or SOQL query results. But if there are any parent or child relationships in the predefined list, they are going to be trimmed in the generated mock sObjects.
 
 ```java
 List<B__c> listOfB = [SELECT X__r.Id, (SELECT Id FROM Y__r) FROM B__c LIMIT 3];
@@ -247,8 +258,8 @@ ATK.SaveResult result = ATK.prepare(Account.SObjectType, 9)
 
 | Keyword API                                                 | Description                                                  |
 | ----------------------------------------------------------- | ------------------------------------------------------------ |
-| Id fakeId(Schema.SObjectType *objectType*)                  | Return self incrementing fake ID. It will start over from each transaction, so it is also unique within each transaction. By default Ids will start from `ATK.fakeId(Account.SObjectType, 1)`. |
-| Id fakeId(Schema.SObjectType *objectType*, Integer *index*) | Return the fake ID specified.                                |
+| Id fakeId(Schema.SObjectType *objectType*)                  | Return self incrementing fake IDs. They will start over from each transaction, which means they are unique within each transaction. By default Ids will start from `ATK.fakeId(Account.SObjectType, 1)`. |
+| Id fakeId(Schema.SObjectType *objectType*, Integer *index*) | Return the fake ID specified an index explicitly.            |
 
 ## Entity Keywords
 
