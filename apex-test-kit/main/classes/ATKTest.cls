@@ -366,8 +366,6 @@ public with sharing class ATKTest {
 
     @IsTest
     static void test_Mock_SystemField() {
-        ATKCore.batchSize = 3;
-
         Id fakeUserId = ATKCore.FakeId.get(User.SObjectType, 1);
         ATK.SaveResult result = ATK.prepare(Account.SObjectType, 9)
             .field(Account.CreatedById).repeat(fakeUserId)

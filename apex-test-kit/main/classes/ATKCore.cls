@@ -16,19 +16,23 @@
  */
 
 public with sharing class ATKCore {
-    public static final Profiles PROFILES = new Profiles();
-    public static final RecordTypes RECORD_TYPES = new RecordTypes();
-    public static final PermissionSets PERMISSION_SETS = new PermissionSets();
     public static final FakeId FAKEID = new FakeId();
 
-    public static final Generator SAVE_GENERATOR = new SaveGenerator();
-    public static final Generator MOCK_GENERATOR = new MockGenerator();
+    @TestVisible
+    private static final Generator SAVE_GENERATOR = new SaveGenerator();
+    @TestVisible
+    private static final Generator MOCK_GENERATOR = new MockGenerator();
     @TestVisible
     private static final Converter CONVERTER = new Converter();
     @TestVisible
     private static final Distributor DISTRIBUTOR = new Distributor();
+
     @TestVisible
-    private static Integer batchSize = 200;
+    private static final Profiles PROFILES = new Profiles();
+    @TestVisible
+    private static final RecordTypes RECORD_TYPES = new RecordTypes();
+    @TestVisible
+    private static final PermissionSets PERMISSION_SETS = new PermissionSets();
 
     public class NoneDAGException extends Exception {
         String msg = 'The object relationships described in a single ATK statement must be '
@@ -39,6 +43,282 @@ public with sharing class ATKCore {
             this.setMessage(msg);
         }
     }
+
+    // ***********************
+    // #region SObject Command
+    // ***********************
+
+    public class SaveResult implements ATK.SaveResult {
+        Map<SObjectType, List<List<SObject>>> result = new Map<SObjectType, List<List<SObject>>>();
+
+        public List<SObject> get(SObjectType objectType) {
+            return result.get(objectType)[0];
+        }
+
+        public List<SObject> get(SObjectType objectType, Integer index) {
+            return result.get(objectType)[index];
+        }
+
+        public List<SObject> getAll(SObjectType objectType) {
+            List<SObject> allObjects;
+            if (result.get(objectType).size() == 1) {
+                allObjects = result.get(objectType)[0];
+            } else {
+                allObjects = new List<SObject>();
+                for (List<SObject> objects : result.get(objectType)) {
+                    allObjects.addAll(objects);
+                }
+            }
+            return allObjects;
+        }
+    }
+
+    public class EntityCommand implements ATK.Entity, ATK.Field {
+        public EntityNodeMatrix matrix { get; set; }
+
+        {
+            matrix = new EntityNodeMatrix();
+        }
+
+        // *******************************************
+        // #region ATK.Entity Interface Implementation
+        // ***************************************
+
+        public SaveResult save() {
+            return this.save(true);
+        }
+
+        public SaveResult save(Boolean doInsert) {
+            ATKCore.SAVE_GENERATOR.generate(this.matrix, doInsert);
+            return generateResult();
+        }
+
+        public SaveResult mock() {
+            ATKCore.MOCK_GENERATOR.generate(this.matrix, false);
+            return generateResult();
+        }
+
+        private SaveResult generateResult() {
+            SaveResult result = new SaveResult();
+            for (ATKCore.EntityNode node : matrix.entityNodeCache) {
+                if (!result.result.containsKey(node.objectType)) {
+                    result.result.put(node.objectType, new List<List<SObject>> { node.objects });
+                } else {
+                    result.result.get(node.objectType).add(node.objects);
+                }
+            }
+            return result;
+        }
+
+        public ATK.Entity withParents(Schema.SObjectType objectType, Schema.SObjectField parentIdField) {
+            this.matrix.add(ATKCore.EntityNodeType.MANY_TO_ONE, objectType, parentIdField);
+            return this;
+        }
+
+        public ATK.Entity withParents(Schema.SObjectType objectType, Schema.SObjectField parentIdField, Integer size) {
+            this.matrix.add(ATKCore.EntityNodeType.MANY_TO_ONE, new ATKCore.EntityNode(objectType, size), parentIdField);
+            return this;
+        }
+
+        public ATK.Entity withParents(Schema.SObjectType objectType, Schema.SObjectField parentIdField, List<SObject> objects) {
+            this.matrix.add(ATKCore.EntityNodeType.MANY_TO_ONE, new ATKCore.EntityNode(objectType, objects), parentIdField);
+            return this;
+        }
+
+        public ATK.Entity withChildren(Schema.SObjectType objectType, Schema.SObjectField parentIdField) {
+            this.matrix.add(ATKCore.EntityNodeType.ONE_TO_MANY, objectType, parentIdField);
+            return this;
+        }
+
+        public ATK.Entity withChildren(Schema.SObjectType objectType, Schema.SObjectField parentIdField, Integer size) {
+            this.matrix.add(ATKCore.EntityNodeType.ONE_TO_MANY, new ATKCore.EntityNode(objectType, size), parentIdField);
+            return this;
+        }
+
+        public ATK.Entity withChildren(Schema.SObjectType objectType, Schema.SObjectField parentIdField, List<SObject> objects) {
+            this.matrix.add(ATKCore.EntityNodeType.ONE_TO_MANY, new ATKCore.EntityNode(objectType, objects), parentIdField);
+            return this;
+        }
+
+        public ATK.Entity also() {
+            this.matrix.pop(1);
+            return this;
+        }
+
+        public ATK.Entity also(Integer depth) {
+            this.matrix.pop(depth);
+            return this;
+        }
+
+        public ATK.Field field(SObjectField field) {
+            this.matrix.currEntityNode.addField(field);
+            return this;
+        }
+
+        public ATK.Entity build(ATK.EntityBuilder builder) {
+            builder.build(this, this.matrix.currEntityNode.size);
+            return this;
+        }
+
+        // #endregion
+        // *******************************************
+
+        // **************************************
+        // #region Field Interface Implementation
+        // **************************************
+
+        public ATK.Entity recordType(String name) {
+            Schema.SObjectField recordTypeIdField = this.matrix.currEntityNode.dsr
+                .fields.getMap().get('RecordTypeId');
+            if (recordTypeIdField != null) {
+                this.field(recordTypeIdField).repeat(ATKCore.RECORD_TYPES
+                    .getId(this.matrix.currEntityNode.dsr, name));
+            }
+            return this;
+        }
+
+        public ATK.Entity profile(String name) {
+            if (User.SObjectType == this.matrix.currEntityNode.objectType) {
+                this.field(User.ProfileId).repeat(ATKCore.PROFILES.getId(name));
+            }
+            return this;
+        }
+
+        public ATK.Entity permissionSet(String name) {
+            this.permissionSet(new List<String> { name });
+            return this;
+        }
+
+        public ATK.Entity permissionSet(String name1, String name2) {
+            this.permissionSet(new List<String> { name1, name2 });
+            return this;
+        }
+
+        public ATK.Entity permissionSet(String name1, String name2, String name3) {
+            this.permissionSet(new List<String> { name1, name2, name3 });
+            return this;
+        }
+
+        public ATK.Entity permissionSet(List<String> names) {
+            if (User.SObjectType == this.matrix.currEntityNode.objectType) {
+                List<Id> permissionSetIds = ATKCore.PERMISSION_SETS.getIds(names);
+                if (permissionSetIds.size() > 0) {
+                    this.withChildren(
+                        PermissionSetAssignment.SObjectType,
+                        PermissionSetAssignment.AssigneeId,
+                        this.matrix.currEntityNode.size * permissionSetIds.size())
+                        .field(PermissionSetAssignment.PermissionSetId).repeat(permissionSetIds)
+                        .also();
+                }
+            }
+            return this;
+        }
+
+        public ATK.Entity index(String format) {
+            this.matrix.currEntityNode.currEntityField.indexFormat = format;
+            return this;
+        }
+
+        public ATK.Entity repeat(Object value) {
+            this.matrix.currEntityNode.currEntityField.fixedValue = value;
+            return this;
+        }
+
+        public ATK.Entity repeat(Object value1, Object value2) {
+            this.matrix.currEntityNode.currEntityField.repeatValues = new List<Object> { value1, value2 };
+            return this;
+        }
+
+        public ATK.Entity repeat(Object value1, Object value2, Object value3) {
+            this.matrix.currEntityNode.currEntityField.repeatValues = new List<Object> { value1, value2, value3 };
+            return this;
+        }
+
+        public ATK.Entity repeat(List<Object> values) {
+            this.matrix.currEntityNode.currEntityField.repeatValues = values;
+            return this;
+        }
+
+        // public ATK.Entity lookup(String field) {
+        //     return this;
+        // }
+
+        public ATK.Entity add(Decimal init, Decimal step) {
+            this.matrix.currEntityNode.currEntityField.arithmetic = ATKCore.EntityFieldArithmetic.ADD;
+            this.matrix.currEntityNode.currEntityField.initValue = init;
+            this.matrix.currEntityNode.currEntityField.stepValue = step;
+            return this;
+        }
+
+        public ATK.Entity substract(Decimal init, Decimal step) {
+            this.matrix.currEntityNode.currEntityField.arithmetic = ATKCore.EntityFieldArithmetic.SUBSTRACT;
+            this.matrix.currEntityNode.currEntityField.initValue = init;
+            this.matrix.currEntityNode.currEntityField.stepValue = step;
+            return this;
+        }
+
+        public ATK.Entity divide(Decimal init, Decimal factor) {
+            this.matrix.currEntityNode.currEntityField.arithmetic = ATKCore.EntityFieldArithmetic.DIVIDE;
+            this.matrix.currEntityNode.currEntityField.initValue = init;
+            this.matrix.currEntityNode.currEntityField.stepValue = factor;
+            return this;
+        }
+
+        public ATK.Entity multiply(Decimal init, Decimal factor) {
+            this.matrix.currEntityNode.currEntityField.arithmetic = ATKCore.EntityFieldArithmetic.MULTIPLY;
+            this.matrix.currEntityNode.currEntityField.initValue = init;
+            this.matrix.currEntityNode.currEntityField.stepValue = factor;
+            return this;
+        }
+
+        public ATK.Entity addYears(Object init, Integer step) {
+            this.matrix.currEntityNode.currEntityField.arithmetic = ATKCore.EntityFieldArithmetic.ADD_YEARS;
+            this.matrix.currEntityNode.currEntityField.initValue = init;
+            this.matrix.currEntityNode.currEntityField.stepValue = step;
+            return this;
+        }
+
+        public ATK.Entity addMonths(Object init, Integer step) {
+            this.matrix.currEntityNode.currEntityField.arithmetic = ATKCore.EntityFieldArithmetic.ADD_MONTHS;
+            this.matrix.currEntityNode.currEntityField.initValue = init;
+            this.matrix.currEntityNode.currEntityField.stepValue = step;
+            return this;
+        }
+
+        public ATK.Entity addDays(Object init, Integer step) {
+            this.matrix.currEntityNode.currEntityField.arithmetic = ATKCore.EntityFieldArithmetic.ADD_DAYS;
+            this.matrix.currEntityNode.currEntityField.initValue = init;
+            this.matrix.currEntityNode.currEntityField.stepValue = step;
+            return this;
+        }
+
+        public ATK.Entity addHours(Object init, Integer step) {
+            this.matrix.currEntityNode.currEntityField.arithmetic = ATKCore.EntityFieldArithmetic.ADD_HOURS;
+            this.matrix.currEntityNode.currEntityField.initValue = init;
+            this.matrix.currEntityNode.currEntityField.stepValue = step;
+            return this;
+        }
+
+        public ATK.Entity addMinutes(Object init, Integer step) {
+            this.matrix.currEntityNode.currEntityField.arithmetic = ATKCore.EntityFieldArithmetic.ADD_MINUTES;
+            this.matrix.currEntityNode.currEntityField.initValue = init;
+            this.matrix.currEntityNode.currEntityField.stepValue = step;
+            return this;
+        }
+
+        public ATK.Entity addSeconds(Object init, Integer step) {
+            this.matrix.currEntityNode.currEntityField.arithmetic = ATKCore.EntityFieldArithmetic.ADD_SECONDS;
+            this.matrix.currEntityNode.currEntityField.initValue = init;
+            this.matrix.currEntityNode.currEntityField.stepValue = step;
+            return this;
+        }
+
+        // #endregion
+        // **************************************
+    }
+
+    // #endregion
+    // ***********************
 
     // *************************
     // #region SObject Generator
@@ -439,7 +719,7 @@ public with sharing class ATKCore {
     }
 
     // #endregion
-    // ************************
+    // *************************
 
     // *************************************
     // #region [Model] => JSON Representable
@@ -999,7 +1279,7 @@ public with sharing class ATKCore {
     }
 
     // #endregion
-    // *************************************
+    // ************************************
 
     // ***********************
     // #region Utility Classes
