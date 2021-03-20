@@ -21,44 +21,63 @@ public with sharing class ATK  {
     // ***********************
 
     public static Object mock(Type mockType) {
-        return ATKMock.getInstance(mockType);
+        return ATKStub.getInstance(mockType);
     }
 
     public static Given given(Object obj) {
-        return null;
+        return new ATKStub.GivenStubbing();
     }
 
     public static Will willReturn(Object obj) {
-        return null;
+        return new ATKStub.WillStubbing().willReturn(obj);
     }
 
-    public static Will willAnswer(Object obj) {
-        return null;
+    public static Will willAnswer(Answer answer) {
+        return new ATKStub.WillStubbing().willAnswer(answer);
     }
 
     public static Will willThrow(Exception exp) {
-        return null;
+        return new ATKStub.WillStubbing().willThrow(exp);
     }
 
     public static Will willDoNothing() {
+        return new ATKStub.WillStubbing();
+    }
+
+    public static ThenOf then(Object mock) {
         return null;
     }
 
-    public static ThenOf then(Object obj) {
+    public static InOrder inOrder(Object mock1) {
+        return null;
+    }
+    public static InOrder inOrder(Object mock1, Object mock2) {
+        return null;
+    }
+    public static InOrder inOrder(Object mock, Object mock2, Object mock3) {
         return null;
     }
 
     public interface Given {
         Given willReturn(Object obj);
-        Given willAnswer(Object obj);
+        Given willAnswer(Answer obj);
         Given willThrow(Exception exp);
     }
 
     public interface Will {
         Will willReturn(Object obj);
-        Will willAnswer(Object obj);
+        Will willAnswer(Answer answer);
         Will willThrow(Exception exp);
-        Object given(Object obj);
+        Will willDoNothing();
+        Object given(Object instance);
+    }
+
+    public interface Answer {
+        Object answer(Invocation invocation);
+    }
+
+    public interface Invocation {
+
     }
 
     public interface ThenOf {

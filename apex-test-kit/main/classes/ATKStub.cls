@@ -1,11 +1,10 @@
-public with sharing class ATKMock implements System.StubProvider {
-
+public with sharing virtual class ATKStub implements System.StubProvider {
 
     public static Object getInstance(Type mockType) {
-        return Test.createStub(mockType, new ATKMock());
+        return Test.createStub(mockType, new ATKStub());
     }
 
-    public Object handleMethodCall(Object target, String stubbedMethodName,
+    public Object handleMethodCall(Object mock, String stubbedMethodName,
         Type returnType, List<Type> paramTypes, List<String> paramNames,
         List<Object> listOfArgs) {
 
@@ -36,8 +35,61 @@ public with sharing class ATKMock implements System.StubProvider {
             return null;
     }
 
+    private virtual class Stubbing {
+        protected Object mock { get; set; }
+        protected List<Object> returns = new List<Object>();
+    }
+
+    public class GivenStubbing extends Stubbing implements ATK.Given {
+        public GivenStubbing willReturn(Object obj) {
+            returns.add(obj);
+            return this;
+        }
+
+        public GivenStubbing willAnswer(ATK.Answer answer) {
+            returns.add(answer);
+            return this;
+        }
+
+        public GivenStubbing willThrow(Exception exp) {
+            returns.add(exp);
+            return this;
+        }
+    }
+
+    public class WillStubbing extends Stubbing implements ATK.Will {
+        public WillStubbing willReturn(Object obj) {
+            returns.add(obj);
+            return this;
+        }
+
+        public WillStubbing willAnswer(ATK.Answer answer) {
+            returns.add(answer);
+            return this;
+        }
+
+        public WillStubbing willThrow(Exception exp) {
+            returns.add(exp);
+            return this;
+        }
+
+        public WillStubbing willDoNothing() {
+            returns.add(null);
+            return this;
+        }
+
+        public Object given(Object mock) {
+            this.mock = mock;
+            return mock;
+        }
+    }
+
+    public interface Answer extends ATK.Answer {
+
+    }
+
     private class Invocation {
-        Object target { get; set; }
+        Object mock { get; set; }
         String methodName { get; set; }
         Type returnType { get; set; }
         List<Type> paramTypes { get; set; }
