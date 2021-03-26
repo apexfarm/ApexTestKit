@@ -25,23 +25,23 @@ public with sharing class ATK  {
     }
 
     public static Given given(Object obj) {
-        return new ATKStub.GivenStubbing();
+        return ATKStub.setStubbing(new ATKStub.GivenStubbing());
     }
 
     public static Will willReturn(Object obj) {
-        return new ATKStub.WillStubbing().willReturn(obj);
+        return ATKStub.setStubbing(new ATKStub.WillStubbing()).willReturn(obj);
     }
 
     public static Will willAnswer(Answer answer) {
-        return new ATKStub.WillStubbing().willAnswer(answer);
+        return ATKStub.setStubbing(new ATKStub.WillStubbing()).willAnswer(answer);
     }
 
     public static Will willThrow(Exception exp) {
-        return new ATKStub.WillStubbing().willThrow(exp);
+        return ATKStub.setStubbing(new ATKStub.WillStubbing()).willThrow(exp);
     }
 
     public static Will willDoNothing() {
-        return new ATKStub.WillStubbing();
+        return ATKStub.setStubbing(new ATKStub.WillStubbing()).willDoNothing();
     }
 
     public static ThenOf then(Object mock) {
@@ -100,7 +100,7 @@ public with sharing class ATK  {
     // *************************
 
     // *************************
-    // #region Argument Matcher
+    // #region Argument Matchers
     // *************************
 
     public static Integer anyInteger() {

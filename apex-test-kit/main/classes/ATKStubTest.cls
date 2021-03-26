@@ -1,28 +1,22 @@
+/**
+ * Copyright 2018 Jeff Jin
+ * https://github.com/apexfarm/ApexTestKit
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 @IsTest
 public with sharing class ATKStubTest {
-
-    public class MockException extends Exception {
-
-    }
-
-    public class IntegerAnswer implements ATK.Answer {
-        public Object answer(ATK.Invocation invocation) {
-            return 2;
-        }
-    }
-
-    public void doNothing() {
-
-    }
-
-    public void doException() {
-
-    }
-
-    public Object doWithInteger(Integer i) {
-        return i;
-    }
-
     @IsTest
     static void testMock() {
         MockException exp = new MockException();
@@ -70,5 +64,27 @@ public with sharing class ATKStubTest {
             ((ATKStubTest)ATK.then(mock).should(inOrder).times(1)).doWithInteger(2);
             ((ATKStubTest)ATK.then(mock).should(inOrder).times(1)).doWithInteger(3);
         }
+    }
+
+    public class MockException extends Exception {
+
+    }
+
+    public class IntegerAnswer implements ATK.Answer {
+        public Object answer(ATK.Invocation invocation) {
+            return 2;
+        }
+    }
+
+    public void doNothing() {
+
+    }
+
+    public void doException() {
+
+    }
+
+    public Object doWithInteger(Integer i) {
+        return i;
     }
 }
