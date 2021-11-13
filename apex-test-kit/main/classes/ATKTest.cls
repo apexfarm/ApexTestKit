@@ -442,7 +442,6 @@ public with sharing class ATKTest {
         System.assertEquals(1, result.getAll(Account.SObjectType).size());
         System.assertEquals(7, result.getAll(Contact.SObjectType).size());
         System.assertEquals(7, result.getAll(Case.SObjectType).size());
-
     }
 
     @IsTest

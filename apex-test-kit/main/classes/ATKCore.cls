@@ -35,7 +35,7 @@ public with sharing class ATKCore {
     private static final PermissionSets PERMISSION_SETS = new PermissionSets();
 
     public class NoneDAGException extends Exception {
-        String msg = 'The object relationships described in a single ATK statement must be '
+        String msg = 'In each ATK statement, The object relationships must be '
         + 'a Directed Acyclic Graph, thus no cyclic relationships. '
         + 'https://github.com/apexfarm/ApexTestKit/tree/develop#relationship';
 
@@ -50,15 +50,44 @@ public with sharing class ATKCore {
 
     public class SaveResult implements ATK.SaveResult {
         Map<SObjectType, List<List<SObject>>> result = new Map<SObjectType, List<List<SObject>>>();
+        EntityNodeMatrix matrix { get; set; }
+    
+        SaveResult(EntityNodeMatrix matrix) {
+            this.matrix = matrix;
+            for (ATKCore.EntityNode node : matrix.entityNodeCache) {
+                if (!result.containsKey(node.objectType)) {
+                    result.put(node.objectType, new List<List<SObject>> { node.objects });
+                } else {
+                    result.get(node.objectType).add(node.objects);
+                }
+            }
 
+            // !DEBUG
+            this.debug();
+        }
+
+        void debug() {
+            Iterator<Schema.SObjectType> keys = this.keys();
+            String message = 'Topology Order:';
+            while (keys.hasNext()) {
+                message += ' ' + keys.next();
+            }
+            System.debug(message);
+
+            Iterator<List<SObject>> values = this.values();
+            while(values.hasNext()) {
+                System.debug(values.next());
+            }
+        }
+    
         public List<SObject> get(SObjectType objectType) {
             return result.get(objectType)[0];
         }
-
+    
         public List<SObject> get(SObjectType objectType, Integer index) {
             return result.get(objectType)[index];
         }
-
+    
         public List<SObject> getAll(SObjectType objectType) {
             List<SObject> allObjects;
             if (result.get(objectType).size() == 1) {
@@ -70,6 +99,64 @@ public with sharing class ATKCore {
                 }
             }
             return allObjects;
+        }
+    
+        Iterator<Schema.SObjectType> keys() {
+            return new ObjectTypeIterator(this.matrix);
+        }
+    
+        Iterator<List<SObject>> values() {
+            return new ObjectListIterator(this.matrix);
+        }
+    }
+    
+    public class ObjectTypeIterator implements Iterator<Schema.SObjectType>, Iterable<Schema.SObjectType> {
+        EntityNodeMatrix matrix { get; set; }
+    
+        ObjectTypeIterator(EntityNodeMatrix matrix) {
+            this.matrix = matrix;
+            this.matrix.reset();
+        }
+    
+        public Boolean hasNext() {
+            return this.matrix.hasNext();
+        }
+    
+        public Schema.SObjectType next() {
+            if (this.hasNext()) {
+                return this.matrix.next().objectType;
+            } else {
+                return null;
+            }
+        }
+
+        public Iterator<Schema.SObjectType> iterator(){
+            return this;
+        }
+    }
+    
+    public class ObjectListIterator implements Iterator<List<SObject>>, Iterable<List<SObject>> {
+        EntityNodeMatrix matrix { get; set; }
+    
+        ObjectListIterator(EntityNodeMatrix matrix) {
+            this.matrix = matrix;
+            this.matrix.reset();
+        }
+    
+        public Boolean hasNext() {
+            return this.matrix.hasNext();
+        }
+    
+        public List<SObject> next() {
+            if (this.hasNext()) {
+                return this.matrix.next().objects;
+            } else {
+                return null;
+            }
+        }
+
+        public Iterator<List<SObject>> iterator(){
+            return this;
         }
     }
 
@@ -99,14 +186,7 @@ public with sharing class ATKCore {
         }
 
         private SaveResult generateResult() {
-            SaveResult result = new SaveResult();
-            for (ATKCore.EntityNode node : matrix.entityNodeCache) {
-                if (!result.result.containsKey(node.objectType)) {
-                    result.result.put(node.objectType, new List<List<SObject>> { node.objects });
-                } else {
-                    result.result.get(node.objectType).add(node.objects);
-                }
-            }
+            SaveResult result = new SaveResult(this.matrix);
             return result;
         }
 
@@ -544,12 +624,12 @@ public with sharing class ATKCore {
                         continue;
                     }
 
-                    for (List<MockSObject> pair : DISTRIBUTOR.distribute(childObjectList, parentObjectList)) {
+                    for (List<Object> pair : DISTRIBUTOR.distribute(childObjectList.mockObjects, parentObjectList.mockObjects)) {
                         // pair[0] = child
                         // pair[1] = parent
-                        pair[0].put(relationship.parentRelationshipId, pair[1].Id);
+                        ((MockSObject)pair[0]).put(relationship.parentRelationshipId, ((MockSObject)pair[1]).Id);
                         // pair[0].putParent(relationship.parentRelationshipName, pair[1]);
-                        pair[1].putChild(relationship.childRelationshipName, pair[0]);
+                        ((MockSObject)pair[1]).putChild(relationship.childRelationshipName, ((MockSObject)pair[0]));
                     }
                 }
             }
@@ -579,11 +659,11 @@ public with sharing class ATKCore {
                         continue;
                     }
 
-                    for (List<SObject> pair : DISTRIBUTOR.distribute(childObjectList, parentObjectList)) {
+                    for (List<Object> pair : DISTRIBUTOR.distribute(childObjectList, parentObjectList)) {
                         // pair[0] = child
                         // pair[1] = parent
-                        pair[0].put(relationship.parentIdField, pair[1].Id);
-                        pair[0].putSObject(relationshipName, pair[1]);
+                        ((SObject)pair[0]).put(relationship.parentIdField, ((SObject)pair[1]).Id);
+                        ((SObject)pair[0]).putSObject(relationshipName, ((SObject)pair[1]));
                     }
                 }
             }
@@ -642,11 +722,11 @@ public with sharing class ATKCore {
                         continue;
                     }
 
-                    for (List<SObject> pair : DISTRIBUTOR.distribute(childObjectList, parentObjectList)) {
+                    for (List<Object> pair : DISTRIBUTOR.distribute(childObjectList, parentObjectList)) {
                         // pair[0] = child
                         // pair[1] = parent
-                        pair[0].put(relationship.parentIdField, pair[1].Id);
-                        pair[0].putSObject(relationshipName, pair[1]);
+                        ((SObject)pair[0]).put(relationship.parentIdField, ((SObject)pair[1]).Id);
+                        ((SObject)pair[0]).putSObject(relationshipName, ((SObject)pair[1]));
                     }
                 }
             }
@@ -654,8 +734,8 @@ public with sharing class ATKCore {
     }
 
     public class Distributor {
-        public List<List<MockSObject>> distribute(MockSObjectList leftGroup, MockSObjectList rightGroup) {
-            List<List<MockSObject>> groups = new List<List<MockSObject>>();
+        public List<List<Object>> distribute(List<Object> leftGroup, List<Object> rightGroup) {
+            List<List<Object>> groups = new List<List<Object>>();
 
             Integer l = leftGroup.size();
             Integer r = rightGroup.size();
@@ -678,39 +758,7 @@ public with sharing class ATKCore {
                 } else {
                     j = (i - remainder) / s;
                 }
-                groups.add(new List<MockSObject>{
-                    leftGroup.get(i), rightGroup.get(j)
-                });
-            }
-            return groups;
-        }
-
-        public List<List<SObject>> distribute(List<SObject> leftGroup, List<SObject> rightGroup) {
-            List<List<SObject>> groups = new List<List<SObject>>();
-
-            Integer l = leftGroup.size();
-            Integer r = rightGroup.size();
-
-            Integer s = l / r;
-            Integer remainder = Math.mod(l, r);
-
-            /*
-             * Balanced Set Distribution
-             * { i0, i1, i2, i3, i4 } => { j0, j1 }; then s = 2, reminder = 1
-             *                       ↓↓↓
-             *                     i0 - j0
-             *                     i1 - j0
-             *                     i2 - j0
-             *                     i3 - j1
-             *                     i4 - j1
-             */
-            for (Integer i = 0, j = 0; i < l; ++i) {
-                if (j < remainder) {
-                    j = i / (s + 1);
-                } else {
-                    j = (i - remainder) / s;
-                }
-                groups.add(new List<SObject>{
+                groups.add(new List<Object>{
                     leftGroup[i], rightGroup[j]
                 });
             }
@@ -1146,12 +1194,13 @@ public with sharing class ATKCore {
         public Integer indexLength { get; set; }
         public String indexFormat { get;
             set {
-                indexFormat = value;
                 this.indexLength = 0;
                 System.Matcher matcher = methodPattern.matcher(value);
                 while(matcher.find()) {
                     this.indexLength = matcher.group(1).length();
                 }
+                indexFormat = matcher.replaceFirst('{0}');
+                System.debug(indexFormat);
             }
         }
         public List<Object> repeatValues { get; set; }
@@ -1188,7 +1237,7 @@ public with sharing class ATKCore {
         public Object getValue(Integer rowIndex) {
             if (isIndexed) {
                 return String.format(this.indexFormat, new List<Object> {
-                    String.valueOf(rowIndex + 1).leftPad(indexLength, '0')
+                    String.valueOf(rowIndex + 1).leftPad(this.indexLength, '0')
                 });
             } else if (isRepeated) {
                 return this.repeatValues[Math.mod(rowIndex, this.repeatValues.size())];
@@ -1646,10 +1695,6 @@ public with sharing class ATKCore {
         public Boolean hasCycle() {
             return cycle != null;
         }
-
-        // public List<Integer> cycle() {
-        //     return cycle;
-        // }
     }
 
     public class DepthFirstOrder {
@@ -1685,6 +1730,7 @@ public with sharing class ATKCore {
             post.add(v);
         }
 
+        // TODO: Reserve for future uses
         // public List<Integer> pre() {
         //     return pre;
         // }
@@ -1743,6 +1789,7 @@ public with sharing class ATKCore {
             G.addEdge(indexMap.get(a), indexMap.get(b));
         }
 
+        // TODO: Reserve for future uses
         // public Boolean contains(Object s) {
         //     return indexMap.containsKey(s);
         // }

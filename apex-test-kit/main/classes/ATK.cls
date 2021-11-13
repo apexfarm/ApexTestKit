@@ -20,32 +20,42 @@ public with sharing class ATK  {
     // #region Mock Interfaces
     // ***********************
 
+    private static final ATKMock mockInstance = new ATKMock();
+
     public static Object mock(Type mockType) {
-        return ATKStub.getInstance(mockType);
+        return mockInstance.createMock(mockType);
     }
 
-    public static Given given(Object obj) {
-        return ATKStub.setStubbing(new ATKStub.GivenStubbing());
+    public static void startStubbing() {
+        mockInstance.startStubbing();
     }
 
-    public static Will willReturn(Object obj) {
-        return ATKStub.setStubbing(new ATKStub.WillStubbing()).willReturn(obj);
+    public static void stopStubbing() {
+        mockInstance.stopStubbing();
+    }
+
+    public static Given given(Object value) {
+        return mockInstance.setGivenStubbing();
+    }
+
+    public static Will willReturn(Object value) {
+        return mockInstance.setWillStubbing().willReturn(value);
     }
 
     public static Will willAnswer(Answer answer) {
-        return ATKStub.setStubbing(new ATKStub.WillStubbing()).willAnswer(answer);
+        return mockInstance.setWillStubbing().willAnswer(answer);
     }
 
     public static Will willThrow(Exception exp) {
-        return ATKStub.setStubbing(new ATKStub.WillStubbing()).willThrow(exp);
+        return mockInstance.setWillStubbing().willThrow(exp);
     }
 
     public static Will willDoNothing() {
-        return ATKStub.setStubbing(new ATKStub.WillStubbing()).willDoNothing();
+        return mockInstance.setWillStubbing().willDoNothing();
     }
 
     public static ThenOf then(Object mock) {
-        return null;
+        return mockInstance.then(mock);
     }
 
     public static InOrder inOrder(Object mock1) {
@@ -59,17 +69,17 @@ public with sharing class ATK  {
     }
 
     public interface Given {
-        Given willReturn(Object obj);
-        Given willAnswer(Answer obj);
+        Given willReturn(Object value);
+        Given willAnswer(Answer answer);
         Given willThrow(Exception exp);
     }
 
     public interface Will {
-        Will willReturn(Object obj);
+        Will willReturn(Object value);
         Will willAnswer(Answer answer);
         Will willThrow(Exception exp);
         Will willDoNothing();
-        Object given(Object instance);
+        Object given(Object mock);
     }
 
     public interface Answer {
@@ -223,7 +233,7 @@ public with sharing class ATK  {
     }
 
     public interface SaveResult {
-        List<SObject> get(SObjectType objectType);
+        List<SObject> get(SObjectType objectType); // return the first matching lists
         List<SObject> get(SObjectType objectType, Integer index);
         List<SObject> getAll(SObjectType objectType);
     }
