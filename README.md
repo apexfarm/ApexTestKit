@@ -13,20 +13,14 @@ Apex Test Kit can help generate massive records for Apex test classes. It solves
 | Sandbox               | <a target="_blank" href="https://test.salesforce.com/packaging/installPackage.apexp?p0=04t2v0000079Bg9AAE"><img src="docs/images/deploy-button.png"></a> | ver 3.4.3 |
 
 ------
+### **v3.5 Release Notes**
 
-### **v3.4 Release Notes**
+#### Minor Changes
+- Increase number of accepted parameters of `repeat()` from 3 to 5.
+- Increase Apex classe versions to 53.0
 
-- **[&#9749;Mock](#-mock)**:
-  - `mock()` now supports one level of children relationship and many levels of parent relationships. Till now `mock()` should be able to return any sObject graph that would be returned from a valid SOQL. If not please help to raise an issue, I will try to fix it as high priority.
-  - **v3.4.3 Fix**: A **[Known SF Issue](https://trailblazer.salesforce.com/issues_view?id=a1p3A000001Gv4KQAS)** was reported since winter 19. When the Apex debug level is Finest rather than the others, and there is circular reference between sObjects, a Maximum Stack Depth Reached exception is thrown.
-- **[Fake Id](#fake-id)**: `ATK.fakeId(Account.SObjectType) ` can be used to directly generating a fake Id of the specific sObject type.
-- **[Relationship](#relationship)**: The validation of no cyclic relationship is enforced. Exception will be thrown if the validation is failed, i.e. A -> B -> C -> A is not allowed.
-- Account, Contact, Case and User are the only sObjects used in test classes.
-
-**Next Major Release**:
-
-- Next release will fine tune the object relationship distribution rules. For exmaple when two sObjects A and B shares same parents, and there is also one-to-many relationship between A and B. The current distribution rule will not satisfy the business when the level of relationship become deep.
-
+#### Major Changes
+- More advanced and intelligent relationship distributions. Previously the parents and children are not evenly or correctly distributed when the relationship become deeply nested. Now the distributions are much predictbale and logical.
 ------
 
 ## Table of Contents
