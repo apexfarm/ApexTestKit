@@ -150,13 +150,13 @@ public with sharing class ATK  {
 
     public static Entity prepare(Schema.SObjectType objectType, Integer size) {
         ATKCore.EntityCommand sharedCommand  = new ATKCore.EntityCommand();
-        sharedCommand.matrix.add(ATKCore.EntityNodeType.PREPARE, new ATKCore.EntityNode(objectType, size), null);
+        sharedCommand.prepare(objectType, size);
         return sharedCommand;
     }
 
     public static Entity prepare(Schema.SObjectType objectType, List<SObject> objects) {
         ATKCore.EntityCommand sharedCommand  = new ATKCore.EntityCommand();
-        sharedCommand.matrix.add(ATKCore.EntityNodeType.PREPARE, new ATKCore.EntityNode(objectType, objects), null);
+        sharedCommand.prepare(objectType, objects);
         return sharedCommand;
     }
 
@@ -176,6 +176,9 @@ public with sharing class ATK  {
         Entity withChildren(Schema.SObjectType objectType, Schema.SObjectField parentIdField);
         Entity withChildren(Schema.SObjectType objectType, Schema.SObjectField parentIdField, Integer size);
         Entity withChildren(Schema.SObjectType objectType, Schema.SObjectField parentIdField, List<SObject> objects);
+        Entity withJunction(Schema.SObjectType objectType, Schema.SObjectField parentIdField);
+        Entity withJunction(Schema.SObjectType objectType, Schema.SObjectField parentIdField, Integer size);
+        Entity withJunction(Schema.SObjectType objectType, Schema.SObjectField parentIdField, List<SObject> objects);
 
         // keywords to build graph
         Entity also();
@@ -211,6 +214,8 @@ public with sharing class ATK  {
         Entity repeat(Object value);
         Entity repeat(Object value1, Object value2);
         Entity repeat(Object value1, Object value2, Object value3);
+        Entity repeat(Object value1, Object value2, Object value3, Object value4);
+        Entity repeat(Object value1, Object value2, Object value3, Object value4, Object value5);
         Entity repeat(List<Object> values);
         // Entity lookup(String field);
 

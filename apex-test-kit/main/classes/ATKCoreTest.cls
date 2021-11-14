@@ -81,7 +81,7 @@ public with sharing class ATKCoreTest {
                 new List<Account> {new Account(), new Account(), new Account()}), null);
             matrix.add(ATKCore.EntityNodeType.ONE_TO_MANY, new ATKCore.EntityNode(Contact.SObjectType,
                 new List<Contact> {new Contact(), new Contact(), new Contact()}), Contact.AccountId);
-            generator.assignReferences(matrix.currEntityNode);
+            generator.assignReferences(matrix.currEntityNode, false);
         }
     }
 
