@@ -3,14 +3,14 @@
         {
             "path": "apex-test-kit",
             "package": "ApexTestKit",
-            "versionName": "ver 3.4.3",
-            "versionNumber": "3.4.3.NEXT",
+            "versionName": "ver 3.5.0",
+            "versionNumber": "3.5.0.NEXT",
             "default": true
         }
     ],
     "namespace": "",
     "sfdcLoginUrl": "https://login.salesforce.com",
-    "sourceApiVersion": "48.0",
+    "sourceApiVersion": "53.0",
     "packageAliases": {
         "ApexTestKit": "0Ho2v00000000FfCAI",
         "ApexTestKit@3.0.0-2": "04t2v000007X2zHAAS",
@@ -24,6 +24,7 @@
         "ApexTestKit@3.4.1-1": "04t2v0000079BSFAA2",
         "ApexTestKit@3.4.1-2": "04t2v0000079BfuAAE",
         "ApexTestKit@3.4.2-1": "04t2v0000079BfzAAE",
-        "ApexTestKit@3.4.3-1": "04t2v0000079Bg9AAE"
+        "ApexTestKit@3.4.3-1": "04t2v0000079Bg9AAE",
+        "ApexTestKit@3.5.0-1": "04t2v000007GTLoAAO"
     }
 }

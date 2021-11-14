@@ -27,25 +27,22 @@
     |-----------------------------|---------------------------- |
 */
 
-PriceBook2 standardPricebook = [
-    SELECT Id, Name
-    FROM PriceBook2
-    WHERE IsStandard = true
-];
+PriceBook2 standardPricebook = [SELECT Id, Name FROM PriceBook2 WHERE IsStandard = TRUE];
 
-List<PriceBook2> priceBooks = [standardPricebook, new PriceBook2(Name = 'Promotion Price Book')];
-
+List<PriceBook2> priceBooks = new List<PriceBook2>{ standardPricebook, new PriceBook2(Name = 'Promotion Price Book') };
 
 ATK.SaveResult result = ATK.prepare(Account.SObjectType, 2)
-    .field(Account.Name).index('Account Name {0}')
+    .field(Account.Name)
+    .index('Account Name {0}')
     .withChildren(RetailStore.SObjectType, RetailStore.AccountId, 2)
-        .field(RetailStore.Name).index('Store Name {0}')
+        .field(RetailStore.Name)
+        .index('Store Name {0}')
         .withChildren(InstoreLocation.SObjectType, InstoreLocation.RetailStoreId, 4)
-            // .field(InstoreLocation.InStoreLocationType).repeat('Shelf', 'Backroom')
-            // .field(InstoreLocation.Category).repeat('Aisle', 'Backroom Storage')
+        // .field(InstoreLocation.InStoreLocationType).repeat('Shelf', 'Backroom')
+        // .field(InstoreLocation.Category).repeat('Aisle', 'Backroom Storage')
             .withJunction(StoreProduct.SObjectType, StoreProduct.InstoreLocationId, 8)
-                // .field(StoreProduct.StartDate).repeat(Date.newInstance(2020, 1, 1))
-                .withParents(Product2.SObjectType, StoreProduct.ProductId, 2)
-                    .withChildren(PricebookEntry.SObjectType, PricebookEntry.Product2Id, 4)
-                        .withParents(Pricebook2.SObjectType, PricebookEntry.Pricebook2Id, priceBooks)
+            // .field(StoreProduct.StartDate).repeat(Date.newInstance(2020, 1, 1))
+            .withParents(Product2.SObjectType, StoreProduct.ProductId, 2)
+                .withJunction(PricebookEntry.SObjectType, PricebookEntry.Product2Id, 4)
+                    .withParents(Pricebook2.SObjectType, PricebookEntry.Pricebook2Id, priceBooks)
     .mock();

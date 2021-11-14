@@ -60,12 +60,9 @@ public with sharing class ATKCore {
                     result.get(node.objectType).add(node.objects);
                 }
             }
-
-            // Open comment for debug purpose
-            this.debug();
         }
 
-        void debug() {
+        public void debug() {
             Iterator<Schema.SObjectType> keys = this.keys();
             String message = 'Topology Order:';
             while (keys.hasNext()) {
@@ -167,12 +164,12 @@ public with sharing class ATKCore {
         }
 
         public SaveResult save(Boolean doInsert) {
-            ATKCore.SAVE_GENERATOR.generate(this.matrix, doInsert);
+            SAVE_GENERATOR.generate(this.matrix, doInsert);
             return generateResult();
         }
 
         public SaveResult mock() {
-            ATKCore.MOCK_GENERATOR.generate(this.matrix, false);
+            MOCK_GENERATOR.generate(this.matrix, false);
             return generateResult();
         }
 
@@ -221,21 +218,19 @@ public with sharing class ATKCore {
             return this;
         }
 
-        public ATK.Entity withJunction(Schema.SObjectType objectType, Schema.SObjectField parentIdField) {
-            EntityNode entityNode = this.matrix.add(EntityNodeType.ONE_TO_MANY, objectType, parentIdField);
-            entityNode.isJunction = true;
-            return this;
-        }
+        // * Experimental withJunction methods
+        // public ATK.Entity withJunction(Schema.SObjectType objectType, Schema.SObjectField parentIdField) {
+        //     this.matrix.add(EntityNodeType.ONE_TO_MANY, objectType, parentIdField, true);
+        //     return this;
+        // }
 
         public ATK.Entity withJunction(Schema.SObjectType objectType, Schema.SObjectField parentIdField, Integer size) {
-            EntityNode entityNode = this.matrix.add(EntityNodeType.ONE_TO_MANY, new EntityNode(objectType, size), parentIdField);
-            entityNode.isJunction = true;
+            this.matrix.add(EntityNodeType.ONE_TO_MANY, new EntityNode(objectType, size), parentIdField, true);
             return this;
         }
 
         public ATK.Entity withJunction(Schema.SObjectType objectType, Schema.SObjectField parentIdField, List<SObject> objects) {
-            EntityNode entityNode = this.matrix.add(EntityNodeType.ONE_TO_MANY, new EntityNode(objectType, objects), parentIdField);
-            entityNode.isJunction = true;
+            this.matrix.add(EntityNodeType.ONE_TO_MANY, new EntityNode(objectType, objects), parentIdField, true);
             return this;
         }
 
@@ -270,7 +265,7 @@ public with sharing class ATKCore {
             Schema.SObjectField recordTypeIdField = this.matrix.currEntityNode.dsr
                 .fields.getMap().get('RecordTypeId');
             if (recordTypeIdField != null) {
-                this.field(recordTypeIdField).repeat(ATKCore.RECORD_TYPES
+                this.field(recordTypeIdField).repeat(RECORD_TYPES
                     .getId(this.matrix.currEntityNode.dsr, name));
             }
             return this;
@@ -278,7 +273,7 @@ public with sharing class ATKCore {
 
         public ATK.Entity profile(String name) {
             if (User.SObjectType == this.matrix.currEntityNode.objectType) {
-                this.field(User.ProfileId).repeat(ATKCore.PROFILES.getId(name));
+                this.field(User.ProfileId).repeat(PROFILES.getId(name));
             }
             return this;
         }
@@ -300,7 +295,7 @@ public with sharing class ATKCore {
 
         public ATK.Entity permissionSet(List<String> names) {
             if (User.SObjectType == this.matrix.currEntityNode.objectType) {
-                List<Id> permissionSetIds = ATKCore.PERMISSION_SETS.getIds(names);
+                List<Id> permissionSetIds = PERMISSION_SETS.getIds(names);
                 if (permissionSetIds.size() > 0) {
                     this.withChildren(
                         PermissionSetAssignment.SObjectType,
@@ -348,75 +343,71 @@ public with sharing class ATKCore {
             return this;
         }
 
-        // public ATK.Entity lookup(String field) {
-        //     return this;
-        // }
-
         public ATK.Entity add(Decimal init, Decimal step) {
-            this.matrix.currEntityNode.currEntityField.arithmetic = ATKCore.EntityFieldArithmetic.ADD;
+            this.matrix.currEntityNode.currEntityField.arithmetic = EntityFieldArithmetic.ADD;
             this.matrix.currEntityNode.currEntityField.initValue = init;
             this.matrix.currEntityNode.currEntityField.stepValue = step;
             return this;
         }
 
         public ATK.Entity substract(Decimal init, Decimal step) {
-            this.matrix.currEntityNode.currEntityField.arithmetic = ATKCore.EntityFieldArithmetic.SUBSTRACT;
+            this.matrix.currEntityNode.currEntityField.arithmetic = EntityFieldArithmetic.SUBSTRACT;
             this.matrix.currEntityNode.currEntityField.initValue = init;
             this.matrix.currEntityNode.currEntityField.stepValue = step;
             return this;
         }
 
         public ATK.Entity divide(Decimal init, Decimal factor) {
-            this.matrix.currEntityNode.currEntityField.arithmetic = ATKCore.EntityFieldArithmetic.DIVIDE;
+            this.matrix.currEntityNode.currEntityField.arithmetic = EntityFieldArithmetic.DIVIDE;
             this.matrix.currEntityNode.currEntityField.initValue = init;
             this.matrix.currEntityNode.currEntityField.stepValue = factor;
             return this;
         }
 
         public ATK.Entity multiply(Decimal init, Decimal factor) {
-            this.matrix.currEntityNode.currEntityField.arithmetic = ATKCore.EntityFieldArithmetic.MULTIPLY;
+            this.matrix.currEntityNode.currEntityField.arithmetic = EntityFieldArithmetic.MULTIPLY;
             this.matrix.currEntityNode.currEntityField.initValue = init;
             this.matrix.currEntityNode.currEntityField.stepValue = factor;
             return this;
         }
 
         public ATK.Entity addYears(Object init, Integer step) {
-            this.matrix.currEntityNode.currEntityField.arithmetic = ATKCore.EntityFieldArithmetic.ADD_YEARS;
+            this.matrix.currEntityNode.currEntityField.arithmetic = EntityFieldArithmetic.ADD_YEARS;
             this.matrix.currEntityNode.currEntityField.initValue = init;
             this.matrix.currEntityNode.currEntityField.stepValue = step;
             return this;
         }
 
         public ATK.Entity addMonths(Object init, Integer step) {
-            this.matrix.currEntityNode.currEntityField.arithmetic = ATKCore.EntityFieldArithmetic.ADD_MONTHS;
+            this.matrix.currEntityNode.currEntityField.arithmetic = EntityFieldArithmetic.ADD_MONTHS;
             this.matrix.currEntityNode.currEntityField.initValue = init;
             this.matrix.currEntityNode.currEntityField.stepValue = step;
             return this;
         }
 
         public ATK.Entity addDays(Object init, Integer step) {
-            this.matrix.currEntityNode.currEntityField.arithmetic = ATKCore.EntityFieldArithmetic.ADD_DAYS;
+            this.matrix.currEntityNode.currEntityField.arithmetic = EntityFieldArithmetic.ADD_DAYS;
             this.matrix.currEntityNode.currEntityField.initValue = init;
             this.matrix.currEntityNode.currEntityField.stepValue = step;
             return this;
         }
 
         public ATK.Entity addHours(Object init, Integer step) {
-            this.matrix.currEntityNode.currEntityField.arithmetic = ATKCore.EntityFieldArithmetic.ADD_HOURS;
+            this.matrix.currEntityNode.currEntityField.arithmetic = EntityFieldArithmetic.ADD_HOURS;
             this.matrix.currEntityNode.currEntityField.initValue = init;
             this.matrix.currEntityNode.currEntityField.stepValue = step;
             return this;
         }
 
         public ATK.Entity addMinutes(Object init, Integer step) {
-            this.matrix.currEntityNode.currEntityField.arithmetic = ATKCore.EntityFieldArithmetic.ADD_MINUTES;
+            this.matrix.currEntityNode.currEntityField.arithmetic = EntityFieldArithmetic.ADD_MINUTES;
             this.matrix.currEntityNode.currEntityField.initValue = init;
             this.matrix.currEntityNode.currEntityField.stepValue = step;
             return this;
         }
 
         public ATK.Entity addSeconds(Object init, Integer step) {
-            this.matrix.currEntityNode.currEntityField.arithmetic = ATKCore.EntityFieldArithmetic.ADD_SECONDS;
+            this.matrix.currEntityNode.currEntityField.arithmetic = EntityFieldArithmetic.ADD_SECONDS;
             this.matrix.currEntityNode.currEntityField.initValue = init;
             this.matrix.currEntityNode.currEntityField.stepValue = step;
             return this;
@@ -515,16 +506,21 @@ public with sharing class ATKCore {
         }
 
         /**
-         * @param skipRootChild Avoid children back reference to root parents during JSON deserialization.
+         * @param skipRootChild Skip in mock mode, because relationships of root entities and their children have already been established.
          */
         @TestVisible
         protected void assignReferences(EntityNode entityNode, Boolean skipRootChild) {
-            if (entityNode.relatinoships != null
-                && entityNode.relatinoships.size() > 0
+            if (entityNode.relationships != null
+                && entityNode.relationships.size() > 0
                 && entityNode.objects != null
                 && entityNode.size > 0) {
 
-                for (EntityNodeRelationship relationship : entityNode.relatinoships) {
+                Integer junctionOrder = 0;
+                for (EntityNodeRelationship relationship : entityNode.relationships) {
+                    if (relationship.isJunction) {
+                        junctionOrder ++;
+                    }
+
                     if (skipRootChild && relationship.parent.isRoot && relationship.child.isRootChild) {
                         continue;
                     }
@@ -541,10 +537,18 @@ public with sharing class ATKCore {
                         continue;
                     }
 
-                    for (List<Object> pair : DISTRIBUTOR.distribute(childObjectList, parentObjectList)) {
-                        // * pair[0] is child, pair[1] is parent
-                        ((SObject)pair[0]).put(relationship.parentIdField, ((SObject)pair[1]).Id);
-                        ((SObject)pair[0]).putSObject(relationshipName, ((SObject)pair[1]));
+                    if (junctionOrder == 2) {
+                        for (List<Object> pair : DISTRIBUTOR.product(childObjectList, parentObjectList)) {
+                            // * pair[0] is child, pair[1] is parent
+                            ((SObject)pair[0]).put(relationship.parentIdField, ((SObject)pair[1]).Id);
+                            ((SObject)pair[0]).putSObject(relationshipName, ((SObject)pair[1]));
+                        }
+                    } else {
+                        for (List<Object> pair : DISTRIBUTOR.distribute(childObjectList, parentObjectList)) {
+                            // * pair[0] is child, pair[1] is parent
+                            ((SObject)pair[0]).put(relationship.parentIdField, ((SObject)pair[1]).Id);
+                            ((SObject)pair[0]).putSObject(relationshipName, ((SObject)pair[1]));
+                        }
                     }
                 }
             }
@@ -667,11 +671,11 @@ public with sharing class ATKCore {
         @TestVisible
         public void assignMockObjectReferences(EntityNode entityNode) {
             if (entityNode.isRootChild
-                && entityNode.relatinoships != null
+                && entityNode.relationships != null
                 && entityNode.mockObjects != null) {
 
 
-                for (EntityNodeRelationship relationship : entityNode.relatinoships) {
+                for (EntityNodeRelationship relationship : entityNode.relationships) {
                     if (!relationship.parent.isRoot) {
                         continue;
                     }
@@ -732,11 +736,11 @@ public with sharing class ATKCore {
     }
 
     public class Distributor {
-        public List<List<Object>> distribute(List<Object> leftGroup, List<Object> rightGroup) {
+        public List<List<Object>> distribute(List<Object> childGroup, List<Object> parentGroup) {
             List<List<Object>> groups = new List<List<Object>>();
 
-            Integer l = leftGroup.size();
-            Integer r = rightGroup.size();
+            Integer l = childGroup.size();
+            Integer r = parentGroup.size();
             Integer s = l / r;
             Integer remainder = Math.mod(l, r);
 
@@ -757,7 +761,41 @@ public with sharing class ATKCore {
                     j = (i - remainder) / s;
                 }
                 groups.add(new List<Object>{
-                    leftGroup[i], rightGroup[j]
+                    childGroup[i], parentGroup[j]
+                });
+            }
+            return groups;
+        }
+
+        public List<List<Object>> product(List<Object> childGroup, List<Object> parentGroup) {
+            List<List<Object>> groups = new List<List<Object>>();
+
+            Integer l = childGroup.size();
+            Integer r = parentGroup.size();
+            Integer s = l / r;
+            Integer remainder = Math.mod(l, r);
+
+            /*
+             * Balanced Set Distribution
+             * { i0, i1, i2, i3, i4 } => { j0, j1 }; then s = 2, reminder = 1
+             *                       ↓↓↓
+             *                     i0 - j0
+             *                     i1 - j1
+             *                     i2 - j0
+             *                     i3 - j1
+             *                     i4 - j0
+             */            
+            for (Integer i = 0, j = 0; i < l; i++) {
+                if (Math.mod(i, l) == 0) {
+                    j = i / l;
+                } else {
+                    j++;
+                    if (j == r) {
+                        j = 0;
+                    }
+                }
+                groups.add(new List<Object>{
+                    childGroup[Math.mod(i, l)], parentGroup[j]
                 });
             }
             return groups;
@@ -966,13 +1004,23 @@ public with sharing class ATKCore {
             }
         }
 
-        public EntityNode add(EntityNodeType nodeType, EntityNode nextEntityNode, Schema.SObjectField parentIdField) {
-            addEntityNode(nodeType, nextEntityNode, parentIdField);
-            entityNodeCache.add(nextEntityNode);
-            return nextEntityNode;
+        public void add(EntityNodeType nodeType, EntityNode nextEntityNode, Schema.SObjectField parentIdField) {
+            add(nodeType, nextEntityNode, parentIdField, false);
         }
 
-        public EntityNode add(EntityNodeType nodeType, Schema.SObjectType objectType, Schema.SObjectField parentIdField) {
+        public void add(EntityNodeType nodeType, Schema.SObjectType objectType, Schema.SObjectField parentIdField) {
+            add(nodeType, objectType, parentIdField, false);
+        }
+
+        public void add(EntityNodeType nodeType, EntityNode nextEntityNode, Schema.SObjectField parentIdField, Boolean isJunction) {
+            nextEntityNode.isJunction = isJunction;
+            createRelationshipForEntityNode(nodeType, nextEntityNode, parentIdField);
+            entityNodeCache.add(nextEntityNode);
+            entityNodeStack.add(nextEntityNode);
+            this.currEntityNode = nextEntityNode;
+        }
+
+        public void add(EntityNodeType nodeType, Schema.SObjectType objectType, Schema.SObjectField parentIdField, Boolean isJunction) {
             EntityNode nextEntityNode;
             for (EntityNode entityNode : this.entityNodeCache) {
                 if (entityNode.objectType == objectType) {
@@ -981,12 +1029,14 @@ public with sharing class ATKCore {
                 }
             }
             if (nextEntityNode != null) {
-                addEntityNode(nodeType, nextEntityNode, parentIdField);
+                nextEntityNode.isJunction = isJunction;
+                createRelationshipForEntityNode(nodeType, nextEntityNode, parentIdField);
+                entityNodeStack.add(nextEntityNode);
+                this.currEntityNode = nextEntityNode;
             }
-            return nextEntityNode;
         }
 
-        private void addEntityNode(EntityNodeType nodeType, EntityNode nextEntityNode, Schema.SObjectField parentIdField) {
+        private void createRelationshipForEntityNode(EntityNodeType nodeType, EntityNode nextEntityNode, Schema.SObjectField parentIdField) {
             EntityNodeRelationship relationship;
             switch on nodeType {
                 when PREPARE {
@@ -1002,11 +1052,8 @@ public with sharing class ATKCore {
 
             if (relationship != null) {
                 entityNodeRelationships.add(relationship);
-                relationship.child.relatinoships.add(relationship);
+                relationship.child.addRelationship(relationship);
             }
-
-            entityNodeStack.add(nextEntityNode);
-            this.currEntityNode = nextEntityNode;
         }
 
         public void pop(Integer depth) {
@@ -1025,6 +1072,8 @@ public with sharing class ATKCore {
         EntityNode parent { get; set; }
         EntityNode child { get; set; }
         Schema.SObjectField parentIdField { get; set; }
+        Boolean isJunction { get; set; }
+        
         String childRelationshipName { get; set; }
         String parentRelationshipName { get; set; }
         String parentRelationshipId { get; set; }
@@ -1033,6 +1082,7 @@ public with sharing class ATKCore {
             this.parent = parent;
             this.child = child;
             this.parentIdField = parentIdField;
+            this.isJunction = false;
 
             this.parentRelationshipId = parentIdField.getDescribe().getName();
             this.parentRelationshipName = parentIdField.getDescribe().getRelationshipName();
@@ -1056,7 +1106,7 @@ public with sharing class ATKCore {
         public Integer size { get; set; }
         public Boolean isJunction { get; set; }
 
-        public List<EntityNodeRelationship> relatinoships { get; set; }
+        public List<EntityNodeRelationship> relationships { get; set; }
         public List<SObject> objects { get; set; }
 
         // Used for fields generation
@@ -1076,7 +1126,7 @@ public with sharing class ATKCore {
             this.dsr = objectType.getDescribe();
             this.isJunction = false;
 
-            this.relatinoships = new List<EntityNodeRelationship>();
+            this.relationships = new List<EntityNodeRelationship>();
 
             this.fieldMap = new Map<Schema.SObjectField, EntityField>();
             this.writableFields = new List<EntityField>();
@@ -1099,6 +1149,18 @@ public with sharing class ATKCore {
             this.objects = new List<SObject> ();
             this.objects.addAll(objects);
             this.size = this.objects.size();
+        }
+
+        public void addRelationship(EntityNodeRelationship relationship) {
+            if (this.isJunction) {
+                Integer size = this.relationships.size();
+                if (size <= 1) {
+                    relationship.isJunction = true;
+                } else if (size > 1 && this.relationships[size - 1].isJunction && !this.relationships[size - 2].isJunction) {
+                    relationship.isJunction = true;
+                }
+            }
+            this.relationships.add(relationship);
         }
 
         public void addField(SObjectField field) {
@@ -1142,7 +1204,7 @@ public with sharing class ATKCore {
 
         // Used for mock objects generation
         private void convertToSObjectsFromParent() {
-            for (EntityNodeRelationship relationship : this.relatinoships) {
+            for (EntityNodeRelationship relationship : this.relationships) {
                 EntityNode parentNode = relationship.parent;
                 if (parentNode.isRoot && parentNode.objects.size() > 0) {
                     Map<Id, SObject> objectMap = new Map<Id, SObject>();
@@ -1187,7 +1249,8 @@ public with sharing class ATKCore {
 
     static Pattern methodPattern = Pattern.compile('\\{(0+)\\}');
 
-    public class EntityField  {
+    @TestVisible
+    private class EntityField  {
         public Schema.SObjectField field { get; set; }
         public Schema.DescribeFieldResult dfr { get; set; }
 
@@ -1202,7 +1265,6 @@ public with sharing class ATKCore {
                     this.indexLength = matcher.group(1).length();
                 }
                 indexFormat = matcher.replaceFirst('{0}');
-                System.debug(indexFormat);
             }
         }
         public List<Object> repeatValues { get; set; }
