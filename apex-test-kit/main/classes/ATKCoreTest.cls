@@ -376,6 +376,11 @@ public with sharing class ATKCoreTest {
     }
 
     @IsTest
+    static void test_Model_EntityNodeMatrix_NOT_DAG() {
+        ATKCore.NoneDAGException exp = new ATKCore.NoneDAGException();
+    }
+
+    @IsTest
     static void test_Model_EntityNode() {
         ATKCore.EntityNode entity1 = new ATKCore.EntityNode(Account.SObjectType, 1);
         ATKCore.EntityNode entity2 = new ATKCore.EntityNode(Account.SObjectType, new List<Account>{ new Account() });

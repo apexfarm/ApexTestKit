@@ -18,6 +18,122 @@
 @IsTest
 public with sharing class ATKTest {
 
+    // ****************
+    // #region Junction
+    // ****************
+    @IsTest
+    static void test_Junction_Size() {
+        ATK.SaveResult result = ATK.prepare(PriceBook2.SObjectType, 10)
+            .withJunction(PricebookEntry.SObjectType, PricebookEntry.Pricebook2Id, 20)
+                .withParents(Product2.SObjectType, PricebookEntry.Product2Id, 10)
+            .save(false);
+        
+        ((ATKCore.SaveResult)result).debug();
+
+        List<PriceBook2> priceBooks = result.get(PriceBook2.SObjectType);
+        List<PricebookEntry> priceBookEntries = result.get(PricebookEntry.SObjectType);
+        List<Product2> products = result.get(Product2.SObjectType);
+        
+        System.assertEquals(10, priceBooks.size());
+        System.assertEquals(20, priceBookEntries.size());
+        System.assertEquals(10, products.size());
+
+        System.assertEquals(priceBooks[0], priceBookEntries[0].Pricebook2);
+        System.assertEquals(products[0], priceBookEntries[0].Product2);
+        System.assertEquals(priceBooks[0], priceBookEntries[1].Pricebook2);
+        System.assertEquals(products[1], priceBookEntries[1].Product2);
+        System.assertEquals(priceBooks[1], priceBookEntries[2].Pricebook2);
+        System.assertEquals(products[2], priceBookEntries[2].Product2);
+        System.assertEquals(priceBooks[1], priceBookEntries[3].Pricebook2);
+        System.assertEquals(products[3], priceBookEntries[3].Product2);
+
+        System.assertEquals(priceBooks[6], priceBookEntries[0].Pricebook2);
+        System.assertEquals(products[0], priceBookEntries[0].Product2);
+        System.assertEquals(priceBooks[6], priceBookEntries[1].Pricebook2);
+        System.assertEquals(products[1], priceBookEntries[1].Product2);
+        System.assertEquals(priceBooks[7], priceBookEntries[2].Pricebook2);
+        System.assertEquals(products[2], priceBookEntries[2].Product2);
+        System.assertEquals(priceBooks[7], priceBookEntries[3].Pricebook2);
+        System.assertEquals(products[3], priceBookEntries[3].Product2);
+    }
+
+    @IsTest
+    static void test_Junction_Size_Zero() {
+        ATK.SaveResult result = ATK.prepare(PriceBook2.SObjectType, 0)
+            .withJunction(PricebookEntry.SObjectType, PricebookEntry.Pricebook2Id, 0)
+                .withParents(Product2.SObjectType, PricebookEntry.Product2Id, 0)
+            .save(false);
+
+        List<PriceBook2> priceBooks = result.get(PriceBook2.SObjectType);
+        List<PricebookEntry> priceBookEntries = result.get(PricebookEntry.SObjectType);
+        List<Product2> products = result.get(Product2.SObjectType);
+
+        System.assertEquals(0, priceBooks.size());
+        System.assertEquals(0, priceBookEntries.size());
+        System.assertEquals(0, products.size());
+    }
+
+    @IsTest
+    static void test_Junction_List() {
+        List<PriceBook2> priceBooks = new List<PriceBook2>();
+        List<PricebookEntry> priceBookEntries = new List<PricebookEntry>();
+        List<Product2> products = new List<Product2>();
+
+        for (Integer i = 0; i < 10; ++i) {
+            priceBooks.add(new PriceBook2());
+            priceBookEntries.add(new PricebookEntry());
+            priceBookEntries.add(new PricebookEntry());
+            products.add(new Product2());
+        }
+
+        ATK.SaveResult result = ATK.prepare(PriceBook2.SObjectType, priceBooks)
+            .withJunction(PricebookEntry.SObjectType, PricebookEntry.Pricebook2Id, priceBookEntries)
+                .withParents(Product2.SObjectType, PricebookEntry.Product2Id, products)
+            .save(false);
+
+        System.assertEquals(10, priceBooks.size());
+        System.assertEquals(20, priceBookEntries.size());
+        System.assertEquals(10, products.size());
+
+        System.assertEquals(priceBooks[0], priceBookEntries[0].Pricebook2);
+        System.assertEquals(products[0], priceBookEntries[0].Product2);
+        System.assertEquals(priceBooks[0], priceBookEntries[1].Pricebook2);
+        System.assertEquals(products[1], priceBookEntries[1].Product2);
+        System.assertEquals(priceBooks[1], priceBookEntries[2].Pricebook2);
+        System.assertEquals(products[2], priceBookEntries[2].Product2);
+        System.assertEquals(priceBooks[1], priceBookEntries[3].Pricebook2);
+        System.assertEquals(products[3], priceBookEntries[3].Product2);
+
+        System.assertEquals(priceBooks[6], priceBookEntries[0].Pricebook2);
+        System.assertEquals(products[0], priceBookEntries[0].Product2);
+        System.assertEquals(priceBooks[6], priceBookEntries[1].Pricebook2);
+        System.assertEquals(products[1], priceBookEntries[1].Product2);
+        System.assertEquals(priceBooks[7], priceBookEntries[2].Pricebook2);
+        System.assertEquals(products[2], priceBookEntries[2].Product2);
+        System.assertEquals(priceBooks[7], priceBookEntries[3].Pricebook2);
+        System.assertEquals(products[3], priceBookEntries[3].Product2);
+    }
+
+    @IsTest
+    static void test_Junction_Partial() {
+        ATK.SaveResult result = ATK.prepare(PriceBook2.SObjectType, 10)
+            .withJunction(PricebookEntry.SObjectType, PricebookEntry.Pricebook2Id, 20)
+            .save(false);
+
+        List<PriceBook2> priceBooks = result.get(PriceBook2.SObjectType);
+        List<PricebookEntry> priceBookEntries = result.get(PricebookEntry.SObjectType);
+        
+        System.assertEquals(10, priceBooks.size());
+        System.assertEquals(20, priceBookEntries.size());
+        System.assertEquals(priceBooks[0], priceBookEntries[0].Pricebook2);
+        System.assertEquals(priceBooks[0], priceBookEntries[1].Pricebook2);
+        System.assertEquals(priceBooks[1], priceBookEntries[2].Pricebook2);
+        System.assertEquals(priceBooks[1], priceBookEntries[3].Pricebook2);
+    }
+
+    // #endregion
+    // ********************
+
     // *******************
     // #region One To Many
     // *******************
@@ -453,6 +569,8 @@ public with sharing class ATKTest {
             .field(Account.Name).repeat('A')
             .field(Account.Name).repeat('A', 'B')
             .field(Account.Name).repeat('A', 'B', 'C')
+            .field(Account.Name).repeat('A', 'B', 'C', 'D')
+            .field(Account.Name).repeat('A', 'B', 'C', 'D', 'E')
             .field(Account.Name).repeat(new List<String> { 'A', 'B', 'C' })
             .field(Account.Name).add(1, 1)
             .field(Account.Name).substract(1, 1)

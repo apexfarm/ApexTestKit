@@ -149,13 +149,13 @@ public with sharing class ATK  {
     // *************************
 
     public static Entity prepare(Schema.SObjectType objectType, Integer size) {
-        ATKCore.EntityCommand sharedCommand  = new ATKCore.EntityCommand();
+        ATKCore.EntityCommand sharedCommand = new ATKCore.EntityCommand();
         sharedCommand.prepare(objectType, size);
         return sharedCommand;
     }
 
     public static Entity prepare(Schema.SObjectType objectType, List<SObject> objects) {
-        ATKCore.EntityCommand sharedCommand  = new ATKCore.EntityCommand();
+        ATKCore.EntityCommand sharedCommand = new ATKCore.EntityCommand();
         sharedCommand.prepare(objectType, objects);
         return sharedCommand;
     }
@@ -176,7 +176,7 @@ public with sharing class ATK  {
         Entity withChildren(Schema.SObjectType objectType, Schema.SObjectField parentIdField);
         Entity withChildren(Schema.SObjectType objectType, Schema.SObjectField parentIdField, Integer size);
         Entity withChildren(Schema.SObjectType objectType, Schema.SObjectField parentIdField, List<SObject> objects);
-        Entity withJunction(Schema.SObjectType objectType, Schema.SObjectField parentIdField);
+        // Entity withJunction(Schema.SObjectType objectType, Schema.SObjectField parentIdField);
         Entity withJunction(Schema.SObjectType objectType, Schema.SObjectField parentIdField, Integer size);
         Entity withJunction(Schema.SObjectType objectType, Schema.SObjectField parentIdField, List<SObject> objects);
 
