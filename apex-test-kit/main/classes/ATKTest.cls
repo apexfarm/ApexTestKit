@@ -23,112 +23,128 @@ public with sharing class ATKTest {
     // ****************
     @IsTest
     static void test_Junction_Size() {
-        ATK.SaveResult result = ATK.prepare(PriceBook2.SObjectType, 10)
-            .withJunction(PricebookEntry.SObjectType, PricebookEntry.Pricebook2Id, 20)
-                .withParents(Product2.SObjectType, PricebookEntry.Product2Id, 10)
+        ATK.SaveResult result = ATK.prepare(Account.SObjectType, 10)
+            .withJunction(Case.SObjectType, Case.AccountId, 20)
+                .withParents(Contact.SObjectType, Case.ContactId, 10)
             .save(false);
-        
+
         ((ATKCore.SaveResult)result).debug();
 
-        List<PriceBook2> priceBooks = result.get(PriceBook2.SObjectType);
-        List<PricebookEntry> priceBookEntries = result.get(PricebookEntry.SObjectType);
-        List<Product2> products = result.get(Product2.SObjectType);
+        List<Account> accounts = result.get(Account.SObjectType);
+        List<Case> cases = result.get(Case.SObjectType);
+        List<Contact> contacts = result.get(Contact.SObjectType);
         
-        System.assertEquals(10, priceBooks.size());
-        System.assertEquals(20, priceBookEntries.size());
-        System.assertEquals(10, products.size());
+        System.assertEquals(10, accounts.size());
+        System.assertEquals(20, cases.size());
+        System.assertEquals(10, contacts.size());
 
-        System.assertEquals(priceBooks[0], priceBookEntries[0].Pricebook2);
-        System.assertEquals(products[0], priceBookEntries[0].Product2);
-        System.assertEquals(priceBooks[0], priceBookEntries[1].Pricebook2);
-        System.assertEquals(products[1], priceBookEntries[1].Product2);
-        System.assertEquals(priceBooks[1], priceBookEntries[2].Pricebook2);
-        System.assertEquals(products[2], priceBookEntries[2].Product2);
-        System.assertEquals(priceBooks[1], priceBookEntries[3].Pricebook2);
-        System.assertEquals(products[3], priceBookEntries[3].Product2);
+        System.assertEquals(accounts[0], cases[0].Account);
+        System.assertEquals(contacts[0], cases[0].Contact);
+        System.assertEquals(accounts[0], cases[1].Account);
+        System.assertEquals(contacts[1], cases[1].Contact);
+        System.assertEquals(accounts[1], cases[2].Account);
+        System.assertEquals(contacts[2], cases[2].Contact);
+        System.assertEquals(accounts[1], cases[3].Account);
+        System.assertEquals(contacts[3], cases[3].Contact);
 
-        System.assertEquals(priceBooks[6], priceBookEntries[0].Pricebook2);
-        System.assertEquals(products[0], priceBookEntries[0].Product2);
-        System.assertEquals(priceBooks[6], priceBookEntries[1].Pricebook2);
-        System.assertEquals(products[1], priceBookEntries[1].Product2);
-        System.assertEquals(priceBooks[7], priceBookEntries[2].Pricebook2);
-        System.assertEquals(products[2], priceBookEntries[2].Product2);
-        System.assertEquals(priceBooks[7], priceBookEntries[3].Pricebook2);
-        System.assertEquals(products[3], priceBookEntries[3].Product2);
+        System.assertEquals(accounts[6], cases[0].Account);
+        System.assertEquals(contacts[0], cases[0].Contact);
+        System.assertEquals(accounts[6], cases[1].Account);
+        System.assertEquals(contacts[1], cases[1].Contact);
+        System.assertEquals(accounts[7], cases[2].Account);
+        System.assertEquals(contacts[2], cases[2].Contact);
+        System.assertEquals(accounts[7], cases[3].Account);
+        System.assertEquals(contacts[3], cases[3].Contact);
     }
 
     @IsTest
     static void test_Junction_Size_Zero() {
-        ATK.SaveResult result = ATK.prepare(PriceBook2.SObjectType, 0)
-            .withJunction(PricebookEntry.SObjectType, PricebookEntry.Pricebook2Id, 0)
-                .withParents(Product2.SObjectType, PricebookEntry.Product2Id, 0)
+        ATK.SaveResult result = ATK.prepare(Account.SObjectType, 0)
+            .withJunction(Case.SObjectType, Case.AccountId, 0)
+                .withParents(Contact.SObjectType, Case.ContactId, 0)
             .save(false);
 
-        List<PriceBook2> priceBooks = result.get(PriceBook2.SObjectType);
-        List<PricebookEntry> priceBookEntries = result.get(PricebookEntry.SObjectType);
-        List<Product2> products = result.get(Product2.SObjectType);
+        List<Account> accounts = result.get(Account.SObjectType);
+        List<Case> cases = result.get(Case.SObjectType);
+        List<Contact> contacts = result.get(Contact.SObjectType);
 
-        System.assertEquals(0, priceBooks.size());
-        System.assertEquals(0, priceBookEntries.size());
-        System.assertEquals(0, products.size());
+        System.assertEquals(0, accounts.size());
+        System.assertEquals(0, cases.size());
+        System.assertEquals(0, contacts.size());
     }
 
     @IsTest
     static void test_Junction_List() {
-        List<PriceBook2> priceBooks = new List<PriceBook2>();
-        List<PricebookEntry> priceBookEntries = new List<PricebookEntry>();
-        List<Product2> products = new List<Product2>();
+        List<Account> accounts = new List<Account>();
+        List<Case> cases = new List<Case>();
+        List<Contact> contacts = new List<Contact>();
 
         for (Integer i = 0; i < 10; ++i) {
-            priceBooks.add(new PriceBook2());
-            priceBookEntries.add(new PricebookEntry());
-            priceBookEntries.add(new PricebookEntry());
-            products.add(new Product2());
+            accounts.add(new Account());
+            cases.add(new Case());
+            cases.add(new Case());
+            contacts.add(new Contact());
         }
 
-        ATK.SaveResult result = ATK.prepare(PriceBook2.SObjectType, priceBooks)
-            .withJunction(PricebookEntry.SObjectType, PricebookEntry.Pricebook2Id, priceBookEntries)
-                .withParents(Product2.SObjectType, PricebookEntry.Product2Id, products)
+        ATK.SaveResult result = ATK.prepare(Account.SObjectType, accounts)
+            .withJunction(Case.SObjectType, Case.AccountId, cases)
+                .withParents(Contact.SObjectType, Case.ContactId, contacts)
             .save(false);
 
-        System.assertEquals(10, priceBooks.size());
-        System.assertEquals(20, priceBookEntries.size());
-        System.assertEquals(10, products.size());
+        System.assertEquals(10, accounts.size());
+        System.assertEquals(20, cases.size());
+        System.assertEquals(10, contacts.size());
 
-        System.assertEquals(priceBooks[0], priceBookEntries[0].Pricebook2);
-        System.assertEquals(products[0], priceBookEntries[0].Product2);
-        System.assertEquals(priceBooks[0], priceBookEntries[1].Pricebook2);
-        System.assertEquals(products[1], priceBookEntries[1].Product2);
-        System.assertEquals(priceBooks[1], priceBookEntries[2].Pricebook2);
-        System.assertEquals(products[2], priceBookEntries[2].Product2);
-        System.assertEquals(priceBooks[1], priceBookEntries[3].Pricebook2);
-        System.assertEquals(products[3], priceBookEntries[3].Product2);
+        System.assertEquals(accounts[0], cases[0].Account);
+        System.assertEquals(contacts[0], cases[0].Contact);
+        System.assertEquals(accounts[0], cases[1].Account);
+        System.assertEquals(contacts[1], cases[1].Contact);
+        System.assertEquals(accounts[1], cases[2].Account);
+        System.assertEquals(contacts[2], cases[2].Contact);
+        System.assertEquals(accounts[1], cases[3].Account);
+        System.assertEquals(contacts[3], cases[3].Contact);
 
-        System.assertEquals(priceBooks[6], priceBookEntries[0].Pricebook2);
-        System.assertEquals(products[0], priceBookEntries[0].Product2);
-        System.assertEquals(priceBooks[6], priceBookEntries[1].Pricebook2);
-        System.assertEquals(products[1], priceBookEntries[1].Product2);
-        System.assertEquals(priceBooks[7], priceBookEntries[2].Pricebook2);
-        System.assertEquals(products[2], priceBookEntries[2].Product2);
-        System.assertEquals(priceBooks[7], priceBookEntries[3].Pricebook2);
-        System.assertEquals(products[3], priceBookEntries[3].Product2);
+        System.assertEquals(accounts[6], cases[0].Account);
+        System.assertEquals(contacts[0], cases[0].Contact);
+        System.assertEquals(accounts[6], cases[1].Account);
+        System.assertEquals(contacts[1], cases[1].Contact);
+        System.assertEquals(accounts[7], cases[2].Account);
+        System.assertEquals(contacts[2], cases[2].Contact);
+        System.assertEquals(accounts[7], cases[3].Account);
+        System.assertEquals(contacts[3], cases[3].Contact);
     }
 
     @IsTest
     static void test_Junction_Partial() {
-        ATK.SaveResult result = ATK.prepare(PriceBook2.SObjectType, 10)
-            .withJunction(PricebookEntry.SObjectType, PricebookEntry.Pricebook2Id, 20)
+        ATK.SaveResult result = ATK.prepare(Account.SObjectType, 10)
+            .withJunction(Case.SObjectType, Case.AccountId, 20)
             .save(false);
 
-        List<PriceBook2> priceBooks = result.get(PriceBook2.SObjectType);
-        List<PricebookEntry> priceBookEntries = result.get(PricebookEntry.SObjectType);
+        List<Account> accounts = result.get(Account.SObjectType);
+        List<Case> cases = result.get(Case.SObjectType);
         
-        System.assertEquals(10, priceBooks.size());
-        System.assertEquals(20, priceBookEntries.size());
-        System.assertEquals(priceBooks[0], priceBookEntries[0].Pricebook2);
-        System.assertEquals(priceBooks[0], priceBookEntries[1].Pricebook2);
-        System.assertEquals(priceBooks[1], priceBookEntries[2].Pricebook2);
-        System.assertEquals(priceBooks[1], priceBookEntries[3].Pricebook2);
+        System.assertEquals(10, accounts.size());
+        System.assertEquals(20, cases.size());
+        System.assertEquals(accounts[0], cases[0].Account);
+        System.assertEquals(accounts[0], cases[1].Account);
+        System.assertEquals(accounts[1], cases[2].Account);
+        System.assertEquals(accounts[1], cases[3].Account);
+
+    }
+
+    @IsTest
+    static void test_Junction_Tripple() {
+        ATK.SaveResult result = ATK.prepare(Account.SObjectType, 10)
+        .withJunction(Case.SObjectType, Case.AccountId, 20)
+            .withParents(Contact.SObjectType, Case.ContactId, 10)
+            .also()
+            .withParents(User.SObjectType, Case.OwnerId, 10)
+        .mock();
+
+        List<Account> accounts = result.get(Account.SObjectType);
+        List<Case> cases = result.get(Case.SObjectType);
+        List<Contact> contacts = result.get(Contact.SObjectType);
+        List<User> users = result.get(User.SObjectType);
     }
 
     // #endregion
