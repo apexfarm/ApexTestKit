@@ -176,7 +176,6 @@ public with sharing class ATK  {
         Entity withChildren(Schema.SObjectType objectType, Schema.SObjectField parentIdField);
         Entity withChildren(Schema.SObjectType objectType, Schema.SObjectField parentIdField, Integer size);
         Entity withChildren(Schema.SObjectType objectType, Schema.SObjectField parentIdField, List<SObject> objects);
-        // Entity withJunction(Schema.SObjectType objectType, Schema.SObjectField parentIdField);
         Entity withJunction(Schema.SObjectType objectType, Schema.SObjectField parentIdField, Integer size);
         Entity withJunction(Schema.SObjectType objectType, Schema.SObjectField parentIdField, List<SObject> objects);
 
@@ -201,7 +200,7 @@ public with sharing class ATK  {
     }
 
     public interface Field {
-        // deprecating on 3.2.0
+        // deprecated on 3.2.0
         Entity recordType(String name);
         Entity profile(String name);
         Entity permissionSet(String name);
@@ -217,7 +216,6 @@ public with sharing class ATK  {
         Entity repeat(Object value1, Object value2, Object value3, Object value4);
         Entity repeat(Object value1, Object value2, Object value3, Object value4, Object value5);
         Entity repeat(List<Object> values);
-        // Entity lookup(String field);
 
         // Arithmetic
         Entity add(Decimal init, Decimal step);

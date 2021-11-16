@@ -49,22 +49,24 @@ for (Integer i = 0; i < 200; i++) {
 
     System.assertEquals(acc, contact1.Account);
     System.assertEquals(acc, contact2.Account);
-    System.assertEquals(acc, order1.Account);
-    System.assertEquals(acc, order2.Account);
     System.assertEquals(acc, opp1.Account);
     System.assertEquals(acc, opp2.Account);
+
+    System.assertEquals(acc, order1.Account);
+    System.assertEquals(acc, order2.Account);
     System.assertEquals(contact1, order1.BillToContact);
     System.assertEquals(contact2, order2.BillToContact);
     System.assertEquals(opp1, order1.Opportunity);
     System.assertEquals(opp2, order2.Opportunity);
-    System.assertEquals(contact1, opc1.Contact);
-    System.assertEquals(contact1, opc2.Contact);
-    System.assertEquals(contact2, opc3.Contact);
-    System.assertEquals(contact2, opc4.Contact);
+    
     System.assertEquals(opp1, opc1.Opportunity);
     System.assertEquals(opp1, opc2.Opportunity);
     System.assertEquals(opp2, opc3.Opportunity);
     System.assertEquals(opp2, opc4.Opportunity);
+    System.assertEquals(contact1, opc1.Contact);
+    System.assertEquals(contact1, opc2.Contact);
+    System.assertEquals(contact2, opc3.Contact);
+    System.assertEquals(contact2, opc4.Contact);
 }
 
 Database.rollback(sp);

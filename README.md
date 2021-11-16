@@ -1,6 +1,6 @@
 # Apex Test Kit
 
-![](https://img.shields.io/badge/version-3.5.0-brightgreen.svg) ![](https://img.shields.io/badge/build-passing-brightgreen.svg) ![](https://img.shields.io/badge/coverage-97%25-brightgreen.svg)
+![](https://img.shields.io/badge/version-3.5.1-brightgreen.svg) ![](https://img.shields.io/badge/build-passing-brightgreen.svg) ![](https://img.shields.io/badge/coverage-98%25-brightgreen.svg)
 
 Apex Test Kit can help generate massive records for Apex test classes. It solves two pain points during record creation:
 
@@ -9,8 +9,8 @@ Apex Test Kit can help generate massive records for Apex test classes. It solves
 
 | Environment           | Installation Link                                            | Version   |
 | --------------------- | ------------------------------------------------------------ | --------- |
-| Production, Developer | <a target="_blank" href="https://login.salesforce.com/packaging/installPackage.apexp?p0=04t2v000007GTLoAAO"><img src="docs/images/deploy-button.png"></a> | ver 3.5.0 |
-| Sandbox               | <a target="_blank" href="https://test.salesforce.com/packaging/installPackage.apexp?p0=04t2v000007GTLoAAO"><img src="docs/images/deploy-button.png"></a> | ver 3.5.0 |
+| Production, Developer | <a target="_blank" href="https://login.salesforce.com/packaging/installPackage.apexp?p0=04t2v000007GTQfAAO"><img src="docs/images/deploy-button.png"></a> | ver 3.5.1 |
+| Sandbox               | <a target="_blank" href="https://test.salesforce.com/packaging/installPackage.apexp?p0=04t2v000007GTQfAAO"><img src="docs/images/deploy-button.png"></a> | ver 3.5.1 |
 
 ------
 ### **v3.5 Release Notes**
@@ -18,13 +18,15 @@ Apex Test Kit can help generate massive records for Apex test classes. It solves
 #### Minor Changes
 - Increase api versions to 53.0
 - Increase number of accepted parameters of `repeat()` from 3 to 5.
+- **v3.5.1 Fixes**: `Illegal assignment from Decimal to Integer`, when use arithmetic keywords against integer field types such as `Number(8, 0)`.
 
 #### Major Changes (Non-breaking)
 - [**Many to Many with Junction**](#many-to-many-with-junction): Introduce a new entity keyword `withJunction()`, it can be used as `withChildren()` to establish one-to-many relationship, but with a different distribution logic to distribute some parents of the junction object among the others.
+  - **Pros**: Verified `withJunction()` in **Consumer Goods Cloud Demo** (`scripts/apex/demo-consumer.apex`), and it works well with the combination of other entity keywords to fulfill wider business scenarios. 
+  - **Cons**: `withJunction()` will result in meaningless distribution logic if two parents share a common ancestor. In such case, please keep use `withChildren()`. Plan to bring a solution for this during next release, won't be soon and won't be long. **Caution**: `withJunction()` API or behavior is subject to change in minor chances.
 
-  > It is not quite clear if this is a right way to introduce new distribution behaviors, and the API might be subject to change in future. However any issues will be supported during v3.5 release.
 
-* Account, Contact, Case, User, Product2, PriceBook2, and PriceBookEntry are the only sObjects used in test classes.
+* Account, Contact, Case, User are the only sObjects used in test classes.
 
 ## Table of Contents
 
@@ -55,6 +57,7 @@ Apex Test Kit can help generate massive records for Apex test classes. It solves
 <p align="center">
 <img src="docs/images/sales-objects.png#2020-5-31" width="400" alt="Sales Object Graph">
 </p>
+
 Imagine the complexity to generate all sObjects and relationships in the above diagram. With ATK we can create them within just one Apex statement. Here, we are generating:
 
 1. *200* accounts with names: `Name-0001, Name-0002, Name-0003...`
@@ -109,13 +112,14 @@ The scripts used to perform benchmark testing are documented under `scripts/apex
 
 There are five demos under the `scripts/apex` folder, they can be successfully run in a clean Salesforce CRM organization. If not, please try to fix them with FLS, validation rules or duplicate rules etc.
 
-| Subject  | File Path                         | Description                                                  |
-| -------- | --------------------------------- | ------------------------------------------------------------ |
-| Campaign | `scripts/apex/demo-campaign.apex` | How to genereate campaigns with hierarchy relationships. `ATK.EntityBuilder` is implemented to reuse the field population logic. |
-| Cases    | `scripts/apex/demo-cases.apex`    | How to generate Accounts, Contacts and Cases.                |
-| Products | `scripts/apex/demo-products.apex` | How to generate Products for standard Price Book.            |
-| Sales    | `scripts/apex/demo-sales.apex`    | You've already seen it in the above paragraph.               |
-| Users    | `scripts/apex/demo-users.apex`    | How to generate community users in one goal.                 |
+| Subject        | File Path                         | Description                                                  |
+| -------------- | --------------------------------- | ------------------------------------------------------------ |
+| Campaign       | `scripts/apex/demo-campaign.apex` | How to genereate campaigns with hierarchy relationships. `ATK.EntityBuilder` is implemented to reuse the field population logic. |
+| Consumer Goods | `scripts/apex/demo-consumer.apex` |                                                              |
+| Sales          | `scripts/apex/demo-sales.apex`    | You've already seen it in the above paragraph.               |
+| Products       | `scripts/apex/demo-products.apex` | How to generate Products for standard Price Book.            |
+| Cases          | `scripts/apex/demo-cases.apex`    | How to generate Accounts, Contacts and Cases.                |
+| Users          | `scripts/apex/demo-users.apex`    | How to generate community users in one goal.                 |
 
 ## Relationship
 
@@ -131,8 +135,6 @@ ATK.prepare(Account.SObjectType, 10)
     .save();
 ```
 
-Children will be evenly distributed among parents, and here is how the relationship going to be mapped:
-
 | Account Name | Contact Name |
 | ------------ | ------------ |
 | Name-0001    | Name-0001    |
@@ -142,6 +144,8 @@ Children will be evenly distributed among parents, and here is how the relations
 | ...          | ...          |
 
 ### Many to One
+
+The result of the following statement is identical to the one in the above one-to-many relationship.
 
 ```java
 ATK.prepare(Contact.SObjectType, 20)
@@ -163,7 +167,7 @@ ATK.prepare(Opportunity.SObjectType, 10)
     .mock();
 ```
 
-The above ATK statement will result in the following distribution pattern, which seems not intuitive, if not intentional. But it makes scenes when the same contact play two different roles in the same opportunity. However in most of the cases you will want parents distributed differently to the others, please consider the next section to make the result a bit interesting.
+The result of above ATK statement will give the following distribution pattern, which seems not intuitive, if not intentional. But it makes scenes when the same contact play two different roles in the same opportunity.
 
 | Opportunity Name | Contact Name | Contact Role   |
 | ---------------- | ------------ | -------------- |
@@ -199,7 +203,7 @@ ATK.prepare(Opportunity.SObjectType, 10)
 | Opportunity 0007 | Contact 0004 | Decision Maker |
 | ...              | ...          | ....           |
 
-**Note**: Only the first two adjacent parent relationships of the junction object can be recognized. And different order of the junction relationships will result different distribution patterns. Here is an example if we create Contact first before Opportunity in the ATK statement.
+**Note**: Different order of the junction relationships will result different distribution patterns. Here is an example if we create Contact first before Opportunity in the ATK statement.
 
 ```java
 ATK.prepare(Contact.SObjectType, 10)
@@ -211,18 +215,18 @@ ATK.prepare(Contact.SObjectType, 10)
     .mock();
 ```
 
-| Contact Name   | Opportunity Name   | Contact Role    |
-| -------------- | ------------------ | --------------- |
-| *Contact 0001* | *Opportunity 0001* | *Business User* |
-| Contact 0001   | Opportunity 0002   | Decision Maker  |
-| Contact 0002   | Opportunity 0003   | Business User   |
-| Contact 0002   | Opportunity 0004   | Decision Maker  |
-| ...            | ...                | ....            |
-| *Contact 0006* | *Opportunity 0001* | *Business User* |
-| Contact 0006   | Opportunity 0002   | Decision Maker  |
-| Contact 0007   | Opportunity 0003   | Business User   |
-| Contact 0007   | Opportunity 0004   | Decision Maker  |
-| ...            | ...                | ....            |
+| Contact Name | Opportunity Name | Contact Role   |
+| ------------ | ---------------- | -------------- |
+| Contact 0001 | Opportunity 0001 | Business User  |
+| Contact 0001 | Opportunity 0002 | Decision Maker |
+| Contact 0002 | Opportunity 0003 | Business User  |
+| Contact 0002 | Opportunity 0004 | Decision Maker |
+| ...          | ...              | ....           |
+| Contact 0006 | Opportunity 0001 | Business User  |
+| Contact 0006 | Opportunity 0002 | Decision Maker |
+| Contact 0007 | Opportunity 0003 | Business User  |
+| Contact 0007 | Opportunity 0004 | Decision Maker |
+| ...          | ...              | ....           |
 
 
 ## Command API

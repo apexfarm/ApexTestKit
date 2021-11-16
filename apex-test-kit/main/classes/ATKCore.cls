@@ -219,11 +219,6 @@ public with sharing class ATKCore {
         }
 
         // * Experimental withJunction methods
-        // public ATK.Entity withJunction(Schema.SObjectType objectType, Schema.SObjectField parentIdField) {
-        //     this.matrix.add(EntityNodeType.ONE_TO_MANY, objectType, parentIdField, true);
-        //     return this;
-        // }
-
         public ATK.Entity withJunction(Schema.SObjectType objectType, Schema.SObjectField parentIdField, Integer size) {
             this.matrix.add(EntityNodeType.ONE_TO_MANY, new EntityNode(objectType, size), parentIdField, true);
             return this;
@@ -465,7 +460,7 @@ public with sharing class ATKCore {
 
             for (EntityField entityField : entityNode.writableFields) {
                 if (entityField.isArithmetic) {
-                    switch on entityField.dfr.getType() {
+                    switch on entityField.type {
                         when DATE {
                             Date init = Converter.toDate(entityField.initValue);
                             Integer step = Converter.toInteger(entityField.stepVAlue);
@@ -487,11 +482,18 @@ public with sharing class ATKCore {
                                 objects[i].put(entityField.field, entityField.getValue(init, step, i));
                             }
                         }
-                        when DOUBLE, INTEGER, PERCENT, CURRENCY {
+                        when DOUBLE, PERCENT, CURRENCY {
                             Decimal init = Converter.toDecimal(entityField.initValue);
                             Decimal step = Converter.toDecimal(entityField.stepVAlue);
                             for (Integer i = 0; i < size; ++i) {
                                 objects[i].put(entityField.field, entityField.getValue(init, step, i));
+                            }
+                        }
+                        when INTEGER { // fix: Illegal assignment from Decimal to Integer
+                            Decimal init = Converter.toDecimal(entityField.initValue);
+                            Decimal step = Converter.toDecimal(entityField.stepVAlue);
+                            for (Integer i = 0; i < size; ++i) {
+                                objects[i].put(entityField.field, Integer.valueOf(entityField.getValue(init, step, i)));
                             }
                         }
                     }
@@ -515,43 +517,73 @@ public with sharing class ATKCore {
                 && entityNode.objects != null
                 && entityNode.size > 0) {
 
-                Integer junctionOrder = 0;
+                Integer index = -1;
+                List<SObject> childObjectList = entityNode.objects;
                 for (EntityNodeRelationship relationship : entityNode.relationships) {
-                    if (relationship.isJunction) {
-                        junctionOrder ++;
-                    }
+                    index++;
 
                     if (skipRootChild && relationship.parent.isRoot && relationship.child.isRootChild) {
                         continue;
                     }
 
-                    String relationshipName = relationship.parentIdField.getDescribe().getRelationshipName();
                     List<SObject> parentObjectList = relationship.parent.objects;
-                    List<SObject> childObjectList = relationship.child.objects;
 
                     // Open comment for debug purpose
-                    // System.debug(String.format('{0} -> {1}', new List<Object> { entityNode.objectType, relationshipName }));
+                    // System.debug(String.format('{0} -> {1}', new List<Object> { entityNode.objectType, relationship.parentRelationshipName }));
                     // System.debug(String.format('{0} -> {1}', new List<Object> { childObjectList.size(), parentObjectList.size() }));
 
                     if (parentObjectList.size() == 0) {
                         continue;
                     }
 
-                    if (junctionOrder == 2) {
+                    SObject child;
+                    SObject parent;
+                    if (entityNode.isJunction && index > 0) {
+                        if (index > 1) {
+                            childObjectList = sorttedChildObjectList(childObjectList, entityNode.relationships[index - 2], entityNode.relationships[index - 1]);
+                        }
+
                         for (List<Object> pair : DISTRIBUTOR.product(childObjectList, parentObjectList)) {
-                            // * pair[0] is child, pair[1] is parent
-                            ((SObject)pair[0]).put(relationship.parentIdField, ((SObject)pair[1]).Id);
-                            ((SObject)pair[0]).putSObject(relationshipName, ((SObject)pair[1]));
+                            child = (SObject)pair[0];
+                            parent = (SObject)pair[1];
+
+                            (child).put(relationship.parentIdField, parent.Id);
+                            (child).putSObject(relationship.parentRelationshipName, parent);
                         }
                     } else {
                         for (List<Object> pair : DISTRIBUTOR.distribute(childObjectList, parentObjectList)) {
-                            // * pair[0] is child, pair[1] is parent
-                            ((SObject)pair[0]).put(relationship.parentIdField, ((SObject)pair[1]).Id);
-                            ((SObject)pair[0]).putSObject(relationshipName, ((SObject)pair[1]));
+                            child = (SObject)pair[0];
+                            parent = (SObject)pair[1];
+                            
+                            (child).put(relationship.parentIdField, parent.Id);
+                            (child).putSObject(relationship.parentRelationshipName, parent);
                         }
                     }
                 }
             }
+        }
+
+        @TestVisible
+        private List<SObject> sorttedChildObjectList(List<SObject> childObjectList, EntityNodeRelationship relationship1, EntityNodeRelationship relationship2) {
+            List<SObject> newObjectList = new List<SObject>();
+            for (SObject child : childObjectList) {
+                SObject parent1 = child.getSObject(relationship1.parentRelationshipName);
+                SObject parent2 = child.getSObject(relationship2.parentRelationshipName);
+                Integer foundIndex = -1;
+                for (foundIndex = newObjectList.size() - 1; foundIndex >= 0; foundIndex--) {
+                    SObject newParent1 = newObjectList[foundIndex].getSObject(relationship1.parentRelationshipName);
+                    SObject newParent2 = newObjectList[foundIndex].getSObject(relationship2.parentRelationshipName);
+                    if (parent1 == newParent1 && parent2 == newParent2) {
+                        break;
+                    }
+                }
+                if (foundIndex == -1 || foundIndex + 1 == newObjectList.size()) {
+                    newObjectList.add(child);
+                } else {
+                    newObjectList.add(foundIndex + 1, child);
+                }
+            }
+            return newObjectList;
         }
     }
 
@@ -617,33 +649,33 @@ public with sharing class ATKCore {
             Integer size = mockObjects.size();
             for (EntityField entityField : entityNode.readonlyFields) {
                 if (entityField.isArithmetic) {
-                    switch on entityField.dfr.getType() {
+                    switch on entityField.type {
                         when DATE {
                             Date init = Converter.toDate(entityField.initValue);
                             Integer step = Converter.toInteger(entityField.stepVAlue);
                             for (Integer i = 0; i < size; ++i) {
-                                mockObjects.get(i).put(entityField.dfr.getName(), CONVERTER.toString(entityField.getValue(init, step, i)));
+                                mockObjects.get(i).put(entityField.name, CONVERTER.toString(entityField.getValue(init, step, i)));
                             }
                         }
                         when DATETIME {
                             Datetime init = Converter.toDatetime(entityField.initValue);
                             Integer step = Converter.toInteger(entityField.stepVAlue);
                             for (Integer i = 0; i < size; ++i) {
-                                mockObjects.get(i).put(entityField.dfr.getName(), CONVERTER.toString(entityField.getValue(init, step, i)));
+                                mockObjects.get(i).put(entityField.name, CONVERTER.toString(entityField.getValue(init, step, i)));
                             }
                         }
                         when TIME {
                             Time init = Converter.toTime(entityField.initValue);
                             Integer step = Converter.toInteger(entityField.stepVAlue);
                             for (Integer i = 0; i < size; ++i) {
-                                mockObjects.get(i).put(entityField.dfr.getName(), String.valueOf(entityField.getValue(init, step, i)));
+                                mockObjects.get(i).put(entityField.name, String.valueOf(entityField.getValue(init, step, i)));
                             }
                         }
                         when DOUBLE, INTEGER, PERCENT, CURRENCY {
                             Decimal init = Converter.toDecimal(entityField.initValue);
                             Decimal step = Converter.toDecimal(entityField.stepVAlue);
                             for (Integer i = 0; i < size; ++i) {
-                                mockObjects.get(i).put(entityField.dfr.getName(), String.valueOf(entityField.getValue(init, step, i)));
+                                mockObjects.get(i).put(entityField.name, String.valueOf(entityField.getValue(init, step, i)));
                             }
                         }
                     }
@@ -651,7 +683,7 @@ public with sharing class ATKCore {
                     Integer start = reserveIndex(entityNode.objectType, entityField.field, size);
 
                     // fix: https://github.com/apexfarm/ApexTestKit/issues/31
-                    if (entityField.dfr.getName() == 'Id') {
+                    if (entityField.name == 'Id') {
                         entityNode.mockIds.clear();
                         for (Integer i = 0; i < size; ++i) {
                             Object value = entityField.getValue(i + start);
@@ -661,7 +693,7 @@ public with sharing class ATKCore {
                     } else {
                         for (Integer i = 0; i < size; ++i) {
                             Object value = entityField.getValue(i + start);
-                            mockObjects.get(i).put(entityField.dfr.getName(), CONVERTER.toString(value));
+                            mockObjects.get(i).put(entityField.name, CONVERTER.toString(value));
                         }
                     }
                 }
@@ -674,15 +706,14 @@ public with sharing class ATKCore {
                 && entityNode.relationships != null
                 && entityNode.mockObjects != null) {
 
-
+                MockSObjectList childObjectList = entityNode.mockObjects;
                 for (EntityNodeRelationship relationship : entityNode.relationships) {
                     if (!relationship.parent.isRoot) {
                         continue;
                     }
 
                     MockSObjectList parentObjectList = relationship.parent.mockObjects;
-                    MockSObjectList childObjectList = relationship.child.mockObjects;
-
+                    
                     // Open comment for debug purpose
                     // System.debug(String.format('{0} -> {1}', new List<Object> { entityNode.objectType, relationship.parentRelationshipName }));
                     // System.debug(String.format('{0} -> {1}', new List<Object> { childObjectList.size(), parentObjectList.size() }));
@@ -691,11 +722,14 @@ public with sharing class ATKCore {
                         continue;
                     }
 
+                    MockSObject child;
+                    MockSObject parent;
                     for (List<Object> pair : DISTRIBUTOR.distribute(childObjectList.mockObjects, parentObjectList.mockObjects)) {
-                        // * pair[0] is child, pair[1] is parent
-                        ((MockSObject)pair[0]).put(relationship.parentRelationshipId, ((MockSObject)pair[1]).Id);
-                        // pair[0].putParent(relationship.parentRelationshipName, pair[1]);
-                        ((MockSObject)pair[1]).putChild(relationship.childRelationshipName, ((MockSObject)pair[0]));
+                        child = (MockSObject)pair[0];
+                        parent = (MockSObject)pair[1];
+                        child.put(relationship.parentRelationshipId, parent.Id);
+                        // child.putParent(relationship.parentRelationshipName, parent);
+                        (parent).putChild(relationship.childRelationshipName, child);
                     }
                 }
             }
@@ -998,10 +1032,11 @@ public with sharing class ATKCore {
 
         public EntityNode next() {
             if (this.hasNext()) {
-                return (EntityNode)this.graph.keyAt(this.top.order()[nextIndex++]);
+                this.currEntityNode = (EntityNode)this.graph.keyAt(this.top.order()[nextIndex++]);
             } else {
-                return null;
+                this.currEntityNode = null;
             }
+            return this.currEntityNode;
         }
 
         public void add(EntityNodeType nodeType, EntityNode nextEntityNode, Schema.SObjectField parentIdField) {
@@ -1068,11 +1103,11 @@ public with sharing class ATKCore {
         }
     }
 
+    @TestVisible
     private class EntityNodeRelationship {
         EntityNode parent { get; set; }
         EntityNode child { get; set; }
         Schema.SObjectField parentIdField { get; set; }
-        Boolean isJunction { get; set; }
         
         String childRelationshipName { get; set; }
         String parentRelationshipName { get; set; }
@@ -1082,7 +1117,6 @@ public with sharing class ATKCore {
             this.parent = parent;
             this.child = child;
             this.parentIdField = parentIdField;
-            this.isJunction = false;
 
             this.parentRelationshipId = parentIdField.getDescribe().getName();
             this.parentRelationshipName = parentIdField.getDescribe().getRelationshipName();
@@ -1152,14 +1186,6 @@ public with sharing class ATKCore {
         }
 
         public void addRelationship(EntityNodeRelationship relationship) {
-            if (this.isJunction) {
-                Integer size = this.relationships.size();
-                if (size <= 1) {
-                    relationship.isJunction = true;
-                } else if (size > 1 && this.relationships[size - 1].isJunction && !this.relationships[size - 2].isJunction) {
-                    relationship.isJunction = true;
-                }
-            }
             this.relationships.add(relationship);
         }
 
@@ -1170,7 +1196,7 @@ public with sharing class ATKCore {
             } else {
                 entityField = new EntityField(field);
                 this.fieldMap.put(field, entityField);
-                if (!entityField.dfr.isCreateable() || entityField.dfr.getName() == 'Id') {
+                if (!entityField.isCreateable || entityField.name == 'Id') {
                     this.readonlyFields.add(entityField);
                 } else {
                     this.writableFields.add(entityField);
@@ -1253,6 +1279,9 @@ public with sharing class ATKCore {
     private class EntityField  {
         public Schema.SObjectField field { get; set; }
         public Schema.DescribeFieldResult dfr { get; set; }
+        public Schema.DisplayType type { get; set; }
+        public String name { get; set; }
+        public Boolean isCreateable { get; set; }
 
         // Fixed Value
         public Object fixedValue { get; set; }
@@ -1277,6 +1306,9 @@ public with sharing class ATKCore {
         public EntityField(Schema.SObjectField field) {
             this.field = field;
             this.dfr = this.field.getDescribe();
+            this.type = this.dfr.getType();
+            this.name = this.dfr.getName();
+            this.isCreateable = this.dfr.isCreateable();
         }
 
         Boolean isIndexed {
