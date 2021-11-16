@@ -28,11 +28,17 @@ Apex Test Kit can help generate massive records for Apex test classes. It solves
 
 * Account, Contact, Case, User are the only sObjects used in test classes.
 
+#### Next Release
+
+- Bring solution for the `withJunction()` cons mentioned above.
+- Bring a demo to generate nearly full graph of B2B Commerce Cloud to further verify the robustness and stability of `withJunction()` keyword.
+
 ## Table of Contents
 
 - [Introduction](#introduction)
   - [Performance](#performance)
   - [Demos](#demos)
+    - &#128293;Consumer Goods Cloud
 - [Relationship](#relationship)
   - [One to Many](#one-to-many)
   - [Many to One](#many-to-one)
@@ -115,7 +121,7 @@ There are five demos under the `scripts/apex` folder, they can be successfully r
 | Subject        | File Path                         | Description                                                  |
 | -------------- | --------------------------------- | ------------------------------------------------------------ |
 | Campaign       | `scripts/apex/demo-campaign.apex` | How to genereate campaigns with hierarchy relationships. `ATK.EntityBuilder` is implemented to reuse the field population logic. |
-| Consumer Goods | `scripts/apex/demo-consumer.apex` |                                                              |
+| &#128293;Consumer Goods Cloud | `scripts/apex/demo-consumer.apex` | Create all the following sObjects in one ATK statement with meaningful relationship distributions: `Account`, `Contact`, `RetailLocationGroup`, `RetailStore`, `InstoreLocation`, `StoreProduct`, `Product2`, `PricebookEntry`, `Pricebook2`, `RetailStoreKpi`, `AssessmentIndicatorDefinition`, `AssessmentTaskDefinition`. |
 | Sales          | `scripts/apex/demo-sales.apex`    | You've already seen it in the above paragraph.               |
 | Products       | `scripts/apex/demo-products.apex` | How to generate Products for standard Price Book.            |
 | Cases          | `scripts/apex/demo-cases.apex`    | How to generate Accounts, Contacts and Cases.                |
