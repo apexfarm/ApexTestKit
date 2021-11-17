@@ -1,26 +1,24 @@
 /**
- * 1. Object Relationships
- *     Account(2) 
- *         <= Retail Store(4) 
- *             <= In-store Location(8) 
- *                 <= Store Product(16) 
- *                     => Product2(4)
+ * 1. Install https://github.com/apexfarm/ApexTestKit
+ *
+ * 2. Targeted Relationships:
+ *    Account(2) <= Retail Store(4) <= In-store Location(8) <= Store Product(16) => Product2(4)
  * 
- * 2. Expected Distribution:
- *     |---------------------------------------------------|---------------------------------------------------|
- *     |                     Account 1                     |                     Account 2                     |
- *     |                       Contact 1                   |                       Contact 3                   |
- *     |                       Contact 2                   |                       Contact 4                   |
- *     |-------------------------|-------------------------|-------------------------|-------------------------|
- *     | Store Group 1           | Store Group 1           | Store Group 2           | Store Group 2           |
- *     |   Retail Store 1        |   Retail Store 2        |   Retail Store 3        |   Retail Store 4        |
- *     |     In-store Location 1 |     In-store Location 3 |     In-store Location 5 |     In-store Location 7 |
- *     |       Product 1         |       Product 1         |       Product 1         |       Product 1         |
- *     |       Product 2         |       Product 2         |       Product 2         |       Product 2         |
- *     |     In-store Location 2 |     In-store Location 4 |     In-store Location 6 |     In-store Location 8 |
- *     |       Product 3         |       Product 3         |       Product 3         |       Product 3         |
- *     |       Product 4         |       Product 4         |       Product 4         |       Product 4         |
- *     |-------------------------|-------------------------|-------------------------|-------------------------|
+ * 2. Expected Distributions:
+ *    |---------------------------------------------------|---------------------------------------------------|
+ *    |                     Account 1                     |                     Account 2                     |
+ *    |                       Contact 1                   |                       Contact 3                   |
+ *    |                       Contact 2                   |                       Contact 4                   |
+ *    |-------------------------|-------------------------|-------------------------|-------------------------|
+ *    | Store Group 1           | Store Group 1           | Store Group 2           | Store Group 2           |
+ *    |   Retail Store 1        |   Retail Store 2        |   Retail Store 3        |   Retail Store 4        |
+ *    |     In-store Location 1 |     In-store Location 3 |     In-store Location 5 |     In-store Location 7 |
+ *    |       Product 1         |       Product 1         |       Product 1         |       Product 1         |
+ *    |       Product 2         |       Product 2         |       Product 2         |       Product 2         |
+ *    |     In-store Location 2 |     In-store Location 4 |     In-store Location 6 |     In-store Location 8 |
+ *    |       Product 3         |       Product 3         |       Product 3         |       Product 3         |
+ *    |       Product 4         |       Product 4         |       Product 4         |       Product 4         |
+ *    |-------------------------|-------------------------|-------------------------|-------------------------|
  */
 
 Savepoint sp = Database.setSavepoint();
@@ -60,9 +58,11 @@ ATK.SaveResult result = ATK.prepare(Account.SObjectType, 2)
         .withParents(RetailLocationGroup.SObjectType, RetailStore.RetailLocationGroupId, 2)
             .field(RetailLocationGroup.Name).index('Store Group {000}')
             // =============Store KPIs=============
-            // 2 Groups * 4 Products * 2 Indicators
+            // 2 Groups * 2 Indicators * 4 Products
             .withJunction(RetailStoreKpi.SObjectType, RetailStoreKpi.RetailStoreGroupId, 16)
-                .field(RetailStoreKpi.InStoreLocationCategory).repeat('Aisle', 'Backroom Storage')
+                .field(RetailStoreKpi.InStoreLocationCategory).repeat(new List<String> {
+                    'Aisle', 'Aisle', 'Aisle', 'Aisle', 'Backroom Storage', 'Backroom Storage', 'Backroom Storage', 'Backroom Storage'
+                })
                 .field(RetailStoreKpi.KpiType).repeat('Inventory')
                 .field(RetailStoreKpi.StartDate).repeat(Date.newInstance(2020, 1, 1))
                 .field(RetailStoreKpi.TargetIntegerValue).repeat(10, null)
@@ -78,8 +78,7 @@ ATK.SaveResult result = ATK.prepare(Account.SObjectType, 2)
                 .withParents(Product2.SObjectType, RetailStoreKpi.ProductId)
     .mock();
 
-System.debug('==============================');
-List<RetailStoreKpi> kpis = result.get(RetailStoreKpi.SObjectType);
+List<RetailStoreKpi> kpis = result.get(RetailStoreKpi.SobjectType);
 for (RetailStoreKpi kpi : kpis) {
     System.debug(kpi);
 }
