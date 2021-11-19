@@ -35,388 +35,118 @@ public with sharing class ATKCore {
     private static final PermissionSets PERMISSION_SETS = new PermissionSets();
 
     public class NoneDAGException extends Exception {
-        String msg = 'In each ATK statement, The object relationships must be '
-        + 'a Directed Acyclic Graph, thus no cyclic relationships. '
-        + 'https://github.com/apexfarm/ApexTestKit/tree/develop#relationship';
+        String msg = 'Object graph should be a Directed Acyclic Graph.';
 
         {
             this.setMessage(msg);
         }
     }
 
-    // ***********************
-    // #region SObject Command
-
-    public class SaveResult implements ATK.SaveResult {
-        Map<SObjectType, List<List<SObject>>> result = new Map<SObjectType, List<List<SObject>>>();
-        EntityNodeMatrix matrix { get; set; }
-    
-        SaveResult(EntityNodeMatrix matrix) {
-            this.matrix = matrix;
-            for (EntityNode node : matrix.entityNodeCache) {
-                if (!result.containsKey(node.objectType)) {
-                    result.put(node.objectType, new List<List<SObject>> { node.objects });
-                } else {
-                    result.get(node.objectType).add(node.objects);
-                }
-            }
-        }
-
-        public void debug() {
-            Iterator<Schema.SObjectType> keys = this.keys();
-            String message = 'Topology Order:';
-            while (keys.hasNext()) {
-                message += ' ' + keys.next();
-            }
-            System.debug(message);
-
-            Iterator<List<SObject>> values = this.values();
-            while(values.hasNext()) {
-                System.debug(values.next());
-            }
-        }
-    
-        public List<SObject> get(SObjectType objectType) {
-            return result.get(objectType)[0];
-        }
-    
-        public List<SObject> get(SObjectType objectType, Integer index) {
-            return result.get(objectType)[index];
-        }
-    
-        public List<SObject> getAll(SObjectType objectType) {
-            List<SObject> allObjects;
-            if (result.get(objectType).size() == 1) {
-                allObjects = result.get(objectType)[0];
-            } else {
-                allObjects = new List<SObject>();
-                for (List<SObject> objects : result.get(objectType)) {
-                    allObjects.addAll(objects);
-                }
-            }
-            return allObjects;
-        }
-    
-        Iterator<Schema.SObjectType> keys() {
-            return new ObjectTypeIterator(this.matrix);
-        }
-    
-        Iterator<List<SObject>> values() {
-            return new ObjectListIterator(this.matrix);
-        }
-    }
-    
-    public class ObjectTypeIterator implements Iterator<Schema.SObjectType> {
-        EntityNodeMatrix matrix { get; set; }
-    
-        ObjectTypeIterator(EntityNodeMatrix matrix) {
-            this.matrix = matrix;
-            this.matrix.reset();
-        }
-    
-        public Boolean hasNext() {
-            return this.matrix.hasNext();
-        }
-    
-        public Schema.SObjectType next() {
-            if (this.hasNext()) {
-                return this.matrix.next().objectType;
-            } else {
-                return null;
-            }
-        }
-    }
-    
-    public class ObjectListIterator implements Iterator<List<SObject>> {
-        EntityNodeMatrix matrix { get; set; }
-    
-        ObjectListIterator(EntityNodeMatrix matrix) {
-            this.matrix = matrix;
-            this.matrix.reset();
-        }
-    
-        public Boolean hasNext() {
-            return this.matrix.hasNext();
-        }
-    
-        public List<SObject> next() {
-            if (this.hasNext()) {
-                return this.matrix.next().objects;
-            } else {
-                return null;
-            }
-        }
-    }
-
-    public class EntityCommand implements ATK.Entity, ATK.Field {
-        public EntityNodeMatrix matrix { get; set; }
+    public class JunctionOrderException extends Exception {
+        String msg = 'Junction order should include all relationships.';
 
         {
-            matrix = new EntityNodeMatrix();
+            this.setMessage(msg);
         }
-
-        // *******************************************
-        // #region ATK.Entity Interface Implementation
-        // ***************************************
-
-        public SaveResult save() {
-            return this.save(true);
-        }
-
-        public SaveResult save(Boolean doInsert) {
-            SAVE_GENERATOR.generate(this.matrix, doInsert);
-            return generateResult();
-        }
-
-        public SaveResult mock() {
-            MOCK_GENERATOR.generate(this.matrix, false);
-            return generateResult();
-        }
-
-        private SaveResult generateResult() {
-            SaveResult result = new SaveResult(this.matrix);
-            return result;
-        }
-
-        public ATK.Entity prepare(Schema.SObjectType objectType, Integer size) {
-            this.matrix.add(EntityNodeType.PREPARE, new EntityNode(objectType, size), null);
-            return this;
-        }
-    
-        public ATK.Entity prepare(Schema.SObjectType objectType, List<SObject> objects) {
-            this.matrix.add(EntityNodeType.PREPARE, new EntityNode(objectType, objects), null);
-            return this;
-        }
-
-        public ATK.Entity withParents(Schema.SObjectType objectType, Schema.SObjectField parentIdField) {
-            this.matrix.add(EntityNodeType.MANY_TO_ONE, objectType, parentIdField);
-            return this;
-        }
-
-        public ATK.Entity withParents(Schema.SObjectType objectType, Schema.SObjectField parentIdField, Integer size) {
-            this.matrix.add(EntityNodeType.MANY_TO_ONE, new EntityNode(objectType, size), parentIdField);
-            return this;
-        }
-
-        public ATK.Entity withParents(Schema.SObjectType objectType, Schema.SObjectField parentIdField, List<SObject> objects) {
-            this.matrix.add(EntityNodeType.MANY_TO_ONE, new EntityNode(objectType, objects), parentIdField);
-            return this;
-        }
-
-        public ATK.Entity withChildren(Schema.SObjectType objectType, Schema.SObjectField parentIdField) {
-            this.matrix.add(EntityNodeType.ONE_TO_MANY, objectType, parentIdField);
-            return this;
-        }
-
-        public ATK.Entity withChildren(Schema.SObjectType objectType, Schema.SObjectField parentIdField, Integer size) {
-            this.matrix.add(EntityNodeType.ONE_TO_MANY, new EntityNode(objectType, size), parentIdField);
-            return this;
-        }
-
-        public ATK.Entity withChildren(Schema.SObjectType objectType, Schema.SObjectField parentIdField, List<SObject> objects) {
-            this.matrix.add(EntityNodeType.ONE_TO_MANY, new EntityNode(objectType, objects), parentIdField);
-            return this;
-        }
-
-        // * Experimental withJunction methods
-        public ATK.Entity withJunction(Schema.SObjectType objectType, Schema.SObjectField parentIdField, Integer size) {
-            this.matrix.add(EntityNodeType.ONE_TO_MANY, new EntityNode(objectType, size), parentIdField, true);
-            return this;
-        }
-
-        public ATK.Entity withJunction(Schema.SObjectType objectType, Schema.SObjectField parentIdField, List<SObject> objects) {
-            this.matrix.add(EntityNodeType.ONE_TO_MANY, new EntityNode(objectType, objects), parentIdField, true);
-            return this;
-        }
-
-        public ATK.Entity also() {
-            this.matrix.pop(1);
-            return this;
-        }
-
-        public ATK.Entity also(Integer depth) {
-            this.matrix.pop(depth);
-            return this;
-        }
-
-        public ATK.Field field(SObjectField field) {
-            this.matrix.currEntityNode.addField(field);
-            return this;
-        }
-
-        public ATK.Entity build(ATK.EntityBuilder builder) {
-            builder.build(this, this.matrix.currEntityNode.size);
-            return this;
-        }
-
-        // #endregion
-        // *******************************************
-
-        // **************************************
-        // #region Field Interface Implementation
-        // **************************************
-
-        public ATK.Entity recordType(String name) {
-            Schema.SObjectField recordTypeIdField = this.matrix.currEntityNode.dsr
-                .fields.getMap().get('RecordTypeId');
-            if (recordTypeIdField != null) {
-                this.field(recordTypeIdField).repeat(RECORD_TYPES
-                    .getId(this.matrix.currEntityNode.dsr, name));
-            }
-            return this;
-        }
-
-        public ATK.Entity profile(String name) {
-            if (User.SObjectType == this.matrix.currEntityNode.objectType) {
-                this.field(User.ProfileId).repeat(PROFILES.getId(name));
-            }
-            return this;
-        }
-
-        public ATK.Entity permissionSet(String name) {
-            this.permissionSet(new List<String> { name });
-            return this;
-        }
-
-        public ATK.Entity permissionSet(String name1, String name2) {
-            this.permissionSet(new List<String> { name1, name2 });
-            return this;
-        }
-
-        public ATK.Entity permissionSet(String name1, String name2, String name3) {
-            this.permissionSet(new List<String> { name1, name2, name3 });
-            return this;
-        }
-
-        public ATK.Entity permissionSet(List<String> names) {
-            if (User.SObjectType == this.matrix.currEntityNode.objectType) {
-                List<Id> permissionSetIds = PERMISSION_SETS.getIds(names);
-                if (permissionSetIds.size() > 0) {
-                    this.withChildren(
-                        PermissionSetAssignment.SObjectType,
-                        PermissionSetAssignment.AssigneeId,
-                        this.matrix.currEntityNode.size * permissionSetIds.size())
-                        .field(PermissionSetAssignment.PermissionSetId).repeat(permissionSetIds)
-                        .also();
-                }
-            }
-            return this;
-        }
-
-        public ATK.Entity index(String format) {
-            this.matrix.currEntityNode.currEntityField.indexFormat = format;
-            return this;
-        }
-
-        public ATK.Entity repeat(Object value) {
-            this.matrix.currEntityNode.currEntityField.fixedValue = value;
-            return this;
-        }
-
-        public ATK.Entity repeat(Object value1, Object value2) {
-            this.matrix.currEntityNode.currEntityField.repeatValues = new List<Object> { value1, value2 };
-            return this;
-        }
-
-        public ATK.Entity repeat(Object value1, Object value2, Object value3) {
-            this.matrix.currEntityNode.currEntityField.repeatValues = new List<Object> { value1, value2, value3 };
-            return this;
-        }
-
-        public ATK.Entity repeat(Object value1, Object value2, Object value3, Object value4) {
-            this.matrix.currEntityNode.currEntityField.repeatValues = new List<Object> { value1, value2, value3, value4 };
-            return this;
-        }
-
-        public ATK.Entity repeat(Object value1, Object value2, Object value3, Object value4, Object value5) {
-            this.matrix.currEntityNode.currEntityField.repeatValues = new List<Object> { value1, value2, value3, value4, value5 };
-            return this;
-        }
-
-        public ATK.Entity repeat(List<Object> values) {
-            this.matrix.currEntityNode.currEntityField.repeatValues = values;
-            return this;
-        }
-
-        public ATK.Entity add(Decimal init, Decimal step) {
-            this.matrix.currEntityNode.currEntityField.arithmetic = EntityFieldArithmetic.ADD;
-            this.matrix.currEntityNode.currEntityField.initValue = init;
-            this.matrix.currEntityNode.currEntityField.stepValue = step;
-            return this;
-        }
-
-        public ATK.Entity substract(Decimal init, Decimal step) {
-            this.matrix.currEntityNode.currEntityField.arithmetic = EntityFieldArithmetic.SUBSTRACT;
-            this.matrix.currEntityNode.currEntityField.initValue = init;
-            this.matrix.currEntityNode.currEntityField.stepValue = step;
-            return this;
-        }
-
-        public ATK.Entity divide(Decimal init, Decimal factor) {
-            this.matrix.currEntityNode.currEntityField.arithmetic = EntityFieldArithmetic.DIVIDE;
-            this.matrix.currEntityNode.currEntityField.initValue = init;
-            this.matrix.currEntityNode.currEntityField.stepValue = factor;
-            return this;
-        }
-
-        public ATK.Entity multiply(Decimal init, Decimal factor) {
-            this.matrix.currEntityNode.currEntityField.arithmetic = EntityFieldArithmetic.MULTIPLY;
-            this.matrix.currEntityNode.currEntityField.initValue = init;
-            this.matrix.currEntityNode.currEntityField.stepValue = factor;
-            return this;
-        }
-
-        public ATK.Entity addYears(Object init, Integer step) {
-            this.matrix.currEntityNode.currEntityField.arithmetic = EntityFieldArithmetic.ADD_YEARS;
-            this.matrix.currEntityNode.currEntityField.initValue = init;
-            this.matrix.currEntityNode.currEntityField.stepValue = step;
-            return this;
-        }
-
-        public ATK.Entity addMonths(Object init, Integer step) {
-            this.matrix.currEntityNode.currEntityField.arithmetic = EntityFieldArithmetic.ADD_MONTHS;
-            this.matrix.currEntityNode.currEntityField.initValue = init;
-            this.matrix.currEntityNode.currEntityField.stepValue = step;
-            return this;
-        }
-
-        public ATK.Entity addDays(Object init, Integer step) {
-            this.matrix.currEntityNode.currEntityField.arithmetic = EntityFieldArithmetic.ADD_DAYS;
-            this.matrix.currEntityNode.currEntityField.initValue = init;
-            this.matrix.currEntityNode.currEntityField.stepValue = step;
-            return this;
-        }
-
-        public ATK.Entity addHours(Object init, Integer step) {
-            this.matrix.currEntityNode.currEntityField.arithmetic = EntityFieldArithmetic.ADD_HOURS;
-            this.matrix.currEntityNode.currEntityField.initValue = init;
-            this.matrix.currEntityNode.currEntityField.stepValue = step;
-            return this;
-        }
-
-        public ATK.Entity addMinutes(Object init, Integer step) {
-            this.matrix.currEntityNode.currEntityField.arithmetic = EntityFieldArithmetic.ADD_MINUTES;
-            this.matrix.currEntityNode.currEntityField.initValue = init;
-            this.matrix.currEntityNode.currEntityField.stepValue = step;
-            return this;
-        }
-
-        public ATK.Entity addSeconds(Object init, Integer step) {
-            this.matrix.currEntityNode.currEntityField.arithmetic = EntityFieldArithmetic.ADD_SECONDS;
-            this.matrix.currEntityNode.currEntityField.initValue = init;
-            this.matrix.currEntityNode.currEntityField.stepValue = step;
-            return this;
-        }
-
-        // #endregion
-        // **************************************
     }
-
-    // #endregion
-    // ***********************
 
     // *************************
     // #region SObject Generator
+
+    public class MockGenerator extends Generator {
+        public override void generate(EntityNodeMatrix matrix, Boolean doInsert) {
+            matrix.generateDAG();
+
+            // step 1
+            matrix.reset();
+            while (matrix.hasNext()) {
+                EntityNode entityNode = matrix.next();
+                createObjectsForMock(entityNode);
+                assignFieldsForMock(entityNode);
+                assignReferencesForMock(entityNode);
+            }
+
+            // step 2
+            matrix.reset();
+            while (matrix.hasNext()) {
+                EntityNode entityNode = matrix.next();
+                if (entityNode.isRootChild) {
+                    entityNode.restoreFromRoot();
+                } else {
+                    entityNode.createSObjectsForMock();
+                }
+                entityNode.stashObjectIds();
+                entityNode.restoreParents();
+                assignFields(entityNode);
+                entityNode.applyObjectIds();
+            }
+        }
+
+        @TestVisible
+        private void createObjectsForMock(EntityNode entityNode) {
+            if (entityNode.mockObjects.isEmpty()) {
+                String objectName = entityNode.dsr.getName();
+                List<Id> ids = FAKEID.generate(entityNode.objectType, entityNode.size);
+                entityNode.mockIds.addAll(ids);
+
+                if (!entityNode.objects.isEmpty()) {
+                    // convert objects to mock objects
+                    for (Integer i = 0; i < entityNode.size; ++i) {
+                        entityNode.mockObjects.add(new MockSObject(objectName, ids[i], entityNode.objects[i]));
+                    }
+                    entityNode.objects.clear();
+                } else {
+                    for (Integer i = 0; i < entityNode.size; ++i) {
+                        entityNode.mockObjects.add(new MockSObject(objectName, ids[i]));
+                    }
+                }
+            }
+        }
+    }
+
+    public class SaveGenerator extends Generator {
+        public override void generate(EntityNodeMatrix matrix, Boolean doInsert) {
+            matrix.generateDAG();
+            matrix.reset();
+            while (matrix.hasNext()) {
+                EntityNode entityNode = matrix.next();
+                createObjects(entityNode);
+                assignFields(entityNode);
+                assignReferences(entityNode);
+
+                if (!doInsert) {
+                    continue;
+                }
+
+                // TODO: Fine tune upsert logics.
+                List<SObject> updateList = new List<SObject>();
+                List<SObject> insertList = new List<SObject>();
+                for (SObject obj : entityNode.objects) {
+                    if (obj.Id == null) {
+                        insertList.add(obj);
+                    } else {
+                        updateList.add(obj);
+                    }
+                }
+                if (!updateList.isEmpty()) {
+                    Database.update(updateList);
+                }
+                if (!insertList.isEmpty()) {
+                    Database.insert(insertList);
+                }
+            }
+        }
+
+        @TestVisible
+        private void createObjects(EntityNode entityNode) {
+            if (entityNode.objects.isEmpty()) {
+                Schema.SObjectType objectType = entityNode.objectType;
+                for (Integer i = 0; i < entityNode.size; ++i) {
+                    entityNode.objects.add(objectType.newSObject());
+                }
+            }
+        }
+    }
 
     public abstract class Generator {
         private Map<Schema.SObjectType, Map<Schema.SObjectField, Integer>> indexes { get; set; }
@@ -425,29 +155,7 @@ public with sharing class ATKCore {
             indexes = new Map<Schema.SObjectType, Map<Schema.SObjectField, Integer>>();
         }
 
-        private Integer reserveIndex(SObjectType objectType, SObjectField field, Integer size) {
-            if(!indexes.containsKey(objectType)) {
-                indexes.put(objectType, new Map<Schema.SObjectField, Integer> {
-                    field => 0
-                });
-            } else if (!indexes.get(objectType).containsKey(field)) {
-                indexes.get(objectType).put(field, 0);
-            }
-            Integer index = indexes.get(objectType).get(field);
-            indexes.get(objectType).put(field, index + size);
-            return index;
-        }
-
         abstract void generate(EntityNodeMatrix matrix, Boolean doInsert);
-
-        protected void createObjects(EntityNode entityNode) {
-            if (entityNode.objects.isEmpty()) {
-                Schema.SObjectType objectType = entityNode.objectType;
-                for (Integer i = 0; i < entityNode.size; ++i) {
-                    entityNode.objects.add(objectType.newSObject());
-                }
-            }
-        }
 
         @TestVisible
         protected void assignFields(EntityNode entityNode) {
@@ -507,144 +215,8 @@ public with sharing class ATKCore {
             }
         }
 
-        /**
-         * @param skipRootChild Skip in mock mode, because relationships of root entities and their children have already been established.
-         */
         @TestVisible
-        protected void assignReferences(EntityNode entityNode, Boolean skipRootChild) {
-            if (entityNode.relationships != null
-                && entityNode.relationships.size() > 0
-                && entityNode.objects != null
-                && entityNode.size > 0) {
-
-                Integer index = -1;
-                List<SObject> childObjectList = entityNode.objects;
-                for (EntityNodeRelationship relationship : entityNode.relationships) {
-                    index++;
-
-                    if (skipRootChild && relationship.parent.isRoot && relationship.child.isRootChild) {
-                        continue;
-                    }
-
-                    List<SObject> parentObjectList = relationship.parent.objects;
-
-                    // Open comment for debug purpose
-                    // System.debug(String.format('{0} -> {1}', new List<Object> { entityNode.objectType, relationship.parentRelationshipName }));
-                    // System.debug(String.format('{0} -> {1}', new List<Object> { childObjectList.size(), parentObjectList.size() }));
-
-                    if (parentObjectList.size() == 0) {
-                        continue;
-                    }
-
-                    SObject child;
-                    SObject parent;
-                    if (entityNode.isJunction && index > 0) {
-                        if (index > 1) {
-                            childObjectList = sorttedChildObjectList(childObjectList, entityNode.relationships[index - 2], entityNode.relationships[index - 1]);
-                        }
-
-                        for (List<Object> pair : DISTRIBUTOR.product(childObjectList, parentObjectList)) {
-                            child = (SObject)pair[0];
-                            parent = (SObject)pair[1];
-
-                            (child).put(relationship.parentIdField, parent.Id);
-                            (child).putSObject(relationship.parentRelationshipName, parent);
-                        }
-                    } else {
-                        for (List<Object> pair : DISTRIBUTOR.distribute(childObjectList, parentObjectList)) {
-                            child = (SObject)pair[0];
-                            parent = (SObject)pair[1];
-                            
-                            (child).put(relationship.parentIdField, parent.Id);
-                            (child).putSObject(relationship.parentRelationshipName, parent);
-                        }
-                    }
-                }
-            }
-        }
-
-        @TestVisible
-        private List<SObject> sorttedChildObjectList(List<SObject> childObjectList, EntityNodeRelationship relationship1, EntityNodeRelationship relationship2) {
-            List<SObject> newObjectList = new List<SObject>();
-            for (SObject child : childObjectList) {
-                SObject parent1 = child.getSObject(relationship1.parentRelationshipName);
-                SObject parent2 = child.getSObject(relationship2.parentRelationshipName);
-                Integer foundIndex = -1;
-                for (foundIndex = newObjectList.size() - 1; foundIndex >= 0; foundIndex--) {
-                    SObject newParent1 = newObjectList[foundIndex].getSObject(relationship1.parentRelationshipName);
-                    SObject newParent2 = newObjectList[foundIndex].getSObject(relationship2.parentRelationshipName);
-                    if (parent1 == newParent1 && parent2 == newParent2) {
-                        break;
-                    }
-                }
-                if (foundIndex == -1 || foundIndex + 1 == newObjectList.size()) {
-                    newObjectList.add(child);
-                } else {
-                    newObjectList.add(foundIndex + 1, child);
-                }
-            }
-            return newObjectList;
-        }
-    }
-
-    public class MockGenerator extends Generator {
-        public override void generate(EntityNodeMatrix matrix, Boolean doInsert) {
-            matrix.generateDAG();
-
-            // step 1
-            matrix.reset();
-            while (matrix.hasNext()) {
-                EntityNode entityNode = matrix.next();
-                if (entityNode.isRoot || entityNode.isRootChild) {
-                    createMockObjects(entityNode);
-                    assignMockObjectFields(entityNode);
-                    assignMockObjectReferences(entityNode);
-                }
-            }
-
-            // step 2
-            matrix.reset();
-            while (matrix.hasNext()) {
-                EntityNode entityNode = matrix.next();
-                if (entityNode.isRoot) {
-                    entityNode.convertToSObjects();
-                } else if (entityNode.isRootChild) {
-                    entityNode.convertToSObjectsFromParent();
-                } else {
-                    createMockObjects(entityNode);
-                    assignMockObjectFields(entityNode);
-                    entityNode.convertToSObjects();
-                }
-                entityNode.stashObjectIds();
-                assignFields(entityNode);
-                assignReferences(entityNode, true);
-                entityNode.applyObjectIds();
-            }
-        }
-
-        @TestVisible
-        private void createMockObjects(EntityNode entityNode) {
-            if (entityNode.mockObjects.isEmpty()) {
-                String objectName = entityNode.dsr.getName();
-                List<Id> ids = FAKEID.generate(entityNode.objectType, entityNode.size);
-                entityNode.mockIds.addAll(ids);
-
-                if (!entityNode.objects.isEmpty()) {
-                    // convert objects to mock objects
-                    for (Integer i = 0; i < entityNode.size; ++i) {
-                        entityNode.mockObjects.add(new MockSObject(objectName, ids[i], entityNode.objects[i]));
-                    }
-                    entityNode.objects.clear();
-                } else {
-                    for (Integer i = 0; i < entityNode.size; ++i) {
-                        entityNode.mockObjects.add(new MockSObject(objectName, ids[i]));
-                    }
-                }
-            }
-        }
-
-        @TestVisible
-        private void assignMockObjectFields(EntityNode entityNode) {
+        protected void assignFieldsForMock(EntityNode entityNode) {
             MockSObjectList mockObjects = entityNode.mockObjects;
             Integer size = mockObjects.size();
             for (EntityField entityField : entityNode.readonlyFields) {
@@ -700,23 +272,69 @@ public with sharing class ATKCore {
             }
         }
 
-        @TestVisible
-        public void assignMockObjectReferences(EntityNode entityNode) {
-            if (entityNode.isRootChild
-                && entityNode.relationships != null
-                && entityNode.mockObjects != null) {
+        private Integer reserveIndex(SObjectType objectType, SObjectField field, Integer size) {
+            if(!indexes.containsKey(objectType)) {
+                indexes.put(objectType, new Map<Schema.SObjectField, Integer> {
+                    field => 0
+                });
+            } else if (!indexes.get(objectType).containsKey(field)) {
+                indexes.get(objectType).put(field, 0);
+            }
+            Integer index = indexes.get(objectType).get(field);
+            indexes.get(objectType).put(field, index + size);
+            return index;
+        }
 
-                MockSObjectList childObjectList = entityNode.mockObjects;
+        @TestVisible
+        protected void assignReferences(EntityNode entityNode) {
+            if (entityNode.relationships != null
+                && entityNode.objects != null
+                && entityNode.size > 0) {
+
+                List<SObject> childObjectList = entityNode.objects;
+                Integer index = -1;
                 for (EntityNodeRelationship relationship : entityNode.relationships) {
-                    if (!relationship.parent.isRoot) {
+                    List<SObject> parentObjectList = relationship.parent.objects;
+                    index++;
+
+                    if (parentObjectList.size() == 0) {
                         continue;
                     }
 
+                    SObject child;
+                    SObject parent;
+                    List<List<Object>> pairs;
+                    if (entityNode.isJunction && index > 0) {
+                        if (index > 1) {
+                            childObjectList = sorttedChildObjectList(childObjectList, entityNode.relationships[index - 2], entityNode.relationships[index - 1]);
+                        }
+                        pairs = DISTRIBUTOR.distribute2(childObjectList, parentObjectList);
+                    } else {
+                        pairs = DISTRIBUTOR.distribute(childObjectList, parentObjectList);
+                    }
+
+                    for (List<Object> pair : pairs) {
+                        child = (SObject)pair[0];
+                        parent = (SObject)pair[1];
+                        
+                        (child).put(relationship.parentIdField, parent.Id);
+                        (child).putSObject(relationship.parentRelationshipName, parent);
+                    }
+                }
+            }
+        }
+
+        @TestVisible
+        public void assignReferencesForMock(EntityNode entityNode) {
+            if (entityNode.relationships != null
+                && entityNode.mockObjects != null
+                && entityNode.size > 0) {
+
+                List<MockSObject> childObjectList = entityNode.mockObjects.mockObjects;
+                Integer index = -1;
+                for (EntityNodeRelationship relationship : entityNode.relationships) {
                     MockSObjectList parentObjectList = relationship.parent.mockObjects;
-                    
-                    // Open comment for debug purpose
-                    // System.debug(String.format('{0} -> {1}', new List<Object> { entityNode.objectType, relationship.parentRelationshipName }));
-                    // System.debug(String.format('{0} -> {1}', new List<Object> { childObjectList.size(), parentObjectList.size() }));
+                    index++;
 
                     if (parentObjectList.size() == 0) {
                         continue;
@@ -724,48 +342,80 @@ public with sharing class ATKCore {
 
                     MockSObject child;
                     MockSObject parent;
-                    for (List<Object> pair : DISTRIBUTOR.distribute(childObjectList.mockObjects, parentObjectList.mockObjects)) {
-                        child = (MockSObject)pair[0];
-                        parent = (MockSObject)pair[1];
-                        child.put(relationship.parentRelationshipId, parent.Id);
-                        // child.putParent(relationship.parentRelationshipName, parent);
-                        (parent).putChild(relationship.childRelationshipName, child);
+                    List<List<Object>> pairs;
+                    if (entityNode.isJunction && index > 0) {
+                        if (index > 1) {
+                            childObjectList = sorttedChildObjectList(childObjectList, entityNode.relationships[index - 2], entityNode.relationships[index - 1]);
+                        }
+                        pairs = DISTRIBUTOR.distribute2(childObjectList, parentObjectList.mockObjects);
+                    } else {
+                        pairs = DISTRIBUTOR.distribute(childObjectList, parentObjectList.mockObjects);
+                    }
+
+                    if (relationship.parent.isRoot && relationship.child.isRootChild) {
+                        for (List<Object> pair : pairs) {
+                            child = (MockSObject)pair[0];
+                            parent = (MockSObject)pair[1];
+                            
+                            child.put(relationship.parentIdName, parent.Id);
+                            parent.putChild(relationship.childRelationshipName, child);
+                        }
+                    } else {
+                        for (List<Object> pair : pairs) {
+                            child = (MockSObject)pair[0];
+                            parent = (MockSObject)pair[1];
+                            
+                            child.put(relationship.parentIdName, parent.Id);
+                        }
                     }
                 }
             }
         }
-    }
 
-    public class SaveGenerator extends Generator {
-        public override void generate(EntityNodeMatrix matrix, Boolean doInsert) {
-            matrix.generateDAG();
-            matrix.reset();
-            while (matrix.hasNext()) {
-                EntityNode entityNode = matrix.next();
-                createObjects(entityNode);
-                assignFields(entityNode);
-                assignReferences(entityNode, false);
-
-                if (!doInsert) {
-                    continue;
-                }
-
-                List<SObject> updateList = new List<SObject>();
-                List<SObject> insertList = new List<SObject>();
-                for (SObject obj : entityNode.objects) {
-                    if (obj.Id == null) {
-                        insertList.add(obj);
-                    } else {
-                        updateList.add(obj);
+        @TestVisible
+        private List<SObject> sorttedChildObjectList(List<SObject> childObjectList, EntityNodeRelationship relationship1, EntityNodeRelationship relationship2) {
+            List<SObject> newObjectList = new List<SObject>();
+            for (SObject child : childObjectList) {
+                SObject parent1 = child.getSObject(relationship1.parentRelationshipName);
+                SObject parent2 = child.getSObject(relationship2.parentRelationshipName);
+                Integer foundIndex = -1;
+                for (foundIndex = newObjectList.size() - 1; foundIndex >= 0; foundIndex--) {
+                    SObject newParent1 = newObjectList[foundIndex].getSObject(relationship1.parentRelationshipName);
+                    SObject newParent2 = newObjectList[foundIndex].getSObject(relationship2.parentRelationshipName);
+                    if (parent1 == newParent1 && parent2 == newParent2) {
+                        break;
                     }
                 }
-                if (!updateList.isEmpty()) {
-                    Database.update(updateList);
-                }
-                if (!insertList.isEmpty()) {
-                    Database.insert(insertList);
+                if (foundIndex == -1 || foundIndex + 1 == newObjectList.size()) {
+                    newObjectList.add(child);
+                } else {
+                    newObjectList.add(foundIndex + 1, child);
                 }
             }
+            return newObjectList;
+        }
+
+        @TestVisible
+        private List<MockSObject> sorttedChildObjectList(List<MockSObject> childObjectList, EntityNodeRelationship relationship1, EntityNodeRelationship relationship2) {
+            List<MockSObject> newObjectList = new List<MockSObject>();
+            for (MockSObject child : childObjectList) {
+                Object parentId1 = child.get(relationship1.parentIdName);
+                Object parentId2 = child.get(relationship2.parentIdName);
+                Integer foundIndex = -1;
+                for (foundIndex = newObjectList.size() - 1; foundIndex >= 0; foundIndex--) {
+                    Object newParentId1 = newObjectList[foundIndex].get(relationship1.parentIdName);
+                    Object newParentId2 = newObjectList[foundIndex].get(relationship2.parentIdName);
+                    if (parentId1 == newParentId1 && parentId2 == newParentId2) {
+                        break;
+                    }
+                }
+                if (foundIndex == -1 || foundIndex + 1 == newObjectList.size()) {
+                    newObjectList.add(child);
+                } else {
+                    newObjectList.add(foundIndex + 1, child);
+                }
+            }
+            return newObjectList;
         }
     }
 
@@ -801,7 +451,7 @@ public with sharing class ATKCore {
             return groups;
         }
 
-        public List<List<Object>> product(List<Object> childGroup, List<Object> parentGroup) {
+        public List<List<Object>> distribute2(List<Object> childGroup, List<Object> parentGroup) {
             List<List<Object>> groups = new List<List<Object>>();
 
             Integer l = childGroup.size();
@@ -896,7 +546,6 @@ public with sharing class ATKCore {
             for (String fieldName : fieldMap.keySet()) {
                 if (fieldName == 'attributes'
                     || fieldMap.get(fieldName) instanceof Map<String, Object>) {
-                    // TODO: tests to cover these conditions
                     continue;
                 } else {
                     this.put(fieldName, fieldMap.get(fieldName));
@@ -912,13 +561,13 @@ public with sharing class ATKCore {
             }
         }
 
+        Object get(String name) {
+            return fieldMap.get(name);
+        }
+
         void put(String name, Object value) {
             fieldMap.put(name, value);
         }
-
-        // void putParent(String name, MockSObject value) {
-        //     fieldMap.put(name, value);
-        // }
 
         void putChild(String name, MockSObject value) {
             if (String.isBlank(name)) {
@@ -935,10 +584,11 @@ public with sharing class ATKCore {
             StringBuilder builder = new StringBuilder();
             builder.append('{"attributes":{"type":"' + this.objectName + '"}');
             for(String fieldName: fieldMap.keySet()) {
-                if (fieldMap.get(fieldName) instanceof MockSObjectChildren) {
-                    builder.append(',"' + fieldName + '":' + String.valueOf(fieldMap.get(fieldName)));
+                Object fieldValue = fieldMap.get(fieldName);
+                if (fieldValue instanceof MockSObjectChildren) {
+                    builder.append(',"' + fieldName + '":' + String.valueOf(fieldValue));
                 } else {
-                    builder.append(',"' + fieldName + '":"' + String.valueOf(fieldMap.get(fieldName)) + '"');
+                    builder.append(',"' + fieldName + '":"' + String.valueOf(fieldValue) + '"');
                 }
             }
             builder.append('}');
@@ -995,6 +645,23 @@ public with sharing class ATKCore {
             entityNodeCache = new List<EntityNode>();
             entityNodeRelationships = new List<EntityNodeRelationship>();
         }
+
+        // public EntityNode lowestCommonAncestor(EntityNode entityNode1, EntityNode entityNode2) {
+        //     Integer v = this.graph.index(entityNode1);
+        //     Integer w = this.graph.index(entityNode2);
+
+        //     Integer index1 = this.top.order().indexOf(v);
+        //     Integer index2 = this.top.order().indexOf(w);
+        //     Integer indexP = index1 <= index2 ? index1 : index2;
+
+        //     for (Integer i = indexP -1; indexP >= 0; indexP--) {
+        //         Integer p = this.top.order()[i];
+        //         if (this.graph.G().hasEdge(v, p) && this.graph.G().hasEdge(w, p)) {
+        //             return (EntityNode)this.graph.keyAt(p);
+        //         }
+        //     }
+        //     return null;
+        // }
 
         public void generateDAG() {
             this.graph = new SymbolDigraph(this.entityNodeCache);
@@ -1107,18 +774,26 @@ public with sharing class ATKCore {
     private class EntityNodeRelationship {
         EntityNode parent { get; set; }
         EntityNode child { get; set; }
+        @TestVisible
         Schema.SObjectField parentIdField { get; set; }
+        String parentIdName { get; set; }
         
         String childRelationshipName { get; set; }
         String parentRelationshipName { get; set; }
-        String parentRelationshipId { get; set; }
+
+        @TestVisible
+        EntityNodeRelationship(Schema.SObjectField parentIdField) {
+            if (Test.isRunningTest()) {
+                this.parentIdField = parentIdField;
+            }
+        }
 
         EntityNodeRelationship(EntityNode parent, EntityNode child, Schema.SObjectField parentIdField) {
             this.parent = parent;
             this.child = child;
             this.parentIdField = parentIdField;
+            this.parentIdName = parentIdField.getDescribe().getName();
 
-            this.parentRelationshipId = parentIdField.getDescribe().getName();
             this.parentRelationshipName = parentIdField.getDescribe().getRelationshipName();
             for (Schema.ChildRelationship cr: parent.dsr.getChildRelationships()) {
                 if (cr.getChildSObject() == child.objectType && cr.getField() == parentIdField) {
@@ -1138,10 +813,12 @@ public with sharing class ATKCore {
         public Schema.SObjectType objectType { get; set; }
         public Schema.DescribeSObjectResult dsr { get; set; }
         public Integer size { get; set; }
-        public Boolean isJunction { get; set; }
 
-        public List<EntityNodeRelationship> relationships { get; set; }
+        public Boolean isJunction { get; set; }
+        public List<Schema.SObjectField> junctionOrders { get; set; }
+
         public List<SObject> objects { get; set; }
+        public List<EntityNodeRelationship> relationships { get; set; }
 
         // Used for fields generation
         public EntityField currEntityField { get; set; }
@@ -1186,6 +863,27 @@ public with sharing class ATKCore {
         }
 
         public void addRelationship(EntityNodeRelationship relationship) {
+            if (this.junctionOrders != null) {
+                if (this.junctionOrders.size() > this.relationships.size()) {
+                    EntityNodeRelationship tmpRelationship = this.relationships[0];
+                    this.relationships = new EntityNodeRelationship[this.junctionOrders.size()];
+                    
+                    Integer index = this.junctionOrders.indexOf(tmpRelationship.parentIdField);
+                    if (index == -1) {
+                        throw new JunctionOrderException();
+                    } else {
+                        this.relationships[index] = tmpRelationship;
+                    }
+                }
+
+                for (Integer i = 0; i < this.junctionOrders.size(); i++) {
+                    if (this.junctionOrders[i] == relationship.parentIdField && this.relationships[i] == null) {
+                        this.relationships[i] = relationship;
+                        return;
+                    }
+                }
+                throw new JunctionOrderException();
+            }
             this.relationships.add(relationship);
         }
 
@@ -1205,14 +903,14 @@ public with sharing class ATKCore {
             this.currEntityField = entityField;
         }
 
-        // Used for mock objects generation
+        // * Used for mock objects generation
         private void stashObjectIds() {
             for (SObject obj : this.objects) {
                 obj.Id = null;
             }
         }
 
-        // Used for mock objects generation
+        // * Used for mock objects generation
         private void applyObjectIds() {
             Integer index = 0;
             for (Id mockId : this.mockIds) {
@@ -1222,14 +920,33 @@ public with sharing class ATKCore {
         }
 
         // Used for mock objects generation
-        private void convertToSObjects() {
+        private void createSObjectsForMock() {
             String jsonStr = String.valueOf(mockObjects);
             this.objects = (List<SObject>)JSON.deserialize(jsonStr, List<SObject>.class);
+
             this.mockObjects.clear();
         }
 
+        private void restoreParents() {
+            for (EntityNodeRelationship relationship : this.relationships) {
+                if (relationship.parent.isRoot && relationship.child.isRootChild) {
+                    continue;
+                }
+
+                Map<Id, SObject> parentsById = new Map<Id, SObject> (relationship.parent.objects);
+
+                if (parentsById.size() == 0) {
+                    continue;
+                }
+
+                for (SObject child : this.objects) {
+                    child.putSObject(relationship.parentRelationshipName, parentsById.get((Id)child.get(relationship.parentIdField)));
+                }
+            }
+        }
+
         // Used for mock objects generation
-        private void convertToSObjectsFromParent() {
+        private void restoreFromRoot() {
             for (EntityNodeRelationship relationship : this.relationships) {
                 EntityNode parentNode = relationship.parent;
                 if (parentNode.isRoot && parentNode.objects.size() > 0) {
@@ -1241,11 +958,6 @@ public with sharing class ATKCore {
 
                         for (SObject childObj : parentObj.getSObjects(relationship.childRelationshipName)) {
                             if (this.mockIds.contains(childObj.Id)) {
-                                Id tempId = childObj.id;
-                                childObj.id = null;
-                                // Commented out due to issues/30, will bring it back once Salesforce fixes it.
-                                // childObj.putSObject(relationship.parentRelationshipName, parentObj);
-                                childObj.id = tempId;
                                 objectMap.put(childObj.Id, childObj);
                             }
                         }
@@ -1254,6 +966,7 @@ public with sharing class ATKCore {
                     for (Id id : this.mockIds) {
                         this.objects.add(objectMap.get(id));
                     }
+                    this.mockObjects.clear();
                 }
             }
         }
@@ -1425,6 +1138,449 @@ public with sharing class ATKCore {
 
     // #endregion
     // ************************************
+
+    // ***********************
+    // #region SObject Command
+
+    public class SaveResult implements ATK.SaveResult {
+        Map<SObjectType, List<List<SObject>>> result = new Map<SObjectType, List<List<SObject>>>();
+        EntityNodeMatrix matrix { get; set; }
+    
+        SaveResult(EntityNodeMatrix matrix) {
+            this.matrix = matrix;
+            for (EntityNode node : matrix.entityNodeCache) {
+                if (!result.containsKey(node.objectType)) {
+                    result.put(node.objectType, new List<List<SObject>> { node.objects });
+                } else {
+                    result.get(node.objectType).add(node.objects);
+                }
+            }
+        }
+
+        public List<SObject> get(SObjectType objectType) {
+            return result.get(objectType)[0];
+        }
+    
+        public List<SObject> get(SObjectType objectType, Integer index) {
+            return result.get(objectType)[index];
+        }
+    
+        public List<SObject> getAll(SObjectType objectType) {
+            List<SObject> allObjects;
+            if (result.get(objectType).size() == 1) {
+                allObjects = result.get(objectType)[0];
+            } else {
+                allObjects = new List<SObject>();
+                for (List<SObject> objects : result.get(objectType)) {
+                    allObjects.addAll(objects);
+                }
+            }
+            return allObjects;
+        }
+
+        public void debug() {
+            Iterator<Schema.SObjectType> keys = this.keys();
+            String message = 'DAG Order:';
+            while (keys.hasNext()) {
+                message += ' ' + keys.next();
+            }
+            System.debug(message);
+
+            Iterator<List<SObject>> values = this.values();
+            while(values.hasNext()) {
+                System.debug(values.next());
+            }
+        }
+
+        public void debug(Schema.SObjectType objectType) {
+            System.debug('--------------- ' + objectType + ' ---------------');
+            for (SObject obj : this.get(objectType)) {
+                System.debug(obj);
+            }
+        }
+    
+        private Iterator<Schema.SObjectType> keys() {
+            return new ObjectTypeIterator(this.matrix);
+        }
+    
+        private Iterator<List<SObject>> values() {
+            return new ObjectListIterator(this.matrix);
+        }
+    }
+    
+    public class ObjectTypeIterator implements Iterator<Schema.SObjectType> {
+        EntityNodeMatrix matrix { get; set; }
+    
+        ObjectTypeIterator(EntityNodeMatrix matrix) {
+            this.matrix = matrix;
+            this.matrix.reset();
+        }
+    
+        public Boolean hasNext() {
+            return this.matrix.hasNext();
+        }
+    
+        public Schema.SObjectType next() {
+            if (this.hasNext()) {
+                return this.matrix.next().objectType;
+            } else {
+                return null;
+            }
+        }
+    }
+    
+    public class ObjectListIterator implements Iterator<List<SObject>> {
+        EntityNodeMatrix matrix { get; set; }
+    
+        ObjectListIterator(EntityNodeMatrix matrix) {
+            this.matrix = matrix;
+            this.matrix.reset();
+        }
+    
+        public Boolean hasNext() {
+            return this.matrix.hasNext();
+        }
+    
+        public List<SObject> next() {
+            if (this.hasNext()) {
+                return this.matrix.next().objects;
+            } else {
+                return null;
+            }
+        }
+    }
+
+    public class EntityCommand implements ATK.Entity, ATK.JunctionEntity, ATK.Field {
+        public EntityNodeMatrix matrix { get; set; }
+
+        {
+            matrix = new EntityNodeMatrix();
+        }
+
+        // *******************************************
+        // #region ATK.Entity Interface Implementation
+        // ***************************************
+
+        public SaveResult save() {
+            return this.save(true);
+        }
+
+        public SaveResult save(Boolean doInsert) {
+            SAVE_GENERATOR.generate(this.matrix, doInsert);
+            return generateResult();
+        }
+
+        public SaveResult mock() {
+            MOCK_GENERATOR.generate(this.matrix, false);
+            return generateResult();
+        }
+
+        private SaveResult generateResult() {
+            SaveResult result = new SaveResult(this.matrix);
+            return result;
+        }
+
+        public ATK.Entity prepare(Schema.SObjectType objectType, Integer size) {
+            this.matrix.add(EntityNodeType.PREPARE, new EntityNode(objectType, size), null);
+            return this;
+        }
+    
+        public ATK.Entity prepare(Schema.SObjectType objectType, List<SObject> objects) {
+            this.matrix.add(EntityNodeType.PREPARE, new EntityNode(objectType, objects), null);
+            return this;
+        }
+
+        public ATK.Entity withParents(Schema.SObjectType objectType, Schema.SObjectField parentIdField) {
+            this.matrix.add(EntityNodeType.MANY_TO_ONE, objectType, parentIdField);
+            return this;
+        }
+
+        public ATK.Entity withParents(Schema.SObjectType objectType, Schema.SObjectField parentIdField, Integer size) {
+            this.matrix.add(EntityNodeType.MANY_TO_ONE, new EntityNode(objectType, size), parentIdField);
+            return this;
+        }
+
+        public ATK.Entity withParents(Schema.SObjectType objectType, Schema.SObjectField parentIdField, List<SObject> objects) {
+            this.matrix.add(EntityNodeType.MANY_TO_ONE, new EntityNode(objectType, objects), parentIdField);
+            return this;
+        }
+
+        public ATK.Entity withChildren(Schema.SObjectType objectType, Schema.SObjectField parentIdField) {
+            this.matrix.add(EntityNodeType.ONE_TO_MANY, objectType, parentIdField);
+            return this;
+        }
+
+        public ATK.Entity withChildren(Schema.SObjectType objectType, Schema.SObjectField parentIdField, Integer size) {
+            this.matrix.add(EntityNodeType.ONE_TO_MANY, new EntityNode(objectType, size), parentIdField);
+            return this;
+        }
+
+        public ATK.Entity withChildren(Schema.SObjectType objectType, Schema.SObjectField parentIdField, List<SObject> objects) {
+            this.matrix.add(EntityNodeType.ONE_TO_MANY, new EntityNode(objectType, objects), parentIdField);
+            return this;
+        }
+
+        public ATK.JunctionEntity withJunction(Schema.SObjectType objectType, Schema.SObjectField parentIdField, Integer size) {
+            this.matrix.add(EntityNodeType.ONE_TO_MANY, new EntityNode(objectType, size), parentIdField, true);
+            return this;
+        }
+
+        public ATK.JunctionEntity withJunction(Schema.SObjectType objectType, Schema.SObjectField parentIdField, List<SObject> objects) {
+            this.matrix.add(EntityNodeType.ONE_TO_MANY, new EntityNode(objectType, objects), parentIdField, true);
+            return this;
+        }
+
+        public ATK.Entity order(Schema.SObjectField parentIdField1, Schema.SObjectField parentIdField2){
+            this.matrix.currEntityNode.junctionOrders = new List<Schema.SObjectField> { parentIdField1, parentIdField2};
+            return this;
+        }
+
+        public ATK.Entity order(Schema.SObjectField parentIdField1, Schema.SObjectField parentIdField2, Schema.SObjectField parentIdField3){
+            this.matrix.currEntityNode.junctionOrders = new List<Schema.SObjectField> { parentIdField1, parentIdField2, parentIdField3};
+            return this;
+        }
+
+        public ATK.Entity order(Schema.SObjectField parentIdField1, Schema.SObjectField parentIdField2, Schema.SObjectField parentIdField3, Schema.SObjectField parentIdField4){
+            this.matrix.currEntityNode.junctionOrders = new List<Schema.SObjectField> { parentIdField1, parentIdField2, parentIdField3, parentIdField4};
+            return this;
+        }
+
+        public ATK.Entity order(Schema.SObjectField parentIdField1, Schema.SObjectField parentIdField2, Schema.SObjectField parentIdField3, Schema.SObjectField parentIdField4, Schema.SObjectField parentIdField5){
+            this.matrix.currEntityNode.junctionOrders = new List<Schema.SObjectField> { parentIdField1, parentIdField2, parentIdField3, parentIdField4, parentIdField5};
+            return this;
+        }
+
+        public ATK.Entity order(List<Schema.SObjectField> parentIdFields) {
+            this.matrix.currEntityNode.junctionOrders = parentIdFields;
+            return this;
+        }
+
+        public ATK.Entity also() {
+            this.matrix.pop(1);
+            return this;
+        }
+
+        public ATK.Entity also(Integer depth) {
+            this.matrix.pop(depth);
+            return this;
+        }
+
+        public ATK.Field field(SObjectField field) {
+            this.matrix.currEntityNode.addField(field);
+            return this;
+        }
+
+        public ATK.Entity build(ATK.EntityBuilder builder) {
+            builder.build(this, this.matrix.currEntityNode.size);
+            return this;
+        }
+
+        // #endregion
+        // *******************************************
+
+        // **************************************
+        // #region Field Interface Implementation
+        // **************************************
+
+        // Basic Field Keywords
+
+        public ATK.Entity index(String format) {
+            this.matrix.currEntityNode.currEntityField.indexFormat = format;
+            return this;
+        }
+
+        public ATK.Entity repeat(Object value) {
+            this.matrix.currEntityNode.currEntityField.fixedValue = value;
+            return this;
+        }
+
+        public ATK.Entity repeat(Object value1, Object value2) {
+            this.matrix.currEntityNode.currEntityField.repeatValues = new List<Object> { value1, value2 };
+            return this;
+        }
+
+        public ATK.Entity repeat(Object value1, Object value2, Object value3) {
+            this.matrix.currEntityNode.currEntityField.repeatValues = new List<Object> { value1, value2, value3 };
+            return this;
+        }
+
+        public ATK.Entity repeat(Object value1, Object value2, Object value3, Object value4) {
+            this.matrix.currEntityNode.currEntityField.repeatValues = new List<Object> { value1, value2, value3, value4 };
+            return this;
+        }
+
+        public ATK.Entity repeat(Object value1, Object value2, Object value3, Object value4, Object value5) {
+            this.matrix.currEntityNode.currEntityField.repeatValues = new List<Object> { value1, value2, value3, value4, value5 };
+            return this;
+        }
+
+        public ATK.Entity repeat(List<Object> values) {
+            this.matrix.currEntityNode.currEntityField.repeatValues = values;
+            return this;
+        }
+
+        public ATK.Entity repeatX(Object value1, Integer size1, Object value2, Integer size2) {
+            this.repeatX(new List<Object> {value1, value2}, new List<Integer> {size1, size2});
+            return this;
+        }
+
+        public ATK.Entity repeatX(Object value1, Integer size1, Object value2, Integer size2, Object value3, Integer size3) {
+            this.repeatX(new List<Object> {value1, value2, value3}, new List<Integer> {size1, size2, size3});
+            return this;
+        }
+
+        public ATK.Entity repeatX(Object value1, Integer size1, Object value2, Integer size2, Object value3, Integer size3, Object value4, Integer size4) {
+            this.repeatX(new List<Object> {value1, value2, value3, value4}, new List<Integer> {size1, size2, size3, size4});
+            return this;
+        }
+
+        public ATK.Entity repeatX(Object value1, Integer size1, Object value2, Integer size2, Object value3, Integer size3, Object value4, Integer size4, Object value5, Integer size5) {
+            this.repeatX(new List<Object> {value1, value2, value3, value4, value5}, new List<Integer> {size1, size2, size3, size4, size5});
+            return this;
+        }
+
+        public ATK.Entity repeatX(List<Object> values, List<Integer> sizes) {
+            if (values == null || sizes == null || values.size() != sizes.size()) {
+                return this;
+            }
+
+            List<Object> newValues = new List<Object>();
+            for (Integer i = 0; i < values.size(); i++) {
+                Integer size = sizes[i];
+                for (Integer j = 0; j < size; j++) {
+                    newValues.add(values[i]);
+                }
+            }
+            this.matrix.currEntityNode.currEntityField.repeatValues = newValues;
+            return this;
+        }
+
+        // Arithmetic Field Keywords
+
+        public ATK.Entity add(Decimal init, Decimal step) {
+            this.matrix.currEntityNode.currEntityField.arithmetic = EntityFieldArithmetic.ADD;
+            this.matrix.currEntityNode.currEntityField.initValue = init;
+            this.matrix.currEntityNode.currEntityField.stepValue = step;
+            return this;
+        }
+
+        public ATK.Entity substract(Decimal init, Decimal step) {
+            this.matrix.currEntityNode.currEntityField.arithmetic = EntityFieldArithmetic.SUBSTRACT;
+            this.matrix.currEntityNode.currEntityField.initValue = init;
+            this.matrix.currEntityNode.currEntityField.stepValue = step;
+            return this;
+        }
+
+        public ATK.Entity divide(Decimal init, Decimal factor) {
+            this.matrix.currEntityNode.currEntityField.arithmetic = EntityFieldArithmetic.DIVIDE;
+            this.matrix.currEntityNode.currEntityField.initValue = init;
+            this.matrix.currEntityNode.currEntityField.stepValue = factor;
+            return this;
+        }
+
+        public ATK.Entity multiply(Decimal init, Decimal factor) {
+            this.matrix.currEntityNode.currEntityField.arithmetic = EntityFieldArithmetic.MULTIPLY;
+            this.matrix.currEntityNode.currEntityField.initValue = init;
+            this.matrix.currEntityNode.currEntityField.stepValue = factor;
+            return this;
+        }
+
+        public ATK.Entity addYears(Object init, Integer step) {
+            this.matrix.currEntityNode.currEntityField.arithmetic = EntityFieldArithmetic.ADD_YEARS;
+            this.matrix.currEntityNode.currEntityField.initValue = init;
+            this.matrix.currEntityNode.currEntityField.stepValue = step;
+            return this;
+        }
+
+        public ATK.Entity addMonths(Object init, Integer step) {
+            this.matrix.currEntityNode.currEntityField.arithmetic = EntityFieldArithmetic.ADD_MONTHS;
+            this.matrix.currEntityNode.currEntityField.initValue = init;
+            this.matrix.currEntityNode.currEntityField.stepValue = step;
+            return this;
+        }
+
+        public ATK.Entity addDays(Object init, Integer step) {
+            this.matrix.currEntityNode.currEntityField.arithmetic = EntityFieldArithmetic.ADD_DAYS;
+            this.matrix.currEntityNode.currEntityField.initValue = init;
+            this.matrix.currEntityNode.currEntityField.stepValue = step;
+            return this;
+        }
+
+        public ATK.Entity addHours(Object init, Integer step) {
+            this.matrix.currEntityNode.currEntityField.arithmetic = EntityFieldArithmetic.ADD_HOURS;
+            this.matrix.currEntityNode.currEntityField.initValue = init;
+            this.matrix.currEntityNode.currEntityField.stepValue = step;
+            return this;
+        }
+
+        public ATK.Entity addMinutes(Object init, Integer step) {
+            this.matrix.currEntityNode.currEntityField.arithmetic = EntityFieldArithmetic.ADD_MINUTES;
+            this.matrix.currEntityNode.currEntityField.initValue = init;
+            this.matrix.currEntityNode.currEntityField.stepValue = step;
+            return this;
+        }
+
+        public ATK.Entity addSeconds(Object init, Integer step) {
+            this.matrix.currEntityNode.currEntityField.arithmetic = EntityFieldArithmetic.ADD_SECONDS;
+            this.matrix.currEntityNode.currEntityField.initValue = init;
+            this.matrix.currEntityNode.currEntityField.stepValue = step;
+            return this;
+        }
+
+        // Lookup Field Keywords
+        public ATK.Entity recordType(String name) {
+            Schema.SObjectField recordTypeIdField = this.matrix.currEntityNode.dsr
+                .fields.getMap().get('RecordTypeId');
+            if (recordTypeIdField != null) {
+                this.field(recordTypeIdField).repeat(RECORD_TYPES
+                    .getId(this.matrix.currEntityNode.dsr, name));
+            }
+            return this;
+        }
+
+        public ATK.Entity profile(String name) {
+            if (User.SObjectType == this.matrix.currEntityNode.objectType) {
+                this.field(User.ProfileId).repeat(PROFILES.getId(name));
+            }
+            return this;
+        }
+
+        public ATK.Entity permissionSet(String name) {
+            this.permissionSet(new List<String> { name });
+            return this;
+        }
+
+        public ATK.Entity permissionSet(String name1, String name2) {
+            this.permissionSet(new List<String> { name1, name2 });
+            return this;
+        }
+
+        public ATK.Entity permissionSet(String name1, String name2, String name3) {
+            this.permissionSet(new List<String> { name1, name2, name3 });
+            return this;
+        }
+
+        public ATK.Entity permissionSet(List<String> names) {
+            if (User.SObjectType == this.matrix.currEntityNode.objectType) {
+                List<Id> permissionSetIds = PERMISSION_SETS.getIds(names);
+                if (permissionSetIds.size() > 0) {
+                    this.withChildren(
+                        PermissionSetAssignment.SObjectType,
+                        PermissionSetAssignment.AssigneeId,
+                        this.matrix.currEntityNode.size * permissionSetIds.size())
+                        .field(PermissionSetAssignment.PermissionSetId).repeat(permissionSetIds)
+                        .also();
+                }
+            }
+            return this;
+        }
+
+        // #endregion
+        // **************************************
+    }
+
+    // #endregion
+    // ***********************
 
     // ***********************
     // #region Utility Classes
@@ -1740,9 +1896,83 @@ public with sharing class ATKCore {
         public List<Integer> adj(Integer v) {
             return adj[v];
         }
+
+        // TODO: Reserve for future uses
+
+        // public Boolean hasEdge(Integer v, Integer w) {
+        //     if (adj[v] != null) {
+        //         for (Integer u : adj[v]) {
+        //             if (u == w) {
+        //                 return true;
+        //             }
+        //         }
+        //     }
+        //     return false;
+        // }
     }
 
-    public class DirectedCycle {
+    public class SymbolDigraph {
+        private Map<Object, Integer> indexMap;
+        private List<Object> keys;
+        private Digraph G;
+
+        public SymbolDigraph(List<Object> objects) {
+            indexMap = new Map<Object, Integer>();
+            keys = new List<Object>();
+
+            for (Object obj : objects) {
+                if (!this.indexMap.containsKey(obj)) {
+                    this.indexMap.put(obj, indexMap.size());
+                    this.keys.add(obj);
+                }
+            }
+            G = new Digraph(objects.size());
+        }
+
+        public void addEdge(Object a, Object b) {
+            G.addEdge(indexMap.get(a), indexMap.get(b));
+        }
+
+        // TODO: Reserve for future uses
+        // public Boolean contains(Object s) {
+        //     return indexMap.containsKey(s);
+        // }
+
+        // public Integer index(Object s) {
+        //     return indexMap.get(s);
+        // }
+
+        public Object keyAt(Integer i) {
+            return keys[i];
+        }
+
+        public Digraph G() {
+            return G;
+        }
+    }
+
+    public class Topological {
+        private List<Integer> order;
+        public Topological(Digraph G) {
+            DirectedCycle cyclefinder = new DirectedCycle(G);
+            if (!cyclefinder.hasCycle()) {
+                DepthFirstOrder dfs = new DepthFirstOrder(G);
+                order = dfs.reversePost();
+            }
+        }
+
+        public List<Integer> order(){
+            return order;
+        }
+
+        public Boolean isDAG() {
+            return order != null;
+        }
+    }
+
+    
+    @TestVisible
+    private class DirectedCycle {
         List<Boolean> marked { get; set; }
         List<Integer> edgeTo { get; set; }
         List<Boolean> onStack { get; set; }
@@ -1792,7 +2022,8 @@ public with sharing class ATKCore {
         }
     }
 
-    public class DepthFirstOrder {
+    @TestVisible
+    private class DepthFirstOrder {
         private List<Boolean> marked;
         private List<Integer> pre; // Queue
         private List<Integer> post; // Queue
@@ -1840,65 +2071,6 @@ public with sharing class ATKCore {
                 reversePost.add(post[i - 1]);
             }
             return reversePost;
-        }
-    }
-
-    public class Topological {
-        private List<Integer> order;
-        public Topological(Digraph G) {
-            DirectedCycle cyclefinder = new DirectedCycle(G);
-            if (!cyclefinder.hasCycle()) {
-                DepthFirstOrder dfs = new DepthFirstOrder(G);
-                order = dfs.reversePost();
-            }
-        }
-
-        public List<Integer> order(){
-            return order;
-        }
-
-        public Boolean isDAG() {
-            return order != null;
-        }
-    }
-
-    public class SymbolDigraph {
-        private Map<Object, Integer> indexMap;
-        private List<Object> keys;
-        private Digraph G;
-
-        public SymbolDigraph(List<Object> objects) {
-            indexMap = new Map<Object, Integer>();
-            keys = new List<Object>();
-
-            for (Object obj : objects) {
-                if (!this.indexMap.containsKey(obj)) {
-                    this.indexMap.put(obj, indexMap.size());
-                    this.keys.add(obj);
-                }
-            }
-            G = new Digraph(objects.size());
-        }
-
-        public void addEdge(Object a, Object b) {
-            G.addEdge(indexMap.get(a), indexMap.get(b));
-        }
-
-        // TODO: Reserve for future uses
-        // public Boolean contains(Object s) {
-        //     return indexMap.containsKey(s);
-        // }
-
-        // public Integer index(Object s) {
-        //     return indexMap.get(s);
-        // }
-
-        public Object keyAt(Integer i) {
-            return keys[i];
-        }
-
-        public Digraph G() {
-            return G;
         }
     }
 

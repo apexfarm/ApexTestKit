@@ -40,6 +40,14 @@ public with sharing class ATK {
         return ATKCore.FAKEID.get(objectType, index);
     }
 
+    public interface JunctionEntity extends Entity {
+        Entity order(Schema.SObjectField parentIdField1, Schema.SObjectField parentIdField2);
+        Entity order(Schema.SObjectField parentIdField1, Schema.SObjectField parentIdField2, Schema.SObjectField parentIdField3);
+        Entity order(Schema.SObjectField parentIdField1, Schema.SObjectField parentIdField2, Schema.SObjectField parentIdField3, Schema.SObjectField parentIdField4);
+        Entity order(Schema.SObjectField parentIdField1, Schema.SObjectField parentIdField2, Schema.SObjectField parentIdField3, Schema.SObjectField parentIdField4, Schema.SObjectField parentIdField5);
+        Entity order(List<Schema.SObjectField> parentIdFields);
+    }
+
     public interface Entity {
         // keywords to start new context
         Entity withParents(Schema.SObjectType objectType, Schema.SObjectField parentIdField);
@@ -48,8 +56,8 @@ public with sharing class ATK {
         Entity withChildren(Schema.SObjectType objectType, Schema.SObjectField parentIdField);
         Entity withChildren(Schema.SObjectType objectType, Schema.SObjectField parentIdField, Integer size);
         Entity withChildren(Schema.SObjectType objectType, Schema.SObjectField parentIdField, List<SObject> objects);
-        Entity withJunction(Schema.SObjectType objectType, Schema.SObjectField parentIdField, Integer size);
-        Entity withJunction(Schema.SObjectType objectType, Schema.SObjectField parentIdField, List<SObject> objects);
+        JunctionEntity withJunction(Schema.SObjectType objectType, Schema.SObjectField parentIdField, Integer size);
+        JunctionEntity withJunction(Schema.SObjectType objectType, Schema.SObjectField parentIdField, List<SObject> objects);
 
         // keywords to build graph
         Entity also();
@@ -88,6 +96,11 @@ public with sharing class ATK {
         Entity repeat(Object value1, Object value2, Object value3, Object value4);
         Entity repeat(Object value1, Object value2, Object value3, Object value4, Object value5);
         Entity repeat(List<Object> values);
+        Entity repeatX(Object value1, Integer size1, Object value2, Integer size2);
+        Entity repeatX(Object value1, Integer size1, Object value2, Integer size2, Object value3, Integer size3);
+        Entity repeatX(Object value1, Integer size1, Object value2, Integer size2, Object value3, Integer size3, Object value4, Integer size4);
+        Entity repeatX(Object value1, Integer size1, Object value2, Integer size2, Object value3, Integer size3, Object value4, Integer size4, Object value5, Integer size5);
+        Entity repeatX(List<Object> values, List<Integer> sizes);
 
         // Arithmetic
         Entity add(Decimal init, Decimal step);

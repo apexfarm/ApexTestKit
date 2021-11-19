@@ -1,16 +1,17 @@
 # Apex Test Kit
 
-![](https://img.shields.io/badge/version-3.5.1-brightgreen.svg) ![](https://img.shields.io/badge/build-passing-brightgreen.svg) ![](https://img.shields.io/badge/coverage-98%25-brightgreen.svg)
+![](https://img.shields.io/badge/version-3.5.2-brightgreen.svg) ![](https://img.shields.io/badge/build-passing-brightgreen.svg) ![](https://img.shields.io/badge/coverage-97%25-brightgreen.svg)
 
 Apex Test Kit can help generate massive records for Apex test classes. It solves two pain points during record creation:
 
 1. Establish arbitrary levels of many-to-one, one-to-many relationships.
 2. Generate field values based on simple rules automatically.
+2. Support mock sObjects generation that would be returned from any SOQL.
 
 | Environment           | Installation Link                                            | Version   |
 | --------------------- | ------------------------------------------------------------ | --------- |
-| Production, Developer | <a target="_blank" href="https://login.salesforce.com/packaging/installPackage.apexp?p0=04t2v000007GTQfAAO"><img src="docs/images/deploy-button.png"></a> | ver 3.5.1 |
-| Sandbox               | <a target="_blank" href="https://test.salesforce.com/packaging/installPackage.apexp?p0=04t2v000007GTQfAAO"><img src="docs/images/deploy-button.png"></a> | ver 3.5.1 |
+| Production, Developer | <a target="_blank" href="https://login.salesforce.com/packaging/installPackage.apexp?p0=04t2v000007GTRTAA4"><img src="docs/images/deploy-button.png"></a> | ver 3.5.2 |
+| Sandbox               | <a target="_blank" href="https://test.salesforce.com/packaging/installPackage.apexp?p0=04t2v000007GTRTAA4"><img src="docs/images/deploy-button.png"></a> | ver 3.5.2 |
 
 ------
 ### **v3.5 Release Notes**
@@ -18,20 +19,24 @@ Apex Test Kit can help generate massive records for Apex test classes. It solves
 #### Minor Changes
 - Increase api versions to 53.0
 - Increase number of accepted parameters of `repeat()` from 3 to 5.
+- **v3.5.2 [RepeatX](#basic-field-keywords)**: Introduce new field keyword family `repeatX('A', 3, 'B', 2)`, thus repeat A three times and B two times.
 - **v3.5.1 Fixes**: `Illegal assignment from Decimal to Integer`, when use arithmetic keywords against integer field types such as `Number(8, 0)`.
 
 #### Major Changes (Non-breaking)
-- [**Many to Many with Junction**](#many-to-many-with-junction): Introduce a new entity keyword `withJunction()`, it can be used as `withChildren()` to establish one-to-many relationship, but with a different distribution logic to distribute some parents of the junction object among the others.
+- [**Many to Many with Junction**](#many-to-many-with-junction): Introduce entity keyword `withJunction()`, it can be used as `withChildren()` to establish one-to-many relationship, but with a different distribution logic to distribute some parents of the junction object among the others.
   - **Pros**: Verified `withJunction()` in **Consumer Goods Cloud Demo** (`scripts/apex/demo-consumer.apex`), and it works well with the combination of other entity keywords to fulfill wider business scenarios. 
   - **Cons**: `withJunction()` will result in meaningless distribution logic if two parents share a common ancestor. In such case, please keep use `withChildren()`. Plan to bring a solution for this during next release, won't be soon and won't be long. **Caution**: `withJunction()` API or behavior is subject to change in minor chances.
 
 
+* **v3.5.2 [Junction Order](#junction-order)**: Introduce keyword `order()` to alter the default relationship orders established by `withJunction()` keyword. It brings flexibility, so ATK sObject graph don't need to follow a rigid definition order to make `withJunction()` working as expected.
 * Account, Contact, Case, User are the only sObjects used in test classes.
 
 #### Next Release
 
 - Bring solution for the `withJunction()` cons mentioned above.
 - Bring a demo to generate nearly full graph of B2B Commerce Cloud to further verify the robustness and stability of `withJunction()` keyword.
+------
+
 
 ## Table of Contents
 
@@ -44,17 +49,24 @@ Apex Test Kit can help generate massive records for Apex test classes. It solves
   - [Many to One](#many-to-one)
   - [Many to Many](#many-to-many)
   - [Many to Many with Junction](#many-to-many-with-junction)
-- [Command API](#command-api)
-  - [&#9749;Mock](#-mock)
+  - [Junction Order](#junction-order)
+- [&#128229;Save](#save)
+  - [Command API](#command-api)
+  - [Save Result API](#save-result-api)
+
+- [&#9749;Mock](#-mock)
+  - [Mock with Children](#mock-with-children)
+  - [Mock with Predefined List](#mock-with-predefined-list)
   - [Fake Id](#fake-id)
+
 - [Entity Keywords](#entity-keywords)
   - [Entity Creation Keywords](#entity-creation-keywords)
   - [Entity Updating Keywords](#entity-updating-keywords)
   - [Entity Reference Keywords](#entity-reference-keywords)
 - [Field Keywords](#field-keywords)
   - [Basic Field Keywords](#basic-field-keywords)
-  - [Lookup Field Keywords](#lookup-field-keywords)
   - [Arithmetic Field Keywords](#arithmetic-field-keywords)
+  - [Lookup Field Keywords](#lookup-field-keywords)
 - [Entity Builder Factory](#entity-builder-factory)
 - [License](#license)
 
@@ -209,12 +221,16 @@ ATK.prepare(Opportunity.SObjectType, 10)
 | Opportunity 0007 | Contact 0004 | Decision Maker |
 | ...              | ...          | ....           |
 
-**Note**: Different order of the junction relationships will result different distribution patterns. Here is an example if we create Contact first before Opportunity in the ATK statement.
+### Junction Order
+
+**Note**: Different order of the junction relationships will result different distribution patterns. Here is an example if the above ATK statement define Contact first before Opportunity.
 
 ```java
 ATK.prepare(Contact.SObjectType, 10)
     .field(Contact.LastName).index('Contact {0000}')
     .withJunction(OpportunityContactRole.SObjectType, OpportunityContactRole.ContactId, 20)
+        // ! Uncomment the following line will give the same result as the above ATK statement
+        // .order(OpportunityContactRole.OpportunityId, OpportunityContactRole.ContactId)
         .field(OpportunityContactRole.Role).repeat('Business User', 'Decision Maker')
         .withParents(Opportunity.SObjectType, OpportunityContactRole.OpportunityId, 10)
             .field(Opportunity.Name).index('Opportunity {0000}')
@@ -234,18 +250,39 @@ ATK.prepare(Contact.SObjectType, 10)
 | Contact 0007 | Opportunity 0004 | Decision Maker |
 | ...          | ...              | ....           |
 
+Here we have `order()` keyword to alter the default relationship orders for the junction sObject. It brings flexibility, so ATK sObject graph don't need to follow a rigid definition order to make `withJunction()` working as expected. **Note**: `order()` must be used directly after `withJunction()` keyword.
 
-## Command API
+| Method API                                                   |
+| ------------------------------------------------------------ |
+| order(SObjectField *parentId1*, SObjectField *parentId2*);   |
+| order(SObjectField *parentId1*, SObjectField *parentId2*, SObjectField *parentId3*); |
+| order(SObjectField *parentId1*, SObjectField *parentId2*, SObjectField *parentId3*, SObjectField *parentId4*); |
+| order(SObjectField *parentId1*, SObjectField *parentId2*, SObjectField *parentId3*, SObjectField *parentId4*, SObjectField *parentId5*); |
+| order(List\<SObjectField\> *parentIds*);                     |
 
-There are three ways to create the sObjects.
+## &#128229;Save
+
+### Command API
+
+There are three commands to create the sObjects, in database, in memory, or in mock.
 
 | Method API                              | Description                                                  |
 | --------------------------------------- | ------------------------------------------------------------ |
 | ATK.SaveResult save()                   | Actual DMLs will be performed to insert/update sObjects into Salesforce. |
 | ATK.SaveResult save(Boolean *doInsert*) | If `doInsert` is `false`, no actual DMLs will be performed, just in-memory generated SObjects will be returned. Only writable fields can be populated. |
-| ATK.SaveResult mock()                   | No actual DMLs will be performed, but sObjects will be returned in SaveResult as if they are newly retrieved by SOQL with fake Ids. Both writable and read-only fields can be populated |
+| ATK.SaveResult mock()                   | &#9749;No actual DMLs will be performed, but sObjects will be returned in SaveResult as if they are newly retrieved by SOQL with fake Ids. Both writable and read-only fields can be populated |
 
-### &#9749; Mock
+### Save Result API
+
+Use `ATK.SaveResult` to retrieve sObjects generated from the ATK statement.
+
+| Method                                                      | Description                                                  |
+| ----------------------------------------------------------- | ------------------------------------------------------------ |
+| List<SObject> get(SObjectType *objectType*)                 | Get the sObjects generated from the first `SObjectType` defined in ATK statement. |
+| List<SObject> get(SObjectType *objectType*, Integer *nth*); | Get the sObjects generated from the nth `SObjectType` defined in ATK statement, such as in the Account Hierarchy. |
+| List<SObject> getAll(SObjectType *objectType*)              | Get all sObjects generated from `SObjectType` defined in ATK statement. |
+
+## &#9749; Mock
 
 The followings are suppored, when generate sObjects with `mock()` API:
 
@@ -253,7 +290,7 @@ The followings are suppored, when generate sObjects with `mock()` API:
 2. Assign values to read-only fields, such as *formula fields*, *rollup summary fields*, and *system fields*.
 3. Assign one level children relationship and multiple level parent relationships.
 
-#### Mock with Children
+### Mock with Children
 
 <p>
   <img src="docs/images/mock-relationship.png#2021-3-9" align="right" width="250" alt="Mock Relationship">
@@ -289,7 +326,7 @@ for (B__c itemB : listOfB) {
 }
 ```
 
-#### Mock with Predefined List
+### Mock with Predefined List
 
 Mock also supports predefined list or SOQL query results. But if there are any parent or child relationships in the predefined list, they are going to be trimmed in the generated mock sObjects.
 
@@ -412,16 +449,48 @@ ATK.prepare(A__c.SObjectType, 10)
         .field(B__C.StartDate__c).addDays(Date.newInstance(2020, 1, 1), 1)
     .save();
 ```
+
 ### Basic Field Keywords
-| Keyword API                                               | Description                                                  |
-| --------------------------------------------------------- | ------------------------------------------------------------ |
-| index(String *format*)                                    | Formated string with `{0000}`, can recogonize left padding. i.e. `Name-{0000}` will generate Name-0001, Name-0002, Name-0003 etc. |
-| repeat(Object *value*)                                    | Repeat with a single fixed value.                            |
-| repeat(Object *value1*, Object *value2*)                  | Repeat with the provided values alternatively.               |
-| repeat(Object *value1*, Object *value2*, Object *value3*) | Repeat with the provided values alternatively.               |
+| Keyword API                                                  | Description                                                  |
+| ------------------------------------------------------------ | ------------------------------------------------------------ |
+| index(String *format*)                                       | Formatted string with `{0000}`, can recognize left padding. i.e. `Name-{0000}` will generate Name-0001, Name-0002, Name-0003 etc. |
+| **Repeat Family**                                            |                                                              |
+| repeat(Object *value*)                                       | Repeat with a single fixed value.                            |
+| repeat(Object *value1*, Object *value2*)                     | Repeat with the provided values alternatively.               |
+| repeat(Object *value1*, Object *value2*, Object *value3*)    | Repeat with the provided values alternatively.               |
 | repeat(Object *value1*, Object *value2*, Object *value3*, Object *value4*) | Repeat with the provided values alternatively.               |
 | repeat(Object *value1*, Object *value2*, Object *value3*, Object *value4*, Object *value5*) | Repeat with the provided values alternatively.               |
-| repeat(List\<Object\> *values*)                           | Repeat with the provided values alternatively.               |
+| repeat(List\<Object\> *values*)                              | Repeat with the provided values alternatively.**             |
+| **RepeatX Family**                                           |                                                              |
+| repeatX(Object *value1*, Integer *size1*, Object *value2*, Integer *size2*) | repeat each value by x times in sequence.                    |
+| repeatX(Object *value1*, Integer *size1*, Object *value2*, Object *value3*) | repeat each value by x times in sequence.                    |
+| repeatX(Object *value1*, Integer *size1*, Object *value2*, Object *value3*, Object *value4*) | repeat each value by x times in sequence.                    |
+| repeatX(Object *value1*, Integer *size1*, Object *value2*, Object *value3*, Object *value4*, Object *value5*) | repeat each value by x times in sequence.                    |
+| repeatX(List\<Object\> *values*, List\<Integer\> sizes)      | repeat each value by x times in sequence.                    |
+
+### Arithmetic Field Keywords
+
+These keywords will increase/decrease the `init` values by the provided steps.
+
+#### Number Arithmetic
+
+| Keyword API                                | Description                                    |
+| ------------------------------------------ | ---------------------------------------------- |
+| add(Decimal *init*, Decimal *step*)        | Must be applied to a number type field.        |
+| substract(Decimal *init*, Decimal *step*)  | Must be applied to a number type field.        |
+| divide(Decimal *init*, Decimal *factor*)   | Must be applied to a number type field.        |
+| multiply(Decimal *init*, Decimal *factor*) | Must be applied to a number type field.        |
+
+#### Date/Time Arithmetic
+
+| Keyword API                                | Description                                    |
+| ------------------------------------------ | ---------------------------------------------- |
+| addYears(Object *init*, Integer *step*)    | Must be applied to a Datetime/Date type field. |
+| addMonths(Object *init*, Integer *step*)   | Must be applied to a Datetime/Date type field. |
+| addDays(Object *init*, Integer *step*)     | Must be applied to a Datetime/Date type field. |
+| addHours(Object *init*, Integer *step*)    | Must be applied to a Datetime/Time type field. |
+| addMinutes(Object *init*, Integer *step*)  | Must be applied to a Datetime/Time type field. |
+| addSeconds(Object *init*, Integer *step*)  | Must be applied to a Datetime/Time type field. |
 
 ### Lookup Field Keywords
 
@@ -444,30 +513,6 @@ ATK.prepare(Account.SObjectType, 10)
 | permissionSet(String name1, String *name2*)                  | Assign all the permission sets to users by developer names.  |
 | permissionSet(String *name1*, String *name2*, String *name3*) | Assign all the permission sets to users by developer names.  |
 | permissionSet(List\<String\> *names*)                        | Assign all the permission sets to users by developer names.  |
-
-### Arithmetic Field Keywords
-
-These keywords will increase/decrease the init values by the provided step values.
-
-#### Number Arithmetic
-
-| Keyword API                                | Description                                    |
-| ------------------------------------------ | ---------------------------------------------- |
-| add(Decimal *init*, Decimal *step*)        | Must be applied to a number type field.        |
-| substract(Decimal *init*, Decimal *step*)  | Must be applied to a number type field.        |
-| divide(Decimal *init*, Decimal *factor*)   | Must be applied to a number type field.        |
-| multiply(Decimal *init*, Decimal *factor*) | Must be applied to a number type field.        |
-
-#### Date/Time Arithmetic
-
-| Keyword API                                | Description                                    |
-| ------------------------------------------ | ---------------------------------------------- |
-| addYears(Object *init*, Integer *step*)    | Must be applied to a Datetime/Date type field. |
-| addMonths(Object *init*, Integer *step*)   | Must be applied to a Datetime/Date type field. |
-| addDays(Object *init*, Integer *step*)     | Must be applied to a Datetime/Date type field. |
-| addHours(Object *init*, Integer *step*)    | Must be applied to a Datetime/Time type field. |
-| addMinutes(Object *init*, Integer *step*)  | Must be applied to a Datetime/Time type field. |
-| addSeconds(Object *init*, Integer *step*)  | Must be applied to a Datetime/Time type field. |
 
 ## Entity Builder Factory
 

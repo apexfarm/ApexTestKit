@@ -60,9 +60,8 @@ ATK.SaveResult result = ATK.prepare(Account.SObjectType, 2)
             // =============Store KPIs=============
             // 2 Groups * 2 Indicators * 4 Products
             .withJunction(RetailStoreKpi.SObjectType, RetailStoreKpi.RetailStoreGroupId, 16)
-                .field(RetailStoreKpi.InStoreLocationCategory).repeat(new List<String> {
-                    'Aisle', 'Aisle', 'Aisle', 'Aisle', 'Backroom Storage', 'Backroom Storage', 'Backroom Storage', 'Backroom Storage'
-                })
+                .order(RetailStoreKpi.RetailStoreGroupId, RetailStoreKpi.AssessmentIndDefinitionId, RetailStoreKpi.ProductId)
+                .field(RetailStoreKpi.InStoreLocationCategory).repeatX('Aisle', 4, 'Backroom Storage', 4)
                 .field(RetailStoreKpi.KpiType).repeat('Inventory')
                 .field(RetailStoreKpi.StartDate).repeat(Date.newInstance(2020, 1, 1))
                 .field(RetailStoreKpi.TargetIntegerValue).repeat(10, null)
