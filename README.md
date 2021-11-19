@@ -250,9 +250,12 @@ ATK.prepare(Contact.SObjectType, 10)
 | Contact 0007 | Opportunity 0004 | Decision Maker |
 | ...          | ...              | ....           |
 
-Here we have `order()` keyword to alter the default relationship orders for the junction sObject. It brings flexibility, so ATK sObject graph don't need to follow a rigid definition order to make `withJunction()` working as expected. **Note**: `order()` must be used directly after `withJunction()` keyword.
+Here we have `order()` keyword to alter the default relationship orders for the junction sObject. It brings flexibility, so ATK sObject graph don't need to follow a rigid definition order to make `withJunction()` working as expected. **Note**: 
 
-| Method API                                                   |
+- `order()` must be used directly after `withJunction()` keyword.
+- All parent relationships used by the junction sObject must be listed in the `order()` keyword.
+
+| Keyword API                                                   |
 | ------------------------------------------------------------ |
 | order(SObjectField *parentId1*, SObjectField *parentId2*);   |
 | order(SObjectField *parentId1*, SObjectField *parentId2*, SObjectField *parentId3*); |
@@ -463,10 +466,10 @@ ATK.prepare(A__c.SObjectType, 10)
 | repeat(List\<Object\> *values*)                              | Repeat with the provided values alternatively.**             |
 | **RepeatX Family**                                           |                                                              |
 | repeatX(Object *value1*, Integer *size1*, Object *value2*, Integer *size2*) | repeat each value by x times in sequence.                    |
-| repeatX(Object *value1*, Integer *size1*, Object *value2*, Object *value3*) | repeat each value by x times in sequence.                    |
-| repeatX(Object *value1*, Integer *size1*, Object *value2*, Object *value3*, Object *value4*) | repeat each value by x times in sequence.                    |
-| repeatX(Object *value1*, Integer *size1*, Object *value2*, Object *value3*, Object *value4*, Object *value5*) | repeat each value by x times in sequence.                    |
-| repeatX(List\<Object\> *values*, List\<Integer\> sizes)      | repeat each value by x times in sequence.                    |
+| repeatX(Object *value1*, Integer *size1*, Object *value2*, Integer *size2*, Object *value3*, Integer *size3*) | repeat each value by x times in sequence.                    |
+| repeatX(Object *value1*, Integer *size1*, Object *value2*, Integer *size2*, Object *value3*, Integer *size3*, Object *value4*, Integer *size4*) | repeat each value by x times in sequence.                    |
+| repeatX(Object *value1*, Integer *size1*, Object *value2*, Integer *size2*, Object *value3*, Integer *size3*, Object *value4*, Integer *size4*, Object *value5*, Integer *size5*) | repeat each value by x times in sequence.                    |
+| repeatX(List\<Object\> *values*, List\<Integer\> *sizes*)      | repeat each value by x times in sequence.                    |
 
 ### Arithmetic Field Keywords
 
