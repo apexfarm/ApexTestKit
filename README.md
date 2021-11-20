@@ -2,11 +2,10 @@
 
 ![](https://img.shields.io/badge/version-3.5.2-brightgreen.svg) ![](https://img.shields.io/badge/build-passing-brightgreen.svg) ![](https://img.shields.io/badge/coverage-97%25-brightgreen.svg)
 
-Apex Test Kit can help generate massive records for Apex test classes. It solves two pain points during record creation:
+Apex Test Kit can help generate massive records for Apex test classes, including mock sObjects with read-only fields. It solves two pain points during record creation:
 
 1. Establish arbitrary levels of many-to-one, one-to-many relationships.
 2. Generate field values based on simple rules automatically.
-2. Support mock sObjects generation that would be returned from any SOQL.
 
 | Environment           | Installation Link                                            | Version   |
 | --------------------- | ------------------------------------------------------------ | --------- |
@@ -23,12 +22,12 @@ Apex Test Kit can help generate massive records for Apex test classes. It solves
 - **v3.5.1 Fixes**: `Illegal assignment from Decimal to Integer`, when use arithmetic keywords against integer field types such as `Number(8, 0)`.
 
 #### Major Changes (Non-breaking)
-- [**Many to Many with Junction**](#many-to-many-with-junction): Introduce entity keyword `withJunction()`, it can be used as `withChildren()` to establish one-to-many relationship, but with a different distribution logic to distribute some parents of the junction object among the others.
+- [**Many to Many with Junction**](#many-to-many-with-junction): Introduce new entity keyword `withJunction()`, it can be used as `withChildren()` to establish one-to-many relationship, but with a different distribution logic to distribute some parents of the junction object among the others.
   - **Pros**: Verified `withJunction()` in **Consumer Goods Cloud Demo** (`scripts/apex/demo-consumer.apex`), and it works well with the combination of other entity keywords to fulfill wider business scenarios. 
   - **Cons**: `withJunction()` will result in meaningless distribution logic if two parents share a common ancestor. In such case, please keep use `withChildren()`. Plan to bring a solution for this during next release, won't be soon and won't be long. **Caution**: `withJunction()` API or behavior is subject to change in minor chances.
 
 
-* **v3.5.2 [Junction Order](#junction-order)**: Introduce keyword `order()` to alter the default relationship orders established by `withJunction()` keyword. It brings flexibility, so ATK sObject graph don't need to follow a rigid definition order to make `withJunction()` working as expected.
+* **v3.5.2 [Junction Order](#junction-order)**: Introduce new keyword `order()` to alter the default relationship orders established by `withJunction()` keyword. It brings flexibility, so ATK sObject graph don't need to follow a rigid definition order to make `withJunction()` working as expected.
 * Account, Contact, Case, User are the only sObjects used in test classes.
 
 #### Next Release
@@ -128,7 +127,7 @@ The scripts used to perform benchmark testing are documented under `scripts/apex
 
 ### Demos
 
-There are five demos under the `scripts/apex` folder, they can be successfully run in a clean Salesforce CRM organization. If not, please try to fix them with FLS, validation rules or duplicate rules etc.
+Here are demos under the `scripts/apex` folder, they have been successfully run in fresh Salesforce organization with appropriate feature enabled. If not, please try to fix them with FLS, validation rules or duplicate rules etc.
 
 | Subject        | File Path                         | Description                                                  |
 | -------------- | --------------------------------- | ------------------------------------------------------------ |
@@ -141,7 +140,7 @@ There are five demos under the `scripts/apex` folder, they can be successfully r
 
 ## Relationship
 
-The object relationships described in a single ATK statement must be a Directed Acyclic Graph ([DAG](https://en.wikipedia.org/wiki/Directed_acyclic_graph)) , thus no cyclic relationships. If the validation is failed, an exception will be thrown.
+The object relationships described in a single ATK statement must be a Directed Acyclic Graph ([DAG](https://en.wikipedia.org/wiki/Directed_acyclic_graph)) , thus no cyclic relationships. If the validation fails, an exception will be thrown.
 
 ### One to Many
 
@@ -163,7 +162,7 @@ ATK.prepare(Account.SObjectType, 10)
 
 ### Many to One
 
-The result of the following statement is identical to the one in the above one-to-many relationship.
+The result of the following statement is identical to the one above.
 
 ```java
 ATK.prepare(Contact.SObjectType, 20)
@@ -185,7 +184,7 @@ ATK.prepare(Opportunity.SObjectType, 10)
     .mock();
 ```
 
-The result of above ATK statement will give the following distribution pattern, which seems not intuitive, if not intentional. But it makes scenes when the same contact play two different roles in the same opportunity.
+The above ATK statement will give the following distribution patterns, which seems not intuitive, if not intentional. It only makes scenes when the same contact play two different roles in the same opportunity.
 
 | Opportunity Name | Contact Name | Contact Role   |
 | ---------------- | ------------ | -------------- |
@@ -197,7 +196,7 @@ The result of above ATK statement will give the following distribution pattern, 
 
 ### Many to Many with Junction
 
-`withJunction()` can be used as `withChildren()` to establish one-to-many relationship, but with a different logic to distribute parents of the junction object among the others.
+`withJunction()` can be used as `withChildren()` to establish one-to-many relationship, and in addition its main purpose is to distribute parents of the junction object from one branch to another.
 
 ```java
 ATK.prepare(Opportunity.SObjectType, 10)
@@ -223,7 +222,7 @@ ATK.prepare(Opportunity.SObjectType, 10)
 
 ### Junction Order
 
-**Note**: Different order of the junction relationships will result different distribution patterns. Here is an example if the above ATK statement define Contact first before Opportunity.
+Different defining order of the junction relationships will result different distribution patterns. Here is an example if the above ATK statement define Contact first before Opportunity.
 
 ```java
 ATK.prepare(Contact.SObjectType, 10)
@@ -250,7 +249,7 @@ ATK.prepare(Contact.SObjectType, 10)
 | Contact 0007 | Opportunity 0004 | Decision Maker |
 | ...          | ...              | ....           |
 
-Here we have `order()` keyword to alter the default relationship orders for the junction sObject. It brings flexibility, so ATK sObject graph don't need to follow a rigid definition order to make `withJunction()` working as expected. **Note**: 
+Here we have `order()` keyword to alter the defining relationship orders for the junction sObject. It brings flexibility, so ATK sObject graph don't need to follow a rigid defining order to make `withJunction()` working as expected.
 
 - `order()` must be used directly after `withJunction()` keyword.
 - All parent relationships used by the junction sObject must be listed in the `order()` keyword.
@@ -273,7 +272,7 @@ There are three commands to create the sObjects, in database, in memory, or in m
 | --------------------------------------- | ------------------------------------------------------------ |
 | ATK.SaveResult save()                   | Actual DMLs will be performed to insert/update sObjects into Salesforce. |
 | ATK.SaveResult save(Boolean *doInsert*) | If `doInsert` is `false`, no actual DMLs will be performed, just in-memory generated SObjects will be returned. Only writable fields can be populated. |
-| ATK.SaveResult mock()                   | &#9749;No actual DMLs will be performed, but sObjects will be returned in SaveResult as if they are newly retrieved by SOQL with fake Ids. Both writable and read-only fields can be populated |
+| ATK.SaveResult mock()                   | No actual DMLs will be performed, but sObjects will be returned in SaveResult as if they are newly retrieved by SOQL with fake Ids. Both writable and read-only fields can be populated |
 
 ### Save Result API
 
@@ -287,7 +286,7 @@ Use `ATK.SaveResult` to retrieve sObjects generated from the ATK statement.
 
 ## &#9749; Mock
 
-The followings are suppored, when generate sObjects with `mock()` API:
+The followings are supported, when generate sObjects with `mock()` command:
 
 1. Assign extremely large fake IDs to the generated sObjects
 2. Assign values to read-only fields, such as *formula fields*, *rollup summary fields*, and *system fields*.
