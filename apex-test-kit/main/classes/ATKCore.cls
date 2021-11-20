@@ -1146,6 +1146,7 @@ public with sharing class ATKCore {
         Map<SObjectType, List<List<SObject>>> result = new Map<SObjectType, List<List<SObject>>>();
         EntityNodeMatrix matrix { get; set; }
     
+        @TestVisible
         SaveResult(EntityNodeMatrix matrix) {
             this.matrix = matrix;
             for (EntityNode node : matrix.entityNodeCache) {
@@ -1199,11 +1200,13 @@ public with sharing class ATKCore {
             }
         }
     
-        private Iterator<Schema.SObjectType> keys() {
+        @TestVisible
+        private ObjectTypeIterator keys() {
             return new ObjectTypeIterator(this.matrix);
         }
-    
-        private Iterator<List<SObject>> values() {
+
+        @TestVisible
+        private ObjectListIterator values() {
             return new ObjectListIterator(this.matrix);
         }
     }

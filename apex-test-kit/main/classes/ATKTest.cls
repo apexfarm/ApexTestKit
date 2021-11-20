@@ -647,6 +647,7 @@ public with sharing class ATKTest {
             .field(Account.Name).repeatX('A', 2, 'B', 2, 'C', 2, 'D', 2)
             .field(Account.Name).repeatX('A', 2, 'B', 2, 'C', 2, 'D', 2, 'E', 2)
             .field(Account.Name).repeatX(new List<String> { 'A', 'B', 'C' }, new List<Integer> { 2, 2, 2})
+            .field(Account.Name).repeatX(null, null)
             .field(Account.Name).add(1, 1)
             .field(Account.Name).substract(1, 1)
             .field(Account.Name).divide(1, 1)
