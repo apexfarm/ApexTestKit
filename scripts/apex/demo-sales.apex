@@ -2,6 +2,11 @@
 
 Savepoint sp = Database.setSavepoint();
 
+List<PriceBook2> priceBooks = new List<PriceBook2>{ 
+    [SELECT Id, Name FROM PriceBook2 WHERE IsStandard = TRUE][0], 
+    new PriceBook2(Name = 'Local Price Book', IsActive = true) 
+};
+
 ATK.SaveResult result = ATK.prepare(Account.SObjectType, 200)
     .field(Account.Name).index('Name-{0000}')
     .withChildren(Contact.SObjectType, Contact.AccountId, 400)

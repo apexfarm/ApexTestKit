@@ -23,7 +23,7 @@ Apex Test Kit can help generate massive records for Apex test classes, including
 
 #### Major Changes (Non-breaking)
 - [**Many to Many with Junction**](#many-to-many-with-junction): Introduce new entity keyword `withJunction()`, it can be used as `withChildren()` to establish one-to-many relationship, but with a different distribution logic to distribute some parents of the junction object among the others.
-  - **Pros**: Verified `withJunction()` in **Consumer Goods Cloud Demo** (`scripts/apex/demo-consumer.apex`), and it works well with the combination of other entity keywords to fulfill wider business scenarios. 
+  - **Pros**: Verified `withJunction()` with several complex use cases in demo, and it works well with the combination of other entity keywords to fulfill wider business scenarios. 
   - **Cons**: `withJunction()` will result in meaningless distribution logic if two parents share a common ancestor. In such case, please keep use `withChildren()`. Plan to bring a solution for this during next release, won't be soon and won't be long. **Caution**: `withJunction()` API or behavior is subject to change in minor chances.
 
 
@@ -42,7 +42,6 @@ Apex Test Kit can help generate massive records for Apex test classes, including
 - [Introduction](#introduction)
   - [Performance](#performance)
   - [Demos](#demos)
-    - &#128293;Consumer Goods Cloud
 - [Relationship](#relationship)
   - [One to Many](#one-to-many)
   - [Many to One](#many-to-one)
@@ -52,12 +51,10 @@ Apex Test Kit can help generate massive records for Apex test classes, including
 - [&#128229;Save](#save)
   - [Command API](#command-api)
   - [Save Result API](#save-result-api)
-
 - [&#9749;Mock](#-mock)
   - [Mock with Children](#mock-with-children)
   - [Mock with Predefined List](#mock-with-predefined-list)
   - [Fake Id](#fake-id)
-
 - [Entity Keywords](#entity-keywords)
   - [Entity Creation Keywords](#entity-creation-keywords)
   - [Entity Updating Keywords](#entity-updating-keywords)
@@ -132,9 +129,8 @@ Here are demos under the `scripts/apex` folder, they have been successfully run 
 | Subject        | File Path                         | Description                                                  |
 | -------------- | --------------------------------- | ------------------------------------------------------------ |
 | Campaign       | `scripts/apex/demo-campaign.apex` | How to genereate campaigns with hierarchy relationships. `ATK.EntityBuilder` is implemented to reuse the field population logic. |
-| &#128293;Consumer Goods Cloud | `scripts/apex/demo-consumer.apex` | Create all the following sObjects in one ATK statement with meaningful relationship distributions: `Account`, `Contact`, `RetailLocationGroup`, `RetailStore`, `InstoreLocation`, `StoreProduct`, `Product2`, `PricebookEntry`, `Pricebook2`, `RetailStoreKpi`, `AssessmentIndicatorDefinition`, `AssessmentTaskDefinition`. |
+| Consumer Goods Cloud | `scripts/apex/demo-consumer.apex` | Create all the following sObjects in one ATK statement with meaningful relationship distributions: `Account`, `Contact`, `RetailLocationGroup`, `RetailStore`, `InstoreLocation`, `StoreProduct`, `Product2`, `PricebookEntry`, `Pricebook2`, `RetailStoreKpi`, `AssessmentIndicatorDefinition`, `AssessmentTaskDefinition`. |
 | Sales          | `scripts/apex/demo-sales.apex`    | You've already seen it in the above paragraph.               |
-| Products       | `scripts/apex/demo-products.apex` | How to generate Products for standard Price Book.            |
 | Cases          | `scripts/apex/demo-cases.apex`    | How to generate Accounts, Contacts and Cases.                |
 | Users          | `scripts/apex/demo-users.apex`    | How to generate community users in one goal.                 |
 
@@ -249,7 +245,7 @@ ATK.prepare(Contact.SObjectType, 10)
 | Contact 0007 | Opportunity 0004 | Decision Maker |
 | ...          | ...              | ....           |
 
-Here we have `order()` keyword to alter the defining relationship orders for the junction sObject. It brings flexibility, so ATK sObject graph don't need to follow a rigid defining order to make `withJunction()` working as expected.
+Here we have `order()` keyword to alter the defining relationship orders for the junction sObject. It brings flexibility, so ATK sObject graph doesn't have to follow a rigid defining order to make `withJunction()` working as expected.
 
 - `order()` must be used directly after `withJunction()` keyword.
 - All parent relationships used by the junction sObject must be listed in the `order()` keyword.
@@ -303,8 +299,7 @@ The followings are supported, when generate sObjects with `mock()` command:
 
 
 ```SQL
-SELECT Id, A__r.Id, (SELECT Id FROM E__r), (SELECT Id, C__r.Id FROM D__r)
-FROM B__c
+SELECT Id, A__r.Id, (SELECT Id FROM E__r), (SELECT Id, C__r.Id FROM D__r) FROM B__c
 ```
 
 And we can generate them with the following ATK statement:
@@ -398,7 +393,7 @@ ATK.prepare(A__c.SObjectType, 10)
 
 ### Entity Updating Keywords
 
-All the following APIs have a `List<SObject> objects` parameter at the end, which indicate the sObjects are selected/created elsewhere, and ATK will upsert them.
+All the following APIs have a `List<SObject> objects` parameter at the end, which indicates the sObjects are selected/created elsewhere, and ATK will upsert them.
 
 ```java
 ATK.prepare(A__c.SObjectType, [SELECT Id FROM A__c]) // Select existing sObjects
@@ -464,11 +459,11 @@ ATK.prepare(A__c.SObjectType, 10)
 | repeat(Object *value1*, Object *value2*, Object *value3*, Object *value4*, Object *value5*) | Repeat with the provided values alternatively.               |
 | repeat(List\<Object\> *values*)                              | Repeat with the provided values alternatively.**             |
 | **RepeatX Family**                                           |                                                              |
-| repeatX(Object *value1*, Integer *size1*, Object *value2*, Integer *size2*) | repeat each value by x times in sequence.                    |
-| repeatX(Object *value1*, Integer *size1*, Object *value2*, Integer *size2*, Object *value3*, Integer *size3*) | repeat each value by x times in sequence.                    |
-| repeatX(Object *value1*, Integer *size1*, Object *value2*, Integer *size2*, Object *value3*, Integer *size3*, Object *value4*, Integer *size4*) | repeat each value by x times in sequence.                    |
-| repeatX(Object *value1*, Integer *size1*, Object *value2*, Integer *size2*, Object *value3*, Integer *size3*, Object *value4*, Integer *size4*, Object *value5*, Integer *size5*) | repeat each value by x times in sequence.                    |
-| repeatX(List\<Object\> *values*, List\<Integer\> *sizes*)      | repeat each value by x times in sequence.                    |
+| repeatX(Object *value1*, Integer *size1*, Object *value2*, Integer *size2*) | repeat each value by x, y... times in sequence.              |
+| repeatX(Object *value1*, Integer *size1*, Object *value2*, Integer *size2*, Object *value3*, Integer *size3*) | repeat each value by x, y... times in sequence.              |
+| repeatX(Object *value1*, Integer *size1*, Object *value2*, Integer *size2*, Object *value3*, Integer *size3*, Object *value4*, Integer *size4*) | repeat each value by x, y... times in sequence.              |
+| repeatX(Object *value1*, Integer *size1*, Object *value2*, Integer *size2*, Object *value3*, Integer *size3*, Object *value4*, Integer *size4*, Object *value5*, Integer *size5*) | repeat each value by x, y... times in sequence.              |
+| repeatX(List\<Object\> *values*, List\<Integer\> *sizes*)    | repeat each value by x, y... times in sequence.              |
 
 ### Arithmetic Field Keywords
 

@@ -150,7 +150,7 @@ public with sharing class ATKCoreTest {
                 new List<Account> {new Account(), new Account(), new Account()}), null);
             matrix.add(ATKCore.EntityNodeType.ONE_TO_MANY, new ATKCore.EntityNode(Contact.SObjectType,
                 new List<Contact> {new Contact(), new Contact(), new Contact()}), Contact.AccountId);
-            generator.assignReferencesForMock(matrix.currEntityNode);
+            generator.assignReferencesForMock(matrix, matrix.currEntityNode);
         }
 
         {
@@ -159,7 +159,7 @@ public with sharing class ATKCoreTest {
                 new List<Account>()), null);
             matrix.add(ATKCore.EntityNodeType.ONE_TO_MANY, new ATKCore.EntityNode(Contact.SObjectType,
                 new List<Contact> {new Contact(), new Contact(), new Contact()}), Contact.AccountId);
-            generator.assignReferencesForMock(matrix.currEntityNode);
+            generator.assignReferencesForMock(matrix, matrix.currEntityNode);
         }
     }
 
@@ -168,7 +168,7 @@ public with sharing class ATKCoreTest {
         ATKCore.MockGenerator generator = new ATKCore.MockGenerator();
         {
             ATKCore.EntityNode entity = new ATKCore.EntityNode(Account.SObjectType, 10);
-            generator.createObjectsForMock(entity);
+            generator.createMockObjects(entity);
 
             assignReadonlyField(entity, Account.Name);
             entity.currEntityField.fixedValue = 'Name';
@@ -177,7 +177,7 @@ public with sharing class ATKCoreTest {
 
         {
             ATKCore.EntityNode entity = new ATKCore.EntityNode(Account.SObjectType, 10);
-            generator.createObjectsForMock(entity);
+            generator.createMockObjects(entity);
 
             assignReadonlyField(entity, Account.Name);
             entity.currEntityField.type = Schema.DisplayType.DOUBLE;
@@ -189,7 +189,7 @@ public with sharing class ATKCoreTest {
 
         {
             ATKCore.EntityNode entity = new ATKCore.EntityNode(Account.SObjectType, 10);
-            generator.createObjectsForMock(entity);
+            generator.createMockObjects(entity);
 
             assignReadonlyField(entity, Account.Name);
             entity.currEntityField.type = Schema.DisplayType.DATE;
@@ -201,7 +201,7 @@ public with sharing class ATKCoreTest {
 
         {
             ATKCore.EntityNode entity = new ATKCore.EntityNode(Account.SObjectType, 10);
-            generator.createObjectsForMock(entity);
+            generator.createMockObjects(entity);
 
             assignReadonlyField(entity, Account.Name);
             entity.currEntityField.type = Schema.DisplayType.TIME;
@@ -213,7 +213,7 @@ public with sharing class ATKCoreTest {
 
         {
             ATKCore.EntityNode entity = new ATKCore.EntityNode(Account.SObjectType, 10);
-            generator.createObjectsForMock(entity);
+            generator.createMockObjects(entity);
 
             assignReadonlyField(entity, Account.Name);
             entity.currEntityField.type = Schema.DisplayType.DATETIME;
