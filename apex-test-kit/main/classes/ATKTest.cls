@@ -21,6 +21,21 @@ public with sharing class ATKTest {
     // ****************
     // #region Junction
     // ****************
+
+    @IsTest
+    static void test_Junction_LCA() {
+        // Account(10) --|------------------|--> Case(40)
+        //               |--> Contact(20) --|
+        ATK.SaveResult result = ATK.prepare(Account.SObjectType, 10)
+            .withJunction(Case.SObjectType, Case.AccountId, 40)
+            .also()
+            .withChildren(Contact.SObjectType, Contact.AccountId, 20)
+                .withChildren(Case.SObjectType, Case.ContactId)
+            .mock();
+        
+        ((ATKCore.SaveResult)result).debug();
+    }
+
     @IsTest
     static void test_Junction_Size() {
         ATK.SaveResult result = ATK.prepare(Account.SObjectType, 10)
@@ -430,8 +445,6 @@ public with sharing class ATKTest {
             .withParents(User.SObjectType, Account.OwnerId, 10)
             .mock();
         
-        ((ATKCore.SaveResult)result).debug();
-
         for (Integer i = 0; i < 10; i++) {
             User owner = (User)result.get(User.SObjectType)[i];
             Account acc = (Account)result.get(Account.SObjectType)[i];

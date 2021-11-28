@@ -346,13 +346,14 @@ public with sharing class ATKCore {
                     MockSObject parent;
                     List<List<Object>> pairs;
                     if (entityNode.isJunction && index > 0) {
-                        List<List<EntityNodeRelationship>> relationshps = matrix.relationshipsToCommonParent(distributedRelationships[index - 1].parent, relationship.parent);
-                        if (relationshps != null) {
-                            List<EntityNodeRelationship> rel0 = relationshps[0];
-                            List<EntityNodeRelationship> rel1 = relationshps[1];
-                        }
-
-                        if (index > 1) {
+                        if (index == 1) {
+                            List<List<EntityNodeRelationship>> relationshps = matrix.relationshipsToCommonParent(distributedRelationships[index - 1], relationship);
+                            if (relationshps != null) {
+                                List<EntityNodeRelationship> rels0 = relationshps[0];
+                                List<EntityNodeRelationship> rels1 = relationshps[1];
+                                // another way to sort childObjectList by common parents?
+                            }
+                        } else if (index > 1) {
                             childObjectList = sortChildObjectList(childObjectList, distributedRelationships);
                         }
                         pairs = DISTRIBUTOR.distribute2(childObjectList, parentObjectList.mockObjects);
@@ -383,18 +384,41 @@ public with sharing class ATKCore {
 
         // TODO: Fine tune grouping methods performance.
         @TestVisible
+        private List<SObject> groupChildObjectList(List<SObject> childObjectList, List<EntityNodeRelationship> assignedParentRelationships, List<EntityNodeRelationship> unassignedParentRelationships) {
+            SObject lastParent;
+            List<SObject> childWithSameParent = new List<SObject>();
+            Map<SObject, List<SObject>> groupedChild = new Map<SObject, List<SObject>>();
+            
+            for (Integer i = 0; i < childObjectList.size(); ++i) {
+                SObject child = childObjectList[i];
+                SObject parent = child;
+                for (EntityNodeRelationship relationship : assignedParentRelationships) {
+                    parent = parent.getSObject(relationship.parentRelationshipName);
+                }
+                if (lastParent != parent) {
+                    groupedChild.put(parent, childWithSameParent);
+
+                    childWithSameParent = new List<SObject>();
+                    lastParent = parent;
+                }
+
+            }
+        }
+
+
+        @TestVisible
         private List<SObject> sortChildObjectList(List<SObject> childObjectList, List<EntityNodeRelationship> relationships) {
-            List<SObject> newObjectList = new List<SObject>();
+            List<SObject> sortedObjectList = new List<SObject>();
             for (SObject child : childObjectList) {
                 List<SObject> parents = new List<SObject>();
                 for (EntityNodeRelationship relationship : relationships) {
                     parents.add(child.getSObject(relationship.parentRelationshipName));
                 }
                 Integer foundIndex = -1;
-                for (foundIndex = newObjectList.size() - 1; foundIndex >= 0; foundIndex--) {
+                for (foundIndex = sortedObjectList.size() - 1; foundIndex >= 0; foundIndex--) {
                     List<SObject> newParents = new List<SObject>();
                     for (EntityNodeRelationship relationship : relationships) {
-                        newParents.add(newObjectList[foundIndex].getSObject(relationship.parentRelationshipName));
+                        newParents.add(sortedObjectList[foundIndex].getSObject(relationship.parentRelationshipName));
                     }
 
                     Boolean allParentsEqual = true;
@@ -408,28 +432,28 @@ public with sharing class ATKCore {
                         break;
                     }
                 }
-                if (foundIndex == -1 || foundIndex + 1 == newObjectList.size()) {
-                    newObjectList.add(child);
+                if (foundIndex == -1 || foundIndex + 1 == sortedObjectList.size()) {
+                    sortedObjectList.add(child);
                 } else {
-                    newObjectList.add(foundIndex + 1, child);
+                    sortedObjectList.add(foundIndex + 1, child);
                 }
             }
-            return newObjectList;
+            return sortedObjectList;
         }
 
         @TestVisible
         private List<MockSObject> sortChildObjectList(List<MockSObject> childObjectList, List<EntityNodeRelationship> relationships) {
-            List<MockSObject> newObjectList = new List<MockSObject>();
+            List<MockSObject> sortedObjectList = new List<MockSObject>();
             for (MockSObject child : childObjectList) {
                 List<Object> parentIds = new List<Object>();
                 for (EntityNodeRelationship relationship : relationships) {
                     parentIds.add(child.get(relationship.parentIdName));
                 }
                 Integer foundIndex = -1;
-                for (foundIndex = newObjectList.size() - 1; foundIndex >= 0; foundIndex--) {
+                for (foundIndex = sortedObjectList.size() - 1; foundIndex >= 0; foundIndex--) {
                     List<Object> newParentIds = new List<Object>();
                     for (EntityNodeRelationship relationship : relationships) {
-                        newParentIds.add(newObjectList[foundIndex].get(relationship.parentIdName));
+                        newParentIds.add(sortedObjectList[foundIndex].get(relationship.parentIdName));
                     }
 
                     Boolean allParentsEqual = true;
@@ -443,13 +467,13 @@ public with sharing class ATKCore {
                         break;
                     }
                 }
-                if (foundIndex == -1 || foundIndex + 1 == newObjectList.size()) {
-                    newObjectList.add(child);
+                if (foundIndex == -1 || foundIndex + 1 == sortedObjectList.size()) {
+                    sortedObjectList.add(child);
                 } else {
-                    newObjectList.add(foundIndex + 1, child);
+                    sortedObjectList.add(foundIndex + 1, child);
                 }
             }
-            return newObjectList;
+            return sortedObjectList;
         }
     }
 
@@ -680,7 +704,10 @@ public with sharing class ATKCore {
             entityNodeRelationships = new List<EntityNodeRelationship>();
         }
 
-        public List<List<EntityNodeRelationship>> relationshipsToCommonParent(EntityNode entityNode1, EntityNode entityNode2) {
+        public List<List<EntityNodeRelationship>> relationshipsToCommonParent(EntityNodeRelationship relationship1, EntityNodeRelationship relationship2) {
+            EntityNode entityNode1 = relationship1.parent;
+            EntityNode entityNode2 = relationship2.parent;
+
             Integer v = this.graph.index(entityNode1);
             Integer w = this.graph.index(entityNode2);
 
@@ -692,6 +719,18 @@ public with sharing class ATKCore {
                 List<EntityNodeRelationship> rel1 = relationshipsToParent(entityNode1, entityNodeP);
                 List<EntityNodeRelationship> rel2 = relationshipsToParent(entityNode2, entityNodeP);
                 if (rel1 != null && rel2 != null) {
+                    if (rel1.size() == 0) {
+                        rel1.add(relationship1);
+                    } else {
+                        rel1.add(0, relationship1);
+                    }
+
+                    if (rel2.size() == 0) {
+                        rel2.add(relationship2);
+                    } else {
+                        rel2.add(0, relationship2);
+                    }
+
                     return new List<List<EntityNodeRelationship>> { rel1, rel2 };
                 }
             }
@@ -699,6 +738,10 @@ public with sharing class ATKCore {
         }
 
         public List<EntityNodeRelationship> relationshipsToParent(EntityNode entityNode, EntityNode parentEntityNode) {
+            if (entityNode == parentEntityNode) {
+                return new List<EntityNodeRelationship> ();
+            }
+
             for (EntityNodeRelationship relationship : entityNode.relationships) {
                 if (relationship.parent == parentEntityNode) {
                     return new List<EntityNodeRelationship> { relationship };
@@ -765,10 +808,12 @@ public with sharing class ATKCore {
         }
 
         public void add(EntityNodeType nodeType, EntityNode nextEntityNode, Schema.SObjectField parentIdField, Boolean isJunction) {
-            nextEntityNode.isJunction = isJunction;
+            if (!nextEntityNode.isJunction) {
+                nextEntityNode.isJunction = isJunction;
+            }
             createRelationshipForEntityNode(nodeType, nextEntityNode, parentIdField);
-            entityNodeCache.add(nextEntityNode);
             entityNodeStack.add(nextEntityNode);
+            entityNodeCache.add(nextEntityNode);
             this.currEntityNode = nextEntityNode;
         }
 
@@ -781,7 +826,9 @@ public with sharing class ATKCore {
                 }
             }
             if (nextEntityNode != null) {
-                nextEntityNode.isJunction = isJunction;
+                if (!nextEntityNode.isJunction) {
+                    nextEntityNode.isJunction = isJunction;
+                }
                 createRelationshipForEntityNode(nodeType, nextEntityNode, parentIdField);
                 entityNodeStack.add(nextEntityNode);
                 this.currEntityNode = nextEntityNode;
