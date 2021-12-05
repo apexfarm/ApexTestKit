@@ -22,10 +22,10 @@ Apex Test Kit can help generate massive records for Apex test classes, including
 - **v3.5.1 Fixes**: `Illegal assignment from Decimal to Integer`, when use arithmetic keywords against integer field types such as `Number(8, 0)`.
 
 #### Major Changes (Experimental)
-- [**Many to Many with Junction**](#many-to-many-with-junction): Introduce a new keyword `junctionOf()`, it can annotate an sObject as the junction of a many-to-many relationship. Its main purpose is to distribute parents of the junction object from one branch to another. **Caution**: `junctionOf()` API or behavior is subject to change, please avoid use it in test classes until version v3.6.
+- [**Many to Many with Junction**](#many-to-many-with-junction): Introduce a new keyword `junctionOf()`, it can annotate an sObject as the junction of a many-to-many relationship. Its main purpose is to distribute parents of the junction object from one branch to another. **Caution: `junctionOf()` API or behavior is subject to change, please avoid use it in test classes until version v3.6.**
   - **Pros**: `junctionOf()` is verified with several complex use cases, and it works well with a combination of other entity keywords to fulfill wider business scenarios. 
   - **Cons**: `junctionOf()` will result in meaningless distribution logic if two parents share a common ancestor. 
-- **v3.5.3 keyword deprecated**: ~~`withJunciton()`~~ is deprecated, because the new `junctionOf()` is more flexible, since it can be applied to `withChildren()`, prepare()` and `withParents()`.
+- **v3.5.3 keyword deprecated**: ~~`withJunciton()`~~ is deprecated, because the new `junctionOf()` is more flexible, since it can be applied to `prepare()`, `withParents()` and `withChildren()`.
 - Account, Contact, Case, User are the only sObjects used in test classes.
 
 #### Next Release
@@ -217,11 +217,11 @@ ATK.prepare(Opportunity.SObjectType, 10)
 
 | Junction Keyword API                                         | Description                                                  |
 | :----------------------------------------------------------- | ------------------------------------------------------------ |
-| junctionOf(SObjectField *parentId1*, SObjectField *parentId2*); | Annotate an entity is a junction of the listed parent relationships. |
-| junctionOf(SObjectField *parentId1*, SObjectField *parentId2*, SObjectField *parentId3*); | Annotate an entity is a junction of the listed parent relationships. |
-| junctionOf(SObjectField *parentId1*, SObjectField *parentId2*, SObjectField *parentId3*, SObjectField *parentId4*); | Annotate an entity is a junction of the listed parent relationships. |
-| junctionOf(SObjectField *parentId1*, SObjectField *parentId2*, SObjectField *parentId3*, SObjectField *parentId4*, SObjectField *parentId5*); | Annotate an entity is a junction of the listed parent relationships. |
-| junctionOf(List\<SObjectField\> *parentIds*);                | Annotate an entity is a junction of the listed parent relationships. |
+| junctionOf(SObjectField *parentId1*, SObjectField *parentId2*); | Annotate an entity as a junction of the listed parent relationships. |
+| junctionOf(SObjectField *parentId1*, SObjectField *parentId2*, SObjectField *parentId3*); | Annotate an entity as a junction of the listed parent relationships. |
+| junctionOf(SObjectField *parentId1*, SObjectField *parentId2*, SObjectField *parentId3*, SObjectField *parentId4*); | Annotate an entity as a junction of the listed parent relationships. |
+| junctionOf(SObjectField *parentId1*, SObjectField *parentId2*, SObjectField *parentId3*, SObjectField *parentId4*, SObjectField *parentId5*); | Annotate an entity as a junction of the listed parent relationships. |
+| junctionOf(List\<SObjectField\> *parentIds*);                | Annotate an entity as a junction of the listed parent relationships. |
 
 ## &#128229;Save
 
