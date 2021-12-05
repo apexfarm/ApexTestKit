@@ -492,7 +492,7 @@ public with sharing class ATKCoreTest {
         {
             ATKCore.EntityNode entity = new ATKCore.EntityNode(Account.SObjectType, 1);
             entity.addRelationship(new ATKCore.EntityNodeRelationship(Contact.AccountId));
-            entity.junctionOrders = new List<Schema.SObjectField> {
+            entity.junctionFields = new List<Schema.SObjectField> {
                 Contact.AccountId, Case.ContactId, Case.AccountId
             };
             entity.addRelationship(new ATKCore.EntityNodeRelationship(Case.ContactId));
@@ -506,7 +506,7 @@ public with sharing class ATKCoreTest {
         {
             ATKCore.EntityNode entity = new ATKCore.EntityNode(Account.SObjectType, 1);
             entity.addRelationship(new ATKCore.EntityNodeRelationship(Contact.AccountId));
-            entity.junctionOrders = new List<Schema.SObjectField> {
+            entity.junctionFields = new List<Schema.SObjectField> {
                 Contact.AccountId, Case.ContactId, Case.AccountId
             };
             entity.addRelationship(new ATKCore.EntityNodeRelationship(Case.AccountId));
@@ -520,38 +520,38 @@ public with sharing class ATKCoreTest {
         {
             ATKCore.EntityNode entity = new ATKCore.EntityNode(Account.SObjectType, 1);
             entity.addRelationship(new ATKCore.EntityNodeRelationship(Case.ContactId));
-            entity.junctionOrders = new List<Schema.SObjectField> {
-                Contact.AccountId, Case.ContactId, Case.AccountId
-            };
-            entity.addRelationship(new ATKCore.EntityNodeRelationship(Contact.AccountId));
-            entity.addRelationship(new ATKCore.EntityNodeRelationship(Case.AccountId));
-
-            System.assertEquals(Contact.AccountId, entity.relationships[0].parentIdField);
-            System.assertEquals(Case.ContactId, entity.relationships[1].parentIdField);
-            System.assertEquals(Case.AccountId, entity.relationships[2].parentIdField);
-        }
-
-        {
-            ATKCore.EntityNode entity = new ATKCore.EntityNode(Account.SObjectType, 1);
-            entity.addRelationship(new ATKCore.EntityNodeRelationship(Case.ContactId));
-            entity.junctionOrders = new List<Schema.SObjectField> {
-                Contact.AccountId, Case.ContactId, Case.AccountId
-            };
-            entity.addRelationship(new ATKCore.EntityNodeRelationship(Case.AccountId));
-            entity.addRelationship(new ATKCore.EntityNodeRelationship(Contact.AccountId));
-
-            System.assertEquals(Contact.AccountId, entity.relationships[0].parentIdField);
-            System.assertEquals(Case.ContactId, entity.relationships[1].parentIdField);
-            System.assertEquals(Case.AccountId, entity.relationships[2].parentIdField);
-        }
-
-        {
-            ATKCore.EntityNode entity = new ATKCore.EntityNode(Account.SObjectType, 1);
-            entity.addRelationship(new ATKCore.EntityNodeRelationship(Case.AccountId));
-            entity.junctionOrders = new List<Schema.SObjectField> {
+            entity.junctionFields = new List<Schema.SObjectField> {
                 Contact.AccountId, Case.ContactId, Case.AccountId
             };
             entity.addRelationship(new ATKCore.EntityNodeRelationship(Contact.AccountId));
+            entity.addRelationship(new ATKCore.EntityNodeRelationship(Case.AccountId));
+
+            System.assertEquals(Contact.AccountId, entity.relationships[0].parentIdField);
+            System.assertEquals(Case.ContactId, entity.relationships[1].parentIdField);
+            System.assertEquals(Case.AccountId, entity.relationships[2].parentIdField);
+        }
+
+        {
+            ATKCore.EntityNode entity = new ATKCore.EntityNode(Account.SObjectType, 1);
+            entity.addRelationship(new ATKCore.EntityNodeRelationship(Case.ContactId));
+            entity.junctionFields = new List<Schema.SObjectField> {
+                Contact.AccountId, Case.ContactId, Case.AccountId
+            };
+            entity.addRelationship(new ATKCore.EntityNodeRelationship(Case.AccountId));
+            entity.addRelationship(new ATKCore.EntityNodeRelationship(Contact.AccountId));
+
+            System.assertEquals(Contact.AccountId, entity.relationships[0].parentIdField);
+            System.assertEquals(Case.ContactId, entity.relationships[1].parentIdField);
+            System.assertEquals(Case.AccountId, entity.relationships[2].parentIdField);
+        }
+
+        {
+            ATKCore.EntityNode entity = new ATKCore.EntityNode(Account.SObjectType, 1);
+            entity.addRelationship(new ATKCore.EntityNodeRelationship(Case.AccountId));
+            entity.junctionFields = new List<Schema.SObjectField> {
+                Contact.AccountId, Case.ContactId, Case.AccountId
+            };
+            entity.addRelationship(new ATKCore.EntityNodeRelationship(Contact.AccountId));
             entity.addRelationship(new ATKCore.EntityNodeRelationship(Case.ContactId));
 
             System.assertEquals(Contact.AccountId, entity.relationships[0].parentIdField);
@@ -562,7 +562,7 @@ public with sharing class ATKCoreTest {
         {
             ATKCore.EntityNode entity = new ATKCore.EntityNode(Account.SObjectType, 1);
             entity.addRelationship(new ATKCore.EntityNodeRelationship(Case.AccountId));
-            entity.junctionOrders = new List<Schema.SObjectField> {
+            entity.junctionFields = new List<Schema.SObjectField> {
                 Contact.AccountId, Case.ContactId, Case.AccountId
             };
             entity.addRelationship(new ATKCore.EntityNodeRelationship(Case.ContactId));
@@ -579,7 +579,7 @@ public with sharing class ATKCoreTest {
         {
             ATKCore.EntityNode entity = new ATKCore.EntityNode(Account.SObjectType, 1);
             entity.addRelationship(new ATKCore.EntityNodeRelationship(Case.ContactId));
-            entity.junctionOrders = new List<Schema.SObjectField> {
+            entity.junctionFields = new List<Schema.SObjectField> {
                 Contact.AccountId, Case.ContactId, Contact.AccountId, Case.AccountId
             };
             entity.addRelationship(new ATKCore.EntityNodeRelationship(Case.AccountId));
@@ -596,7 +596,7 @@ public with sharing class ATKCoreTest {
             
             ATKCore.EntityNode entity = new ATKCore.EntityNode(Account.SObjectType, 1);
             entity.addRelationship(new ATKCore.EntityNodeRelationship(Case.ContactId));
-            entity.junctionOrders = new List<Schema.SObjectField> {
+            entity.junctionFields = new List<Schema.SObjectField> {
                 Case.ContactId, Case.AccountId
             };
 
@@ -607,24 +607,24 @@ public with sharing class ATKCoreTest {
                 exp = ex;
             }
             System.assertNotEquals(null, exp);
-            System.assert(exp instanceOf ATKCore.JunctionOrderException);
+            System.assert(exp instanceOf ATKCore.JunctionOfException);
         }
         
         {
             ATKCore.EntityNode entity = new ATKCore.EntityNode(Account.SObjectType, 1);
             entity.addRelationship(new ATKCore.EntityNodeRelationship(Contact.AccountId));
-            entity.junctionOrders = new List<Schema.SObjectField> {
-                Case.ContactId, Case.AccountId
-            };
             
             Exception exp;
             try {
-                entity.addRelationship(new ATKCore.EntityNodeRelationship(Case.ContactId));
+                entity.junctionFields = new List<Schema.SObjectField> {
+                    Case.ContactId, Case.AccountId
+                };
+                // entity.addRelationship(new ATKCore.EntityNodeRelationship(Case.ContactId));
             } catch (Exception ex) {
                 exp = ex;
             }
             System.assertNotEquals(null, exp);
-            System.assert(exp instanceOf ATKCore.JunctionOrderException);
+            System.assert(exp instanceOf ATKCore.JunctionOfException);
         }
     }
 

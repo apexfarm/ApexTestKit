@@ -20,7 +20,7 @@ public with sharing class ATK {
     // #region Entity Interfaces
     // *************************
 
-    public static Entity prepare(Schema.SObjectType objectType, Integer size) {
+    public static JunctionEntity prepare(Schema.SObjectType objectType, Integer size) {
         ATKCore.EntityCommand sharedCommand = new ATKCore.EntityCommand();
         sharedCommand.prepare(objectType, size);
         return sharedCommand;
@@ -41,34 +41,27 @@ public with sharing class ATK {
     }
 
     public interface JunctionEntity extends Entity {
-        Entity order(Schema.SObjectField parentIdField1, Schema.SObjectField parentIdField2);
-        Entity order(Schema.SObjectField parentIdField1, Schema.SObjectField parentIdField2, Schema.SObjectField parentIdField3);
-        Entity order(Schema.SObjectField parentIdField1, Schema.SObjectField parentIdField2, Schema.SObjectField parentIdField3, Schema.SObjectField parentIdField4);
-        Entity order(Schema.SObjectField parentIdField1, Schema.SObjectField parentIdField2, Schema.SObjectField parentIdField3, Schema.SObjectField parentIdField4, Schema.SObjectField parentIdField5);
-        Entity order(List<Schema.SObjectField> parentIdFields);
+        Entity junctionOf(Schema.SObjectField parentIdField1, Schema.SObjectField parentIdField2);
+        Entity junctionOf(Schema.SObjectField parentIdField1, Schema.SObjectField parentIdField2, Schema.SObjectField parentIdField3);
+        Entity junctionOf(Schema.SObjectField parentIdField1, Schema.SObjectField parentIdField2, Schema.SObjectField parentIdField3, Schema.SObjectField parentIdField4);
+        Entity junctionOf(Schema.SObjectField parentIdField1, Schema.SObjectField parentIdField2, Schema.SObjectField parentIdField3, Schema.SObjectField parentIdField4, Schema.SObjectField parentIdField5);
+        Entity junctionOf(List<Schema.SObjectField> parentIdFields);
     }
 
     public interface Entity {
         // keywords to start new context
-        Entity withParents(Schema.SObjectType objectType, Schema.SObjectField parentIdField);
-        Entity withParents(Schema.SObjectType objectType, Schema.SObjectField parentIdField, Integer size);
-        Entity withParents(Schema.SObjectType objectType, Schema.SObjectField parentIdField, List<SObject> objects);
-        Entity withChildren(Schema.SObjectType objectType, Schema.SObjectField parentIdField);
-        Entity withChildren(Schema.SObjectType objectType, Schema.SObjectField parentIdField, Integer size);
-        Entity withChildren(Schema.SObjectType objectType, Schema.SObjectField parentIdField, List<SObject> objects);
-        JunctionEntity withJunction(Schema.SObjectType objectType, Schema.SObjectField parentIdField, Integer size);
-        JunctionEntity withJunction(Schema.SObjectType objectType, Schema.SObjectField parentIdField, List<SObject> objects);
+        JunctionEntity withParents(Schema.SObjectType objectType, Schema.SObjectField parentIdField);
+        JunctionEntity withParents(Schema.SObjectType objectType, Schema.SObjectField parentIdField, Integer size);
+        JunctionEntity withParents(Schema.SObjectType objectType, Schema.SObjectField parentIdField, List<SObject> objects);
+        JunctionEntity withChildren(Schema.SObjectType objectType, Schema.SObjectField parentIdField);
+        JunctionEntity withChildren(Schema.SObjectType objectType, Schema.SObjectField parentIdField, Integer size);
+        JunctionEntity withChildren(Schema.SObjectType objectType, Schema.SObjectField parentIdField, List<SObject> objects);
 
         // keywords to build graph
         Entity also();
         Entity also(Integer depth);
         Entity build(ATK.EntityBuilder builder);
         Field field(SObjectField field);
-
-        // keywords to end with
-        SaveResult save();
-        SaveResult save(Boolean doInsert);
-        SaveResult mock();
 
         // keywords to lookup relation
         Entity recordType(String name);
@@ -77,6 +70,11 @@ public with sharing class ATK {
         Entity permissionSet(String name1, String name2);
         Entity permissionSet(String name1, String name2, String name3);
         Entity permissionSet(List<String> names);
+
+        // keywords to end with
+        SaveResult save();
+        SaveResult save(Boolean doInsert);
+        SaveResult mock();
     }
 
     public interface Field {

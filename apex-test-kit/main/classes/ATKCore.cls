@@ -42,8 +42,8 @@ public with sharing class ATKCore {
         }
     }
 
-    public class JunctionOrderException extends Exception {
-        String msg = 'Junction order should include all relationships.';
+    public class JunctionOfException extends Exception {
+        String msg = 'Junction should include all relationships.';
 
         {
             this.setMessage(msg);
@@ -346,14 +346,7 @@ public with sharing class ATKCore {
                     MockSObject parent;
                     List<List<Object>> pairs;
                     if (entityNode.isJunction && index > 0) {
-                        if (index == 1) {
-                            List<List<EntityNodeRelationship>> relationshps = matrix.relationshipsToCommonParent(distributedRelationships[index - 1], relationship);
-                            if (relationshps != null) {
-                                List<EntityNodeRelationship> rels0 = relationshps[0];
-                                List<EntityNodeRelationship> rels1 = relationshps[1];
-                                // another way to sort childObjectList by common parents?
-                            }
-                        } else if (index > 1) {
+                        if (index > 1) {
                             childObjectList = sortChildObjectList(childObjectList, distributedRelationships);
                         }
                         pairs = DISTRIBUTOR.distribute2(childObjectList, parentObjectList.mockObjects);
@@ -381,30 +374,6 @@ public with sharing class ATKCore {
                 }
             }
         }
-
-        // TODO: Fine tune grouping methods performance.
-        @TestVisible
-        private List<SObject> groupChildObjectList(List<SObject> childObjectList, List<EntityNodeRelationship> assignedParentRelationships, List<EntityNodeRelationship> unassignedParentRelationships) {
-            SObject lastParent;
-            List<SObject> childWithSameParent = new List<SObject>();
-            Map<SObject, List<SObject>> groupedChild = new Map<SObject, List<SObject>>();
-            
-            for (Integer i = 0; i < childObjectList.size(); ++i) {
-                SObject child = childObjectList[i];
-                SObject parent = child;
-                for (EntityNodeRelationship relationship : assignedParentRelationships) {
-                    parent = parent.getSObject(relationship.parentRelationshipName);
-                }
-                if (lastParent != parent) {
-                    groupedChild.put(parent, childWithSameParent);
-
-                    childWithSameParent = new List<SObject>();
-                    lastParent = parent;
-                }
-
-            }
-        }
-
 
         @TestVisible
         private List<SObject> sortChildObjectList(List<SObject> childObjectList, List<EntityNodeRelationship> relationships) {
@@ -704,58 +673,6 @@ public with sharing class ATKCore {
             entityNodeRelationships = new List<EntityNodeRelationship>();
         }
 
-        public List<List<EntityNodeRelationship>> relationshipsToCommonParent(EntityNodeRelationship relationship1, EntityNodeRelationship relationship2) {
-            EntityNode entityNode1 = relationship1.parent;
-            EntityNode entityNode2 = relationship2.parent;
-
-            Integer v = this.graph.index(entityNode1);
-            Integer w = this.graph.index(entityNode2);
-
-            Integer index1 = this.top.order().indexOf(v);
-            Integer index2 = this.top.order().indexOf(w);
-            for (Integer indexP = index1 <= index2 ? index1 : index2; indexP >= 0; indexP--) {
-                Integer p = this.top.order()[indexP];
-                EntityNode entityNodeP = (EntityNode)this.graph.keyAt(p);
-                List<EntityNodeRelationship> rel1 = relationshipsToParent(entityNode1, entityNodeP);
-                List<EntityNodeRelationship> rel2 = relationshipsToParent(entityNode2, entityNodeP);
-                if (rel1 != null && rel2 != null) {
-                    if (rel1.size() == 0) {
-                        rel1.add(relationship1);
-                    } else {
-                        rel1.add(0, relationship1);
-                    }
-
-                    if (rel2.size() == 0) {
-                        rel2.add(relationship2);
-                    } else {
-                        rel2.add(0, relationship2);
-                    }
-
-                    return new List<List<EntityNodeRelationship>> { rel1, rel2 };
-                }
-            }
-            return null;
-        }
-
-        public List<EntityNodeRelationship> relationshipsToParent(EntityNode entityNode, EntityNode parentEntityNode) {
-            if (entityNode == parentEntityNode) {
-                return new List<EntityNodeRelationship> ();
-            }
-
-            for (EntityNodeRelationship relationship : entityNode.relationships) {
-                if (relationship.parent == parentEntityNode) {
-                    return new List<EntityNodeRelationship> { relationship };
-                } else {
-                    List<EntityNodeRelationship> relationships = relationshipsToParent(relationship.parent, parentEntityNode);
-                    if (relationships != null) {
-                        relationships.add(0, relationship);
-                        return relationships;
-                    }
-                }
-            }
-            return null;
-        }
-
         public void generateDAG() {
             this.graph = new SymbolDigraph(this.entityNodeCache);
             for (EntityNodeRelationship relation : this.entityNodeRelationships) {
@@ -800,24 +717,13 @@ public with sharing class ATKCore {
         }
 
         public void add(EntityNodeType nodeType, EntityNode nextEntityNode, Schema.SObjectField parentIdField) {
-            add(nodeType, nextEntityNode, parentIdField, false);
-        }
-
-        public void add(EntityNodeType nodeType, Schema.SObjectType objectType, Schema.SObjectField parentIdField) {
-            add(nodeType, objectType, parentIdField, false);
-        }
-
-        public void add(EntityNodeType nodeType, EntityNode nextEntityNode, Schema.SObjectField parentIdField, Boolean isJunction) {
-            if (!nextEntityNode.isJunction) {
-                nextEntityNode.isJunction = isJunction;
-            }
             createRelationshipForEntityNode(nodeType, nextEntityNode, parentIdField);
             entityNodeStack.add(nextEntityNode);
             entityNodeCache.add(nextEntityNode);
             this.currEntityNode = nextEntityNode;
         }
 
-        public void add(EntityNodeType nodeType, Schema.SObjectType objectType, Schema.SObjectField parentIdField, Boolean isJunction) {
+        public void add(EntityNodeType nodeType, Schema.SObjectType objectType, Schema.SObjectField parentIdField) {
             EntityNode nextEntityNode;
             for (EntityNode entityNode : this.entityNodeCache) {
                 if (entityNode.objectType == objectType) {
@@ -826,9 +732,6 @@ public with sharing class ATKCore {
                 }
             }
             if (nextEntityNode != null) {
-                if (!nextEntityNode.isJunction) {
-                    nextEntityNode.isJunction = isJunction;
-                }
                 createRelationshipForEntityNode(nodeType, nextEntityNode, parentIdField);
                 entityNodeStack.add(nextEntityNode);
                 this.currEntityNode = nextEntityNode;
@@ -912,7 +815,22 @@ public with sharing class ATKCore {
         public Integer size { get; set; }
 
         public Boolean isJunction { get; set; }
-        public List<Schema.SObjectField> junctionOrders { get; set; }
+        public List<Schema.SObjectField> junctionFields { get; 
+            set {
+                List<EntityNodeRelationship> relationships = new EntityNodeRelationship[value.size()];
+                for (EntityNodeRelationship rel : this.relationships) {
+                    Integer index = value.indexOf(rel.parentIdField);
+                    if (index == -1) {
+                        throw new JunctionOfException();
+                    } else {
+                        relationships[index] = rel;
+                    }
+                }
+
+                this.relationships = relationships;
+                this.junctionFields = value;
+            } 
+        }
 
         public List<SObject> objects { get; set; }
         public List<EntityNodeRelationship> relationships { get; set; }
@@ -960,26 +878,14 @@ public with sharing class ATKCore {
         }
 
         public void addRelationship(EntityNodeRelationship relationship) {
-            if (this.junctionOrders != null) {
-                if (this.junctionOrders.size() > this.relationships.size()) {
-                    EntityNodeRelationship tmpRelationship = this.relationships[0];
-                    this.relationships = new EntityNodeRelationship[this.junctionOrders.size()];
-                    
-                    Integer index = this.junctionOrders.indexOf(tmpRelationship.parentIdField);
-                    if (index == -1) {
-                        throw new JunctionOrderException();
-                    } else {
-                        this.relationships[index] = tmpRelationship;
-                    }
-                }
-
-                for (Integer i = 0; i < this.junctionOrders.size(); i++) {
-                    if (this.junctionOrders[i] == relationship.parentIdField && this.relationships[i] == null) {
+            if (this.junctionFields != null) {
+                for (Integer i = 0; i < this.junctionFields.size(); i++) {
+                    if (this.junctionFields[i] == relationship.parentIdField && this.relationships[i] == null) {
                         this.relationships[i] = relationship;
                         return;
                     }
                 }
-                throw new JunctionOrderException();
+                throw new JunctionOfException();
             }
             this.relationships.add(relationship);
         }
@@ -1380,78 +1286,73 @@ public with sharing class ATKCore {
             return result;
         }
 
-        public ATK.Entity prepare(Schema.SObjectType objectType, Integer size) {
+        public ATK.JunctionEntity prepare(Schema.SObjectType objectType, Integer size) {
             this.matrix.add(EntityNodeType.PREPARE, new EntityNode(objectType, size), null);
             return this;
         }
     
-        public ATK.Entity prepare(Schema.SObjectType objectType, List<SObject> objects) {
+        public ATK.JunctionEntity prepare(Schema.SObjectType objectType, List<SObject> objects) {
             this.matrix.add(EntityNodeType.PREPARE, new EntityNode(objectType, objects), null);
             return this;
         }
 
-        public ATK.Entity withParents(Schema.SObjectType objectType, Schema.SObjectField parentIdField) {
+        public ATK.JunctionEntity withParents(Schema.SObjectType objectType, Schema.SObjectField parentIdField) {
             this.matrix.add(EntityNodeType.MANY_TO_ONE, objectType, parentIdField);
             return this;
         }
 
-        public ATK.Entity withParents(Schema.SObjectType objectType, Schema.SObjectField parentIdField, Integer size) {
+        public ATK.JunctionEntity withParents(Schema.SObjectType objectType, Schema.SObjectField parentIdField, Integer size) {
             this.matrix.add(EntityNodeType.MANY_TO_ONE, new EntityNode(objectType, size), parentIdField);
             return this;
         }
 
-        public ATK.Entity withParents(Schema.SObjectType objectType, Schema.SObjectField parentIdField, List<SObject> objects) {
+        public ATK.JunctionEntity withParents(Schema.SObjectType objectType, Schema.SObjectField parentIdField, List<SObject> objects) {
             this.matrix.add(EntityNodeType.MANY_TO_ONE, new EntityNode(objectType, objects), parentIdField);
             return this;
         }
 
-        public ATK.Entity withChildren(Schema.SObjectType objectType, Schema.SObjectField parentIdField) {
+        public ATK.JunctionEntity withChildren(Schema.SObjectType objectType, Schema.SObjectField parentIdField) {
             this.matrix.add(EntityNodeType.ONE_TO_MANY, objectType, parentIdField);
             return this;
         }
 
-        public ATK.Entity withChildren(Schema.SObjectType objectType, Schema.SObjectField parentIdField, Integer size) {
+        public ATK.JunctionEntity withChildren(Schema.SObjectType objectType, Schema.SObjectField parentIdField, Integer size) {
             this.matrix.add(EntityNodeType.ONE_TO_MANY, new EntityNode(objectType, size), parentIdField);
             return this;
         }
 
-        public ATK.Entity withChildren(Schema.SObjectType objectType, Schema.SObjectField parentIdField, List<SObject> objects) {
+        public ATK.JunctionEntity withChildren(Schema.SObjectType objectType, Schema.SObjectField parentIdField, List<SObject> objects) {
             this.matrix.add(EntityNodeType.ONE_TO_MANY, new EntityNode(objectType, objects), parentIdField);
             return this;
         }
 
-        public ATK.JunctionEntity withJunction(Schema.SObjectType objectType, Schema.SObjectField parentIdField, Integer size) {
-            this.matrix.add(EntityNodeType.ONE_TO_MANY, new EntityNode(objectType, size), parentIdField, true);
+        public ATK.Entity junctionOf(Schema.SObjectField parentIdField1, Schema.SObjectField parentIdField2){
+            this.matrix.currEntityNode.junctionFields = new List<Schema.SObjectField> { parentIdField1, parentIdField2};
+            this.matrix.currEntityNode.isJunction = true;
             return this;
         }
 
-        public ATK.JunctionEntity withJunction(Schema.SObjectType objectType, Schema.SObjectField parentIdField, List<SObject> objects) {
-            this.matrix.add(EntityNodeType.ONE_TO_MANY, new EntityNode(objectType, objects), parentIdField, true);
+        public ATK.Entity junctionOf(Schema.SObjectField parentIdField1, Schema.SObjectField parentIdField2, Schema.SObjectField parentIdField3){
+            this.matrix.currEntityNode.junctionFields = new List<Schema.SObjectField> { parentIdField1, parentIdField2, parentIdField3};
+            this.matrix.currEntityNode.isJunction = true;
             return this;
         }
 
-        public ATK.Entity order(Schema.SObjectField parentIdField1, Schema.SObjectField parentIdField2){
-            this.matrix.currEntityNode.junctionOrders = new List<Schema.SObjectField> { parentIdField1, parentIdField2};
+        public ATK.Entity junctionOf(Schema.SObjectField parentIdField1, Schema.SObjectField parentIdField2, Schema.SObjectField parentIdField3, Schema.SObjectField parentIdField4){
+            this.matrix.currEntityNode.junctionFields = new List<Schema.SObjectField> { parentIdField1, parentIdField2, parentIdField3, parentIdField4};
+            this.matrix.currEntityNode.isJunction = true;
             return this;
         }
 
-        public ATK.Entity order(Schema.SObjectField parentIdField1, Schema.SObjectField parentIdField2, Schema.SObjectField parentIdField3){
-            this.matrix.currEntityNode.junctionOrders = new List<Schema.SObjectField> { parentIdField1, parentIdField2, parentIdField3};
+        public ATK.Entity junctionOf(Schema.SObjectField parentIdField1, Schema.SObjectField parentIdField2, Schema.SObjectField parentIdField3, Schema.SObjectField parentIdField4, Schema.SObjectField parentIdField5){
+            this.matrix.currEntityNode.junctionFields = new List<Schema.SObjectField> { parentIdField1, parentIdField2, parentIdField3, parentIdField4, parentIdField5};
+            this.matrix.currEntityNode.isJunction = true;
             return this;
         }
 
-        public ATK.Entity order(Schema.SObjectField parentIdField1, Schema.SObjectField parentIdField2, Schema.SObjectField parentIdField3, Schema.SObjectField parentIdField4){
-            this.matrix.currEntityNode.junctionOrders = new List<Schema.SObjectField> { parentIdField1, parentIdField2, parentIdField3, parentIdField4};
-            return this;
-        }
-
-        public ATK.Entity order(Schema.SObjectField parentIdField1, Schema.SObjectField parentIdField2, Schema.SObjectField parentIdField3, Schema.SObjectField parentIdField4, Schema.SObjectField parentIdField5){
-            this.matrix.currEntityNode.junctionOrders = new List<Schema.SObjectField> { parentIdField1, parentIdField2, parentIdField3, parentIdField4, parentIdField5};
-            return this;
-        }
-
-        public ATK.Entity order(List<Schema.SObjectField> parentIdFields) {
-            this.matrix.currEntityNode.junctionOrders = parentIdFields;
+        public ATK.Entity junctionOf(List<Schema.SObjectField> parentIdFields) {
+            this.matrix.currEntityNode.junctionFields = parentIdFields;
+            this.matrix.currEntityNode.isJunction = true;
             return this;
         }
 

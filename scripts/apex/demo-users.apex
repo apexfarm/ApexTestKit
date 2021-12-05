@@ -19,7 +19,7 @@
                 .field(User.LanguageLocaleKey).repeat('en_US')
                 .field(User.LocaleSidKey).repeat('en_US')
                 .field(User.TimeZoneSidKey).repeat('Pacific/Auckland')
-        .save();
+        .mock();
 
     for (Integer i = 0; i < 3; i++ ) {
         User user = (User)result.get(User.SObjectType)[i];
@@ -46,7 +46,7 @@
         .field(User.LanguageLocaleKey).repeat('en_US')
         .field(User.LocaleSidKey).repeat('en_US')
         .field(User.TimeZoneSidKey).repeat('Pacific/Auckland')
-        .save();
+        .mock();
 
     Database.rollback(sp);
 }
