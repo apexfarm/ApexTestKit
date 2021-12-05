@@ -21,14 +21,31 @@ public with sharing class ATKTest {
     // ****************
     // #region Junction
     // ****************
+
     @IsTest
-    static void test_Junction_Size() {
+    static void test_Junction_LCA() {
+        // Account(10) --|------------------|--> Case(40)
+        //               |--> Contact(20) --|
         ATK.SaveResult result = ATK.prepare(Account.SObjectType, 10)
-            .withJunction(Case.SObjectType, Case.AccountId, 20)
-                .withParents(Contact.SObjectType, Case.ContactId, 10)
+            .withChildren(Case.SObjectType, Case.AccountId, 40)
+                .junctionOf(Case.AccountId, Case.ContactId)
+            .also()
+            .withChildren(Contact.SObjectType, Contact.AccountId, 20)
+                .withChildren(Case.SObjectType, Case.ContactId)
+            .mock();
+    }
+
+    @IsTest
+    static void test_Junction_Size_Prepare() {
+        ATK.SaveResult result = ATK.prepare(Case.SObjectType, 20)
+            .junctionOf(Case.AccountId, Case.ContactId)
+            .withParents(Account.SObjectType, Case.AccountId, 10)
+            .also()
+            .withParents(Contact.SObjectType, Case.ContactId, 10)
             .save(false);
 
         ((ATKCore.SaveResult)result).debug();
+        ((ATKCore.SaveResult)result).debug(Account.SObjectType);
 
         List<Account> accounts = result.get(Account.SObjectType);
         List<Case> cases = result.get(Case.SObjectType);
@@ -47,20 +64,94 @@ public with sharing class ATKTest {
         System.assertEquals(accounts[1], cases[3].Account);
         System.assertEquals(contacts[3], cases[3].Contact);
 
-        System.assertEquals(accounts[6], cases[0].Account);
+        System.assertEquals(accounts[5], cases[10].Account);
+        System.assertEquals(contacts[0], cases[11].Contact);
+        System.assertEquals(accounts[5], cases[12].Account);
+        System.assertEquals(contacts[1], cases[13].Contact);
+        System.assertEquals(accounts[6], cases[14].Account);
+        System.assertEquals(contacts[2], cases[15].Contact);
+        System.assertEquals(accounts[6], cases[16].Account);
+        System.assertEquals(contacts[3], cases[17].Contact);
+    }
+
+    @IsTest
+    static void test_Junction_Size_Children() {
+        ATK.SaveResult result = ATK.prepare(Account.SObjectType, 10)
+            .withChildren(Case.SObjectType, Case.AccountId, 20)
+                .junctionOf(Case.AccountId, Case.ContactId)
+                .withParents(Contact.SObjectType, Case.ContactId, 10)
+            .save(false);
+
+        ((ATKCore.SaveResult)result).debug();
+        ((ATKCore.SaveResult)result).debug(Account.SObjectType);
+
+        List<Account> accounts = result.get(Account.SObjectType);
+        List<Case> cases = result.get(Case.SObjectType);
+        List<Contact> contacts = result.get(Contact.SObjectType);
+        
+        System.assertEquals(10, accounts.size());
+        System.assertEquals(20, cases.size());
+        System.assertEquals(10, contacts.size());
+
+        System.assertEquals(accounts[0], cases[0].Account);
         System.assertEquals(contacts[0], cases[0].Contact);
-        System.assertEquals(accounts[6], cases[1].Account);
+        System.assertEquals(accounts[0], cases[1].Account);
         System.assertEquals(contacts[1], cases[1].Contact);
-        System.assertEquals(accounts[7], cases[2].Account);
+        System.assertEquals(accounts[1], cases[2].Account);
         System.assertEquals(contacts[2], cases[2].Contact);
-        System.assertEquals(accounts[7], cases[3].Account);
+        System.assertEquals(accounts[1], cases[3].Account);
         System.assertEquals(contacts[3], cases[3].Contact);
+
+        System.assertEquals(accounts[5], cases[10].Account);
+        System.assertEquals(contacts[0], cases[11].Contact);
+        System.assertEquals(accounts[5], cases[12].Account);
+        System.assertEquals(contacts[1], cases[13].Contact);
+        System.assertEquals(accounts[6], cases[14].Account);
+        System.assertEquals(contacts[2], cases[15].Contact);
+        System.assertEquals(accounts[6], cases[16].Account);
+        System.assertEquals(contacts[3], cases[17].Contact);
+    }
+
+    @IsTest
+    static void test_Junction_Size_Children2() {
+        ATK.SaveResult result = ATK.prepare(Contact.SObjectType, 10)
+            .withChildren(Case.SObjectType, Case.ContactId, 20)
+                .junctionOf(Case.ContactId, Case.AccountId)
+                .withParents(Account.SObjectType, Case.AccountId, 10)
+            .save(false);
+
+        List<Account> accounts = result.get(Account.SObjectType);
+        List<Case> cases = result.get(Case.SObjectType);
+        List<Contact> contacts = result.get(Contact.SObjectType);
+        
+        System.assertEquals(10, accounts.size());
+        System.assertEquals(20, cases.size());
+        System.assertEquals(10, contacts.size());
+
+        System.assertEquals(contacts[0], cases[0].Contact);
+        System.assertEquals(accounts[0], cases[0].Account);
+        System.assertEquals(contacts[0], cases[1].Contact);
+        System.assertEquals(accounts[1], cases[1].Account);
+        System.assertEquals(contacts[1], cases[2].Contact);
+        System.assertEquals(accounts[2], cases[2].Account);
+        System.assertEquals(contacts[1], cases[3].Contact);
+        System.assertEquals(accounts[3], cases[3].Account);
+
+        System.assertEquals(contacts[5], cases[10].Contact);
+        System.assertEquals(accounts[0], cases[11].Account);
+        System.assertEquals(contacts[5], cases[12].Contact);
+        System.assertEquals(accounts[1], cases[13].Account);
+        System.assertEquals(contacts[6], cases[14].Contact);
+        System.assertEquals(accounts[2], cases[15].Account);
+        System.assertEquals(contacts[6], cases[16].Contact);
+        System.assertEquals(accounts[3], cases[17].Account);
     }
 
     @IsTest
     static void test_Junction_Size_Zero() {
         ATK.SaveResult result = ATK.prepare(Account.SObjectType, 0)
-            .withJunction(Case.SObjectType, Case.AccountId, 0)
+            .withChildren(Case.SObjectType, Case.AccountId, 0)
+                .junctionOf(Case.AccountId, Case.ContactId)
                 .withParents(Contact.SObjectType, Case.ContactId, 0)
             .save(false);
 
@@ -87,7 +178,8 @@ public with sharing class ATKTest {
         }
 
         ATK.SaveResult result = ATK.prepare(Account.SObjectType, accounts)
-            .withJunction(Case.SObjectType, Case.AccountId, cases)
+            .withChildren(Case.SObjectType, Case.AccountId, cases)
+                .junctionOf(Case.AccountId, Case.ContactId)
                 .withParents(Contact.SObjectType, Case.ContactId, contacts)
             .save(false);
 
@@ -117,7 +209,7 @@ public with sharing class ATKTest {
     @IsTest
     static void test_Junction_Partial() {
         ATK.SaveResult result = ATK.prepare(Account.SObjectType, 10)
-            .withJunction(Case.SObjectType, Case.AccountId, 20)
+            .withChildren(Case.SObjectType, Case.AccountId, 20)
             .save(false);
 
         List<Account> accounts = result.get(Account.SObjectType);
@@ -129,22 +221,40 @@ public with sharing class ATKTest {
         System.assertEquals(accounts[0], cases[1].Account);
         System.assertEquals(accounts[1], cases[2].Account);
         System.assertEquals(accounts[1], cases[3].Account);
-
     }
 
     @IsTest
     static void test_Junction_Tripple() {
-        ATK.SaveResult result = ATK.prepare(Account.SObjectType, 10)
-        .withJunction(Case.SObjectType, Case.AccountId, 20)
-            .withParents(Contact.SObjectType, Case.ContactId, 10)
-            .also()
-            .withParents(User.SObjectType, Case.OwnerId, 10)
-        .mock();
+        // TODO: need assersions
+        {
+            ATK.SaveResult result = ATK.prepare(Account.SObjectType, 10)
+            .withChildren(Case.SObjectType, Case.AccountId, 20)
+                .junctionOf(Case.AccountId, Case.ContactId, Case.OwnerId)
+                .withParents(Contact.SObjectType, Case.ContactId, 10)
+                .also()
+                .withParents(User.SObjectType, Case.OwnerId, 10)
+            .mock();
 
-        List<Account> accounts = result.get(Account.SObjectType);
-        List<Case> cases = result.get(Case.SObjectType);
-        List<Contact> contacts = result.get(Contact.SObjectType);
-        List<User> users = result.get(User.SObjectType);
+            List<Account> accounts = result.get(Account.SObjectType);
+            List<Case> cases = result.get(Case.SObjectType);
+            List<Contact> contacts = result.get(Contact.SObjectType);
+            List<User> users = result.get(User.SObjectType);
+        }
+
+        {
+            ATK.SaveResult result = ATK.prepare(Account.SObjectType, 10)
+            .withChildren(Case.SObjectType, Case.AccountId, 20)
+                .junctionOf(Case.AccountId, Case.ContactId, Case.OwnerId)
+                .withParents(Contact.SObjectType, Case.ContactId, 10)
+                .also()
+                .withParents(User.SObjectType, Case.OwnerId, 10)
+            .save(false);
+
+            List<Account> accounts = result.get(Account.SObjectType);
+            List<Case> cases = result.get(Case.SObjectType);
+            List<Contact> contacts = result.get(Contact.SObjectType);
+            List<User> users = result.get(User.SObjectType);
+        }
     }
 
     // #endregion
@@ -377,7 +487,7 @@ public with sharing class ATKTest {
             .also(2)
             .withParents(User.SObjectType, Account.OwnerId, 10)
             .mock();
-
+        
         for (Integer i = 0; i < 10; i++) {
             User owner = (User)result.get(User.SObjectType)[i];
             Account acc = (Account)result.get(Account.SObjectType)[i];
@@ -588,6 +698,12 @@ public with sharing class ATKTest {
             .field(Account.Name).repeat('A', 'B', 'C', 'D')
             .field(Account.Name).repeat('A', 'B', 'C', 'D', 'E')
             .field(Account.Name).repeat(new List<String> { 'A', 'B', 'C' })
+            .field(Account.Name).repeatX('A', 2, 'B', 2)
+            .field(Account.Name).repeatX('A', 2, 'B', 2, 'C', 2)
+            .field(Account.Name).repeatX('A', 2, 'B', 2, 'C', 2, 'D', 2)
+            .field(Account.Name).repeatX('A', 2, 'B', 2, 'C', 2, 'D', 2, 'E', 2)
+            .field(Account.Name).repeatX(new List<String> { 'A', 'B', 'C' }, new List<Integer> { 2, 2, 2})
+            .field(Account.Name).repeatX(null, null)
             .field(Account.Name).add(1, 1)
             .field(Account.Name).substract(1, 1)
             .field(Account.Name).divide(1, 1)
@@ -597,7 +713,21 @@ public with sharing class ATKTest {
             .field(Account.Name).addDays(Date.newInstance(2020, 1, 1), 1)
             .field(Account.Name).addHours(Time.newInstance(0, 0, 0, 0), 1)
             .field(Account.Name).addMinutes(Time.newInstance(0, 0, 0, 0), 1)
-            .field(Account.Name).addSeconds(Time.newInstance(0, 0, 0, 0), 1);
+            .field(Account.Name).addSeconds(Time.newInstance(0, 0, 0, 0), 1)
+            .withParents(Contact.SObjectType, Contact.AccountId, 0)
+            .junctionOf(Contact.AccountId, Contact.AccountId)
+            .also()
+            .withParents(Contact.SObjectType, Contact.AccountId, 0)
+            .junctionOf(Contact.AccountId, Contact.AccountId, Contact.AccountId)
+            .also()
+            .withParents(Contact.SObjectType, Contact.AccountId, 0)
+            .junctionOf(Contact.AccountId, Contact.AccountId, Contact.AccountId, Contact.AccountId)
+            .also()
+            .withParents(Contact.SObjectType, Contact.AccountId, 0)
+            .junctionOf(Contact.AccountId, Contact.AccountId, Contact.AccountId, Contact.AccountId, Contact.AccountId)
+            .also()
+            .withParents(Contact.SObjectType, Contact.AccountId, 0)
+            .junctionOf(new List<Schema.SObjectField>());
 
         ATK.prepare(User.SObjectType, 0)
             .profile('==Fake Profile==')

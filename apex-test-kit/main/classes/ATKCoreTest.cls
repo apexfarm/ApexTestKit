@@ -96,7 +96,16 @@ public with sharing class ATKCoreTest {
                 new List<Account> {new Account(), new Account(), new Account()}), null);
             matrix.add(ATKCore.EntityNodeType.ONE_TO_MANY, new ATKCore.EntityNode(Contact.SObjectType,
                 new List<Contact> {new Contact(), new Contact(), new Contact()}), Contact.AccountId);
-            generator.assignReferences(matrix.currEntityNode, false);
+            generator.assignReferences(matrix.currEntityNode);
+        }
+
+        {
+            ATKCore.EntityNodeMatrix matrix = new ATKCore.EntityNodeMatrix();
+            matrix.add(ATKCore.EntityNodeType.PREPARE, new ATKCore.EntityNode(Account.SObjectType,
+                new List<Account>()), null);
+            matrix.add(ATKCore.EntityNodeType.ONE_TO_MANY, new ATKCore.EntityNode(Contact.SObjectType,
+                new List<Contact> {new Contact(), new Contact(), new Contact()}), Contact.AccountId);
+            generator.assignReferences(matrix.currEntityNode);
         }
     }
 
@@ -133,6 +142,28 @@ public with sharing class ATKCoreTest {
     // #region Generator Mock
     // **********************
     @IsTest
+    static void test_Generator_Mock_AssignReference() {
+        ATKCore.MockGenerator generator = new ATKCore.MockGenerator();
+        {
+            ATKCore.EntityNodeMatrix matrix = new ATKCore.EntityNodeMatrix();
+            matrix.add(ATKCore.EntityNodeType.PREPARE, new ATKCore.EntityNode(Account.SObjectType,
+                new List<Account> {new Account(), new Account(), new Account()}), null);
+            matrix.add(ATKCore.EntityNodeType.ONE_TO_MANY, new ATKCore.EntityNode(Contact.SObjectType,
+                new List<Contact> {new Contact(), new Contact(), new Contact()}), Contact.AccountId);
+            generator.assignReferencesForMock(matrix, matrix.currEntityNode);
+        }
+
+        {
+            ATKCore.EntityNodeMatrix matrix = new ATKCore.EntityNodeMatrix();
+            matrix.add(ATKCore.EntityNodeType.PREPARE, new ATKCore.EntityNode(Account.SObjectType,
+                new List<Account>()), null);
+            matrix.add(ATKCore.EntityNodeType.ONE_TO_MANY, new ATKCore.EntityNode(Contact.SObjectType,
+                new List<Contact> {new Contact(), new Contact(), new Contact()}), Contact.AccountId);
+            generator.assignReferencesForMock(matrix, matrix.currEntityNode);
+        }
+    }
+
+    @IsTest
     static void test_Generator_Mock_AssignFields() {
         ATKCore.MockGenerator generator = new ATKCore.MockGenerator();
         {
@@ -141,7 +172,7 @@ public with sharing class ATKCoreTest {
 
             assignReadonlyField(entity, Account.Name);
             entity.currEntityField.fixedValue = 'Name';
-            generator.assignMockObjectFields(entity);
+            generator.assignFieldsForMock(entity);
         }
 
         {
@@ -153,7 +184,7 @@ public with sharing class ATKCoreTest {
             entity.currEntityField.arithmetic = ATKCore.EntityFieldArithmetic.ADD;
             entity.currEntityField.initValue = 0.1;
             entity.currEntityField.stepValue = 0.1;
-            try { generator.assignMockObjectFields(entity); } catch (Exception ex) {}
+            try { generator.assignFieldsForMock(entity); } catch (Exception ex) {}
         }
 
         {
@@ -165,7 +196,7 @@ public with sharing class ATKCoreTest {
             entity.currEntityField.arithmetic = ATKCore.EntityFieldArithmetic.ADD_DAYS;
             entity.currEntityField.initValue = Date.newInstance(2020, 1, 1);
             entity.currEntityField.stepValue = 1;
-            try { generator.assignMockObjectFields(entity); } catch (Exception ex) {}
+            try { generator.assignFieldsForMock(entity); } catch (Exception ex) {}
         }
 
         {
@@ -177,7 +208,7 @@ public with sharing class ATKCoreTest {
             entity.currEntityField.arithmetic = ATKCore.EntityFieldArithmetic.ADD_SECONDS;
             entity.currEntityField.initValue = Time.newInstance(0, 0, 0, 0);
             entity.currEntityField.stepValue = 1;
-            try { generator.assignMockObjectFields(entity); } catch (Exception ex) {}
+            try { generator.assignFieldsForMock(entity); } catch (Exception ex) {}
         }
 
         {
@@ -189,7 +220,7 @@ public with sharing class ATKCoreTest {
             entity.currEntityField.arithmetic = ATKCore.EntityFieldArithmetic.ADD_DAYS;
             entity.currEntityField.initValue = DateTime.newInstance(2020, 1, 1, 0, 0, 0);
             entity.currEntityField.stepValue = 1;
-            try { generator.assignMockObjectFields(entity); } catch (Exception ex) {}
+            try { generator.assignFieldsForMock(entity); } catch (Exception ex) {}
         }
     }
 
@@ -407,8 +438,41 @@ public with sharing class ATKCoreTest {
     }
 
     @IsTest
-    static void test_Model_EntityNodeMatrix_NOT_DAG() {
-        ATKCore.NoneDAGException exp = new ATKCore.NoneDAGException();
+    static void test_Model_EntityNodeMatrix_None_DAG() {
+        ATKCore.EntityNodeMatrix matrix = new ATKCore.EntityNodeMatrix();
+        matrix.add(ATKCore.EntityNodeType.PREPARE, new ATKCore.EntityNode(Account.SObjectType, 1), null);
+        matrix.add(ATKCore.EntityNodeType.ONE_TO_MANY, new ATKCore.EntityNode(Contact.SObjectType, 1), Contact.AccountId);
+        matrix.add(ATKCore.EntityNodeType.ONE_TO_MANY, new ATKCore.EntityNode(User.SObjectType, 1), User.ContactId);
+        matrix.add(ATKCore.EntityNodeType.ONE_TO_MANY, Account.SObjectType, Account.OwnerId);
+
+        matrix.generateDAG();
+
+        Exception exp;
+        try {
+            matrix.reset();
+        } catch (Exception ex) {
+            exp = ex;
+        }
+        System.assertNotEquals(null, exp);
+        System.assert(exp instanceOf ATKCore.NoneDAGException);
+    }
+
+    @IsTest
+    static void test_Model_EntityNodeMatrix_SaveResult() {
+        ATKCore.EntityNodeMatrix matrix = new ATKCore.EntityNodeMatrix();
+        matrix.add(ATKCore.EntityNodeType.PREPARE, new ATKCore.EntityNode(Account.SObjectType, new List<Account>{ new Account() }), null);
+
+        matrix.generateDAG();
+
+        ATKCore.SaveResult result = new ATKCore.SaveResult(matrix);
+        ATKCore.ObjectTypeIterator keys = result.keys();
+        System.assertEquals(Account.SObjectType, keys.next());
+        System.assertEquals(null, keys.next());
+        
+
+        ATKCore.ObjectListIterator values = result.values();
+        System.assertEquals(1, values.next().size());
+        System.assertEquals(null, values.next());
     }
 
     @IsTest
@@ -421,6 +485,147 @@ public with sharing class ATKCoreTest {
         entity1.addField(Account.Name);
         System.assertEquals(Account.Name, entity1.currEntityField.field);
         System.assertEquals(1, entity1.fieldMap.keySet().size());
+    }
+
+    @IsTest
+    static void test_Model_EntityNode_AddRelationships() {
+        {
+            ATKCore.EntityNode entity = new ATKCore.EntityNode(Account.SObjectType, 1);
+            entity.addRelationship(new ATKCore.EntityNodeRelationship(Contact.AccountId));
+            entity.junctionFields = new List<Schema.SObjectField> {
+                Contact.AccountId, Case.ContactId, Case.AccountId
+            };
+            entity.addRelationship(new ATKCore.EntityNodeRelationship(Case.ContactId));
+            entity.addRelationship(new ATKCore.EntityNodeRelationship(Case.AccountId));
+
+            System.assertEquals(Contact.AccountId, entity.relationships[0].parentIdField);
+            System.assertEquals(Case.ContactId, entity.relationships[1].parentIdField);
+            System.assertEquals(Case.AccountId, entity.relationships[2].parentIdField);
+        }
+
+        {
+            ATKCore.EntityNode entity = new ATKCore.EntityNode(Account.SObjectType, 1);
+            entity.addRelationship(new ATKCore.EntityNodeRelationship(Contact.AccountId));
+            entity.junctionFields = new List<Schema.SObjectField> {
+                Contact.AccountId, Case.ContactId, Case.AccountId
+            };
+            entity.addRelationship(new ATKCore.EntityNodeRelationship(Case.AccountId));
+            entity.addRelationship(new ATKCore.EntityNodeRelationship(Case.ContactId));
+
+            System.assertEquals(Contact.AccountId, entity.relationships[0].parentIdField);
+            System.assertEquals(Case.ContactId, entity.relationships[1].parentIdField);
+            System.assertEquals(Case.AccountId, entity.relationships[2].parentIdField);
+        }
+
+        {
+            ATKCore.EntityNode entity = new ATKCore.EntityNode(Account.SObjectType, 1);
+            entity.addRelationship(new ATKCore.EntityNodeRelationship(Case.ContactId));
+            entity.junctionFields = new List<Schema.SObjectField> {
+                Contact.AccountId, Case.ContactId, Case.AccountId
+            };
+            entity.addRelationship(new ATKCore.EntityNodeRelationship(Contact.AccountId));
+            entity.addRelationship(new ATKCore.EntityNodeRelationship(Case.AccountId));
+
+            System.assertEquals(Contact.AccountId, entity.relationships[0].parentIdField);
+            System.assertEquals(Case.ContactId, entity.relationships[1].parentIdField);
+            System.assertEquals(Case.AccountId, entity.relationships[2].parentIdField);
+        }
+
+        {
+            ATKCore.EntityNode entity = new ATKCore.EntityNode(Account.SObjectType, 1);
+            entity.addRelationship(new ATKCore.EntityNodeRelationship(Case.ContactId));
+            entity.junctionFields = new List<Schema.SObjectField> {
+                Contact.AccountId, Case.ContactId, Case.AccountId
+            };
+            entity.addRelationship(new ATKCore.EntityNodeRelationship(Case.AccountId));
+            entity.addRelationship(new ATKCore.EntityNodeRelationship(Contact.AccountId));
+
+            System.assertEquals(Contact.AccountId, entity.relationships[0].parentIdField);
+            System.assertEquals(Case.ContactId, entity.relationships[1].parentIdField);
+            System.assertEquals(Case.AccountId, entity.relationships[2].parentIdField);
+        }
+
+        {
+            ATKCore.EntityNode entity = new ATKCore.EntityNode(Account.SObjectType, 1);
+            entity.addRelationship(new ATKCore.EntityNodeRelationship(Case.AccountId));
+            entity.junctionFields = new List<Schema.SObjectField> {
+                Contact.AccountId, Case.ContactId, Case.AccountId
+            };
+            entity.addRelationship(new ATKCore.EntityNodeRelationship(Contact.AccountId));
+            entity.addRelationship(new ATKCore.EntityNodeRelationship(Case.ContactId));
+
+            System.assertEquals(Contact.AccountId, entity.relationships[0].parentIdField);
+            System.assertEquals(Case.ContactId, entity.relationships[1].parentIdField);
+            System.assertEquals(Case.AccountId, entity.relationships[2].parentIdField);
+        }
+
+        {
+            ATKCore.EntityNode entity = new ATKCore.EntityNode(Account.SObjectType, 1);
+            entity.addRelationship(new ATKCore.EntityNodeRelationship(Case.AccountId));
+            entity.junctionFields = new List<Schema.SObjectField> {
+                Contact.AccountId, Case.ContactId, Case.AccountId
+            };
+            entity.addRelationship(new ATKCore.EntityNodeRelationship(Case.ContactId));
+            entity.addRelationship(new ATKCore.EntityNodeRelationship(Contact.AccountId));
+
+            System.assertEquals(Contact.AccountId, entity.relationships[0].parentIdField);
+            System.assertEquals(Case.ContactId, entity.relationships[1].parentIdField);
+            System.assertEquals(Case.AccountId, entity.relationships[2].parentIdField);
+        }
+    }
+
+    @IsTest
+    static void test_Model_EntityNode_AddRelationships2() {
+        {
+            ATKCore.EntityNode entity = new ATKCore.EntityNode(Account.SObjectType, 1);
+            entity.addRelationship(new ATKCore.EntityNodeRelationship(Case.ContactId));
+            entity.junctionFields = new List<Schema.SObjectField> {
+                Contact.AccountId, Case.ContactId, Contact.AccountId, Case.AccountId
+            };
+            entity.addRelationship(new ATKCore.EntityNodeRelationship(Case.AccountId));
+            entity.addRelationship(new ATKCore.EntityNodeRelationship(Contact.AccountId));
+            entity.addRelationship(new ATKCore.EntityNodeRelationship(Contact.AccountId));
+
+            System.assertEquals(Contact.AccountId, entity.relationships[0].parentIdField);
+            System.assertEquals(Case.ContactId, entity.relationships[1].parentIdField);
+            System.assertEquals(Contact.AccountId, entity.relationships[2].parentIdField);
+            System.assertEquals(Case.AccountId, entity.relationships[3].parentIdField);
+        }
+
+        {
+            
+            ATKCore.EntityNode entity = new ATKCore.EntityNode(Account.SObjectType, 1);
+            entity.addRelationship(new ATKCore.EntityNodeRelationship(Case.ContactId));
+            entity.junctionFields = new List<Schema.SObjectField> {
+                Case.ContactId, Case.AccountId
+            };
+
+            Exception exp;
+            try {
+                entity.addRelationship(new ATKCore.EntityNodeRelationship(Contact.AccountId));
+            } catch (Exception ex) {
+                exp = ex;
+            }
+            System.assertNotEquals(null, exp);
+            System.assert(exp instanceOf ATKCore.JunctionOfException);
+        }
+        
+        {
+            ATKCore.EntityNode entity = new ATKCore.EntityNode(Account.SObjectType, 1);
+            entity.addRelationship(new ATKCore.EntityNodeRelationship(Contact.AccountId));
+            
+            Exception exp;
+            try {
+                entity.junctionFields = new List<Schema.SObjectField> {
+                    Case.ContactId, Case.AccountId
+                };
+                // entity.addRelationship(new ATKCore.EntityNodeRelationship(Case.ContactId));
+            } catch (Exception ex) {
+                exp = ex;
+            }
+            System.assertNotEquals(null, exp);
+            System.assert(exp instanceOf ATKCore.JunctionOfException);
+        }
     }
 
     @IsTest
