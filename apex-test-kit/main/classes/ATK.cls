@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-public with sharing class ATK  {
+public with sharing class ATK {
     // ***********************
     // #region Mock Interfaces
     // ***********************
@@ -87,7 +87,6 @@ public with sharing class ATK  {
     }
 
     public interface Invocation {
-
     }
 
     public interface ThenOf {
@@ -96,7 +95,6 @@ public with sharing class ATK  {
     }
 
     public interface InOrder {
-
     }
 
     public interface Should {
@@ -172,7 +170,13 @@ public with sharing class ATK  {
         Entity junctionOf(Schema.SObjectField parentIdField1, Schema.SObjectField parentIdField2);
         Entity junctionOf(Schema.SObjectField parentIdField1, Schema.SObjectField parentIdField2, Schema.SObjectField parentIdField3);
         Entity junctionOf(Schema.SObjectField parentIdField1, Schema.SObjectField parentIdField2, Schema.SObjectField parentIdField3, Schema.SObjectField parentIdField4);
-        Entity junctionOf(Schema.SObjectField parentIdField1, Schema.SObjectField parentIdField2, Schema.SObjectField parentIdField3, Schema.SObjectField parentIdField4, Schema.SObjectField parentIdField5);
+        Entity junctionOf(
+            Schema.SObjectField parentIdField1,
+            Schema.SObjectField parentIdField2,
+            Schema.SObjectField parentIdField3,
+            Schema.SObjectField parentIdField4,
+            Schema.SObjectField parentIdField5
+        );
         Entity junctionOf(List<Schema.SObjectField> parentIdFields);
     }
 

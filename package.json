@@ -1,26 +1,26 @@
 {
   "name": "apextestkit",
+  "private": true,
   "version": "1.0.0",
+  "description": "Apex Test Kit",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "prettier": "prettier"
+    "test": "npm run test:unit",
+    "prettier": "prettier --write \"**/*.{cls,xml}\"",
+    "prettier:verify": "prettier --list-different \"**/*.{cls,xml}\""
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/apexfarm/ApexTestKit.git"
   },
-  "author": "",
-  "license": "ISC",
+  "author": "Jeff Jianfeng Jin",
+  "license": "Apache 2.0",
   "bugs": {
     "url": "https://github.com/apexfarm/ApexTestKit/issues"
   },
   "homepage": "https://github.com/apexfarm/ApexTestKit#readme",
   "devDependencies": {
-    "prettier": "^2.4.1",
+    "@prettier/plugin-xml": "^0.13.1",
+    "prettier": "^2.3.2",
     "prettier-plugin-apex": "^1.10.0"
-  },
-  "prettier": {
-    "printWidth": 120,
-    "tabWidth": 4
   }
 }

@@ -27,6 +27,27 @@ public with sharing virtual class ATKMock implements System.StubProvider {
         detailByMock = new Map<Object, MockingDetail>();
     }
 
+    public Object handleMethodCall(Object mock, String methodName,
+        Type returnType, List<Type> paramTypes, List<String> paramNames,
+        List<Object> listOfArgs) {
+
+        Invocation invocation = new Invocation( mock,  methodName,
+        returnType,  paramTypes, paramNames, listOfArgs);
+        invocation.debug();
+
+        if (this.isStubbing) {
+            this.currentMockingDetail = this.getMockingDetail(mock);
+            this.currentInvocation = invocation;
+            // End of Will Stubbing
+            if (this.currentStubbing != null && this.currentStubbing instanceof WillStubbing) {
+                this.attachStubbing();
+            }
+            return null;
+        }
+
+        return this.getMockingDetail(mock).invoke(invocation);
+    }
+
     public void startStubbing() {
         this.isStubbing = true;
     }
@@ -62,28 +83,7 @@ public with sharing virtual class ATKMock implements System.StubProvider {
         this.currentStubbing.invocation = this.currentInvocation;
         this.currentMockingDetail.stubbings.add(this.currentStubbing);
     }
-
-    public Object handleMethodCall(Object mock, String methodName,
-        Type returnType, List<Type> paramTypes, List<String> paramNames,
-        List<Object> listOfArgs) {
-
-        Invocation invocation = new Invocation( mock,  methodName,
-         returnType,  paramTypes, paramNames, listOfArgs);
-        invocation.debug();
-
-        if (this.isStubbing) {
-            this.currentMockingDetail = this.getMockingDetail(mock);
-            this.currentInvocation = invocation;
-            // End of Will Stubbing
-            if (this.currentStubbing != null && this.currentStubbing instanceof WillStubbing) {
-                this.attachStubbing();
-            }
-            return null;
-        }
-
-        return this.getMockingDetail(mock).invoke(invocation);
-    }
-
+ 
     public ATK.ThenOf then(Object mock) {
         return this.getMockingDetail(mock);
     }
@@ -128,8 +128,7 @@ public with sharing virtual class ATKMock implements System.StubProvider {
 
         public Object atMost(Integer times) {
             return null;
-        }
-
+        } 
     }
 
     private abstract class Stubbing {
