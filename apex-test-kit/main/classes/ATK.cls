@@ -23,7 +23,7 @@ public with sharing class ATK {
     private static final ATKMock mockInstance = new ATKMock();
 
     public static Object mock(Type mockType) {
-        return mockInstance.createMock(mockType);
+        return mockInstance.createMock(mockType).stub;
     }
 
     public static void startStubbing() {
@@ -35,23 +35,23 @@ public with sharing class ATK {
     }
 
     public static Given given(Object value) {
-        return mockInstance.setGivenStubbing();
+        return mockInstance.setGivenStub();
     }
 
     public static Will willReturn(Object value) {
-        return mockInstance.setWillStubbing().willReturn(value);
+        return mockInstance.setWillStub().willReturn(value);
     }
 
     public static Will willAnswer(Answer answer) {
-        return mockInstance.setWillStubbing().willAnswer(answer);
+        return mockInstance.setWillStub().willAnswer(answer);
     }
 
     public static Will willThrow(Exception exp) {
-        return mockInstance.setWillStubbing().willThrow(exp);
+        return mockInstance.setWillStub().willThrow(exp);
     }
 
     public static Will willDoNothing() {
-        return mockInstance.setWillStubbing().willDoNothing();
+        return mockInstance.setWillStub().willDoNothing();
     }
 
     public static ThenOf then(Object mock) {

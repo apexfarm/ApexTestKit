@@ -16,36 +16,15 @@
  */
 
 public with sharing virtual class ATKMock implements System.StubProvider {
-    private Map<Object, MockingDetail> detailByMock { get; set; }
+    private Map<Object, Mock> mockByStub { get; set; }
     private Boolean isStubbing = false;
 
-    private MockingDetail currentMockingDetail { get; set; }
-    private Stubbing currentStubbing { get; set; }
+    private Mock currentMock { get; set; }
+    private Stub currentStub { get; set; }
     private Invocation currentInvocation { get; set; }
 
     {
-        detailByMock = new Map<Object, MockingDetail>();
-    }
-
-    public Object handleMethodCall(Object mock, String methodName,
-        Type returnType, List<Type> paramTypes, List<String> paramNames,
-        List<Object> listOfArgs) {
-
-        Invocation invocation = new Invocation( mock,  methodName,
-        returnType,  paramTypes, paramNames, listOfArgs);
-        invocation.debug();
-
-        if (this.isStubbing) {
-            this.currentMockingDetail = this.getMockingDetail(mock);
-            this.currentInvocation = invocation;
-            // End of Will Stubbing
-            if (this.currentStubbing != null && this.currentStubbing instanceof WillStubbing) {
-                this.attachStubbing();
-            }
-            return null;
-        }
-
-        return this.getMockingDetail(mock).invoke(invocation);
+        mockByStub = new Map<Object, Mock>();
     }
 
     public void startStubbing() {
@@ -56,51 +35,67 @@ public with sharing virtual class ATKMock implements System.StubProvider {
         this.isStubbing = false;
     }
 
-    public Object createMock(Type mockType) {
-        MockingDetail mockingDetail = new MockingDetail(Test.createStub(mockType, this));
-        this.detailByMock.put(mockingDetail.mock, mockingDetail);
-        return mockingDetail.mock;
+    public Mock createMock(Type mockType) {
+        Mock mock = new Mock(Test.createStub(mockType, this));
+        this.mockByStub.put(mock.stub, mock);
+        return mock;
     }
 
-    private MockingDetail getMockingDetail(Object mock) {
-        MockingDetail mockingDetail = detailByMock.get(mock);
-        return mockingDetail;
+    private Mock getMock(Object stub) {
+        Mock mock = this.mockByStub.get(stub);
+        return mock;
     }
 
-    public GivenStubbing setGivenStubbing() {
-        this.currentStubbing = new ATKMock.GivenStubbing();
-        this.attachStubbing();
-        return (ATKMock.GivenStubbing)this.currentStubbing;
+    public Object handleMethodCall(Object stub, String methodName, Type returnType, List<Type> paramTypes, List<String> paramNames, List<Object> listOfArgs) {
+        Invocation invocation = new Invocation(stub, methodName, returnType, paramTypes, paramNames, listOfArgs);
+        invocation.debug();
+
+        if (this.isStubbing) {
+            this.currentMock = this.getMock(stub);
+            this.currentInvocation = invocation;
+            // End of Will Stub
+            if (this.currentStub != null && this.currentStub instanceof WillStub) {
+                this.attachStub();
+            }
+            return null;
+        }
+
+        return this.getMock(stub).invoke(invocation);
     }
 
-    public WillStubbing setWillStubbing() {
-        this.currentStubbing = new ATKMock.WillStubbing();
-        return (ATKMock.WillStubbing)this.currentStubbing;
+    public GivenStub setGivenStub() {
+        this.currentStub = new ATKMock.GivenStub();
+        this.attachStub();
+        return (ATKMock.GivenStub) this.currentStub;
+    }
+
+    public WillStub setWillStub() {
+        this.currentStub = new ATKMock.WillStub();
+        return (ATKMock.WillStub) this.currentStub;
     }
 
     // Method depends on state and creating side effects
-    private void attachStubbing() {
-        this.currentStubbing.invocation = this.currentInvocation;
-        this.currentMockingDetail.stubbings.add(this.currentStubbing);
+    private void attachStub() {
+        this.currentStub.invocation = this.currentInvocation;
+        this.currentMock.stubs.add(this.currentStub);
     }
- 
+
     public ATK.ThenOf then(Object mock) {
-        return this.getMockingDetail(mock);
+        return this.getMock(mock);
     }
 
-    public class MockingDetail implements ATK.ThenOf, ATK.Should {
-        Object mock { get; set; }
-        List<Stubbing> stubbings { get; set; }
+    public class Mock implements ATK.ThenOf, ATK.Should {
+        public Object stub { get; set; }
+        List<Stub> stubs { get; set; }
 
-        private MockingDetail(Object mock) {
-            this.mock = mock;
-            this.stubbings = new List<Stubbing>();
+        private Mock(Object stub) {
+            this.stub = stub;
+            this.stubs = new List<Stub>();
         }
 
         private Object invoke(Invocation invocation) {
-            for (Stubbing stubbing : stubbings) {
-                if (stubbing.invocation.method == invocation.method) {
-
+            for (Stub stub : stubs) {
+                if (stub.invocation.method == invocation.method) {
                 }
             }
             return null;
@@ -128,15 +123,15 @@ public with sharing virtual class ATKMock implements System.StubProvider {
 
         public Object atMost(Integer times) {
             return null;
-        } 
+        }
     }
 
-    private abstract class Stubbing {
+    private abstract class Stub {
         protected Invocation invocation { get; set; }
         protected List<ATK.Answer> answers = new List<ATK.Answer>();
     }
 
-    public class GivenStubbing extends Stubbing implements ATK.Given {
+    public class GivenStub extends Stub implements ATK.Given {
         public ATK.Given willReturn(Object value) {
             this.answers.add(new ValueAnswer(value));
             return this;
@@ -153,7 +148,7 @@ public with sharing virtual class ATKMock implements System.StubProvider {
         }
     }
 
-    public class WillStubbing extends Stubbing implements ATK.Will {
+    public class WillStub extends Stub implements ATK.Will {
         public ATK.Will willReturn(Object value) {
             this.answers.add(new ValueAnswer(value));
             return this;
@@ -180,7 +175,6 @@ public with sharing virtual class ATKMock implements System.StubProvider {
     }
 
     private interface Answer extends ATK.Answer {
-
     }
 
     private class ValueAnswer implements Answer {
@@ -214,7 +208,6 @@ public with sharing virtual class ATKMock implements System.StubProvider {
     }
 
     private class ArgumentMatcher {
-
     }
 
     private class MockHandler {
@@ -228,7 +221,6 @@ public with sharing virtual class ATKMock implements System.StubProvider {
     }
 
     private class InvocationContainer {
-
     }
 
     private class Method {
@@ -242,10 +234,7 @@ public with sharing virtual class ATKMock implements System.StubProvider {
         Method method { get; set; }
         List<Object> listOfArgs { get; set; }
 
-
-        private Invocation(Object mock, String methodName,
-            Type returnType, List<Type> paramTypes, List<String> paramNames,
-            List<Object> listOfArgs) {
+        private Invocation(Object mock, String methodName, Type returnType, List<Type> paramTypes, List<String> paramNames, List<Object> listOfArgs) {
             this.method = new Method();
             this.method.methodName = methodName;
             this.method.returnType = returnType;
@@ -264,14 +253,13 @@ public with sharing virtual class ATKMock implements System.StubProvider {
 
             // You can also use the parameter names and types to determine which method
             // was called.
-            for (integer i =0; i < this.method.paramNames.size(); i++) {
+            for (integer i = 0; i < this.method.paramNames.size(); i++) {
                 System.debug('parameter name: ' + this.method.paramNames.get(i));
                 System.debug('  parameter type: ' + this.method.paramTypes.get(i).getName());
             }
 
             // This shows the actual parameter values passed into the stubbed method at runtime.
-            System.debug('number of parameters passed into the mocked call: ' +
-                this.listOfArgs.size());
+            System.debug('number of parameters passed into the mocked call: ' + this.listOfArgs.size());
             System.debug('parameter(s) sent into the mocked call: ' + this.listOfArgs);
         }
     }
