@@ -23,7 +23,7 @@ public with sharing class ATK {
     private static final ATKMock mockInstance = new ATKMock();
 
     public static Object mock(Type mockType) {
-        return mockInstance.createMock(mockType).stub;
+        return mockInstance.createMock(mockType).mock;
     }
 
     public static void startStubbing() {
@@ -61,9 +61,11 @@ public with sharing class ATK {
     public static InOrder inOrder(Object mock1) {
         return null;
     }
+
     public static InOrder inOrder(Object mock1, Object mock2) {
         return null;
     }
+
     public static InOrder inOrder(Object mock, Object mock2, Object mock3) {
         return null;
     }
@@ -110,33 +112,221 @@ public with sharing class ATK {
     // *************************
     // #region Argument Matchers
     // *************************
-
+    // Type Matchers
     public static Integer anyInteger() {
-        return null;
+        return mockInstance.argumentManager.anyInteger();
+    }
+
+    public static Long anyLong() {
+        return mockInstance.argumentManager.anyLong();
+    }
+
+    public static Double anyDouble() {
+        return mockInstance.argumentManager.anyDouble();
     }
 
     public static Decimal anyDecimal() {
-        return null;
+        return mockInstance.argumentManager.anyDecimal();
     }
 
-    public static Boolean anyBoolean() {
-        return null;
+    public static Date anyDate() {
+        return mockInstance.argumentManager.anyDate();
+    }
+
+    public static Datetime anyDatetime() {
+        return mockInstance.argumentManager.anyDatetime();
+    }
+
+    public static Id anyId() {
+        return mockInstance.argumentManager.anyId();
     }
 
     public static String anyString() {
-        return null;
+        return mockInstance.argumentManager.anyString();
+    }
+
+    public static Boolean anyBoolean() {
+        return mockInstance.argumentManager.anyBoolean();
+    }
+
+    public static Object anyObject() {
+        return mockInstance.argumentManager.anyObject();
     }
 
     public static List<Object> anyList() {
-        return null;
+        return mockInstance.argumentManager.anyList();
     }
 
-    public static Set<Object> anySet() {
-        return null;
+    public static Object anySet() {
+        return mockInstance.argumentManager.anySet();
     }
 
-    public static Map<Object, Object> anyMap() {
-        return null;
+    public static Object anyMap() {
+        return mockInstance.argumentManager.anyMap();
+    }
+
+    // Value Matchers
+    public static ArgumentCaster eq(Object value) {
+        return mockInstance.argumentManager.eq(value);
+    }
+
+    public static ComparableArgumentCaster gt(Object value) {
+        return mockInstance.argumentManager.gt(value);
+    }
+
+    public static ComparableArgumentCaster gte(Object value) {
+        return mockInstance.argumentManager.gte(value);
+    }
+
+    public static ComparableArgumentCaster lt(Object value) {
+        return mockInstance.argumentManager.lt(value);
+    }
+
+    public static ComparableArgumentCaster lte(Object value) {
+        return mockInstance.argumentManager.lte(value);
+    }
+
+    public static ComparableArgumentCaster between(Object minValue, Object maxValue) {
+        return mockInstance.argumentManager.between(minValue, maxValue);
+    }
+
+    public static ComparableArgumentCaster between(Object minValue, Object maxValue, Boolean inclusive) {
+        return mockInstance.argumentManager.between(minValue, maxValue, inclusive);
+    }
+
+    public static ComparableArgumentCaster between(Object minValue, Boolean minInclusive, Object maxValue, Boolean maxInclusive) {
+        return mockInstance.argumentManager.between(minValue, minInclusive, maxValue, maxInclusive);
+    }
+
+    // Combo Matchers
+    public static Object allOf(Object o1, Object o2) {
+        return mockInstance.argumentManager.allOf(o1, o2);
+    }
+
+    public static Object allOf(Object o1, Object o2, Object o3) {
+        return mockInstance.argumentManager.allOf(o1, o2, o3);
+    }
+
+    public static Object allOf(Object o1, Object o2, Object o3, Object o4) {
+        return mockInstance.argumentManager.allOf(o1, o2, o3, o4);
+    }
+
+    public static Object allOf(Object o1, Object o2, Object o3, Object o4, Object o5) {
+        return mockInstance.argumentManager.allOf(o1, o2, o3, o4, o5);
+    }
+
+    public static Object allOf(List<Object> os) {
+        return mockInstance.argumentManager.allOf(os);
+    }
+
+    public static Object anyOf(Object o1, Object o2) {
+        return mockInstance.argumentManager.anyOf(o1, o2);
+    }
+
+    public static Object anyOf(Object o1, Object o2, Object o3) {
+        return mockInstance.argumentManager.anyOf(o1, o2, o3);
+    }
+
+    public static Object anyOf(Object o1, Object o2, Object o3, Object o4) {
+        return mockInstance.argumentManager.anyOf(o1, o2, o3, o4);
+    }
+
+    public static Object anyOf(Object o1, Object o2, Object o3, Object o4, Object o5) {
+        return mockInstance.argumentManager.anyOf(o1, o2, o3, o4, o5);
+    }
+
+    public static Object anyOf(List<Object> os) {
+        return mockInstance.argumentManager.anyOf(os);
+    }
+
+    public static Object isNot(Object o1) {
+        return mockInstance.argumentManager.isNot(o1);
+    }
+
+    public static Object noneOf(Object o1, Object o2) {
+        return mockInstance.argumentManager.noneOf(o1, o2);
+    }
+
+    public static Object noneOf(Object o1, Object o2, Object o3) {
+        return mockInstance.argumentManager.noneOf(o1, o2, o3);
+    }
+
+    public static Object noneOf(Object o1, Object o2, Object o3, Object o4) {
+        return mockInstance.argumentManager.noneOf(o1, o2, o3, o4);
+    }
+
+    public static Object noneOf(Object o1, Object o2, Object o3, Object o4, Object o5) {
+        return mockInstance.argumentManager.noneOf(o1, o2, o3, o4, o5);
+    }
+
+    public static Object noneOf(List<Object> os) {
+        return mockInstance.argumentManager.noneOf(os);
+    }
+
+    public interface ArgumentMatcher {
+        Boolean matches(Type type, Object arg);
+    }
+
+    public interface ArgumentManager {
+        // Type Matchers
+        Integer anyInteger();
+        Long anyLong();
+        Double anyDouble();
+        Decimal anyDecimal();
+        Date anyDate();
+        Datetime anyDatetime();
+        Id anyId();
+        String anyString();
+        Boolean anyBoolean();
+        Object anyObject();
+        List<Object> anyList();
+        Object anySet();
+        Object anyMap();
+
+        // Value Matchers
+        ArgumentCaster isNull();
+        ArgumentCaster eq(Object value);
+        ComparableArgumentCaster gt(Object value);
+        ComparableArgumentCaster gte(Object value);
+        ComparableArgumentCaster lt(Object value);
+        ComparableArgumentCaster lte(Object value);
+        ComparableArgumentCaster between(Object minValue, Object maxValue);
+        ComparableArgumentCaster between(Object minValue, Object maxValue, Boolean inclusive);
+        ComparableArgumentCaster between(Object minValue, Boolean minInclusive, Object maxValue, Boolean maxInclusive);
+
+        // Combo Matchers
+        Object allOf(Object o1, Object o2);
+        Object allOf(Object o1, Object o2, Object o3);
+        Object allOf(Object o1, Object o2, Object o3, Object o4);
+        Object allOf(Object o1, Object o2, Object o3, Object o4, Object o5);
+        Object allOf(List<Object> os);
+        Object anyOf(Object o1, Object o2);
+        Object anyOf(Object o1, Object o2, Object o3);
+        Object anyOf(Object o1, Object o2, Object o3, Object o4);
+        Object anyOf(Object o1, Object o2, Object o3, Object o4, Object o5);
+        Object anyOf(List<Object> os);
+        Object isNot(Object o1);
+        Object noneOf(Object o1, Object o2);
+        Object noneOf(Object o1, Object o2, Object o3);
+        Object noneOf(Object o1, Object o2, Object o3, Object o4);
+        Object noneOf(Object o1, Object o2, Object o3, Object o4, Object o5);
+        Object noneOf(List<Object> os);
+    }
+
+    public interface ComparableArgumentCaster {
+        Integer asInteger();
+        Long asLong();
+        Double asDouble();
+        Decimal asDecimal();
+        Date asDate();
+        Datetime asDatetime();
+        Id asId();
+        String asString();
+    }
+
+    public interface ArgumentCaster extends ComparableArgumentCaster {
+        Boolean asBoolean();
+        Object asObject();
     }
 
     // #endregion
