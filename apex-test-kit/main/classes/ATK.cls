@@ -23,7 +23,7 @@ public with sharing class ATK {
     private static final ATKMock mockInstance = new ATKMock();
 
     public static Object mock(Type mockType) {
-        return mockInstance.createMock(mockType).mock;
+        return mockInstance.createMock(mockType);
     }
 
     public static void startStubbing() {

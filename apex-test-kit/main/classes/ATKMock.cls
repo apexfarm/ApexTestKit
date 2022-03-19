@@ -16,13 +16,11 @@
  */
 
 public with sharing class ATKMock implements System.StubProvider {
-    public ArgumentManager argumentManager { get; set; }
-    private Map<Object, Mock> mockByStub { get; set; }
-    private Boolean isStubbing = false;
     private InvocationContainer container { get; set; }
+    public ArgumentManager argumentManager { get; set; }
+    private Boolean isStubbing = false;
 
-    private Mock currentMock { get; set; }
-    private Stub currentStub { get; set; }
+    private StubbedInvocation currentStub { get; set; }
     private Invocation currentInvocation { get; set; }
 
     public class NonArgumentException extends Exception {
@@ -51,7 +49,6 @@ public with sharing class ATKMock implements System.StubProvider {
     {
         argumentManager = new ArgumentManager();
         container = new InvocationContainer();
-        mockByStub = new Map<Object, Mock>();
     }
 
     public void startStubbing() {
@@ -65,22 +62,14 @@ public with sharing class ATKMock implements System.StubProvider {
         this.isStubbing = false;
     }
 
-    public Mock createMock(Type mockType) {
-        Mock mock = new Mock(Test.createStub(mockType, this));
-        this.mockByStub.put(mock.mock, mock);
-        return mock;
-    }
-
-    private Mock getMock(Object mock) {
-        return this.mockByStub.get(mock);
+    public Object createMock(Type mockType) {
+        return Test.createStub(mockType, this);
     }
 
     public Object handleMethodCall(Object mock, String methodName, Type returnType, List<Type> paramTypes, List<String> paramNames, List<Object> listOfArgs) {
         Invocation invocation = new Invocation(mock, methodName, returnType, paramTypes, paramNames, listOfArgs);
-        // invocation.debug();
 
         if (this.isStubbing) {
-            this.currentMock = this.getMock(mock);
             this.currentInvocation = invocation;
 
             if (!this.argumentManager.hasMatchers()) {
@@ -100,7 +89,15 @@ public with sharing class ATKMock implements System.StubProvider {
         }
 
         this.container.addInvocation(invocation);
-        return this.getMock(mock).invoke(invocation);
+        return this.container.invoke(invocation);
+    }
+
+    private void finalzieStub() {
+        this.currentStub.populate(this.currentInvocation, this.argumentManager.matchers);
+        this.container.addInvocation(this.currentStub);
+
+        this.argumentManager.reset();
+        this.currentStub = null;
     }
 
     public GivenStub setGivenStub() {
@@ -115,17 +112,6 @@ public with sharing class ATKMock implements System.StubProvider {
         return (ATKMock.WillStub) this.currentStub;
     }
 
-    // Method depends on state and creating side effects
-    private void finalzieStub() {
-        this.currentStub.populate(this.currentInvocation);
-        this.currentStub.matchers.addAll(this.argumentManager.matchers);
-        this.currentMock.addStub(this.currentStub);
-
-        this.argumentManager.reset();
-        this.currentStub = null;
-        this.currentMock = null;
-    }
-
     // #region Verificatoin
 
     public ATK.ThenOf then(Object mock) {
@@ -134,13 +120,28 @@ public with sharing class ATKMock implements System.StubProvider {
 
     private class InvocationContainer {
         List<Invocation> invocations { get; set; }
+        List<StubbedInvocation> stubs { get; set; }
 
         InvocationContainer() {
-            invocations = new List<Invocation>();
+            this.invocations = new List<Invocation>();
+            this.stubs = new List<StubbedInvocation>();
         }
 
         private void addInvocation(Invocation invocation) {
+            if (invocation instanceof StubbedInvocation) {
+                this.stubs.add((StubbedInvocation) invocation);
+            }
             this.invocations.add(invocation);
+        }
+
+        private Object invoke(Invocation candidate) {
+            for (Integer i = this.stubs.size(); i > 0; i--) {
+                StubbedInvocation stub = this.stubs[i - 1];
+                if (stub.matches(candidate)) {
+                    return stub.answer(candidate);
+                }
+            }
+            return null;
         }
     }
 
@@ -196,35 +197,6 @@ public with sharing class ATKMock implements System.StubProvider {
     }
 
     // #endregion
-
-    public class Mock {
-        public Object mock { get; set; }
-        Map<Method, List<Stub>> stubByMethod { get; set; }
-
-        private Mock(Object mock) {
-            this.mock = mock;
-            this.stubByMethod = new Map<Method, List<Stub>>();
-        }
-
-        private void addStub(Stub stub) {
-            if (!this.stubByMethod.containsKey(stub.method)) {
-                this.stubByMethod.put(stub.method, new List<Stub>());
-            }
-            this.stubByMethod.get(stub.method).add(stub);
-        }
-
-        private Object invoke(Invocation invocation) {
-            List<Stub> stubs = stubByMethod.get(invocation.method);
-            for (Integer i = stubs.size(); i > 0; i--) {
-                Stub stub = stubs[i - 1];
-                if (stub.matches(invocation)) {
-                    return stub.answer(invocation);
-                }
-            }
-            return null;
-        }
-    }
-
     private class Method {
         String name { get; set; }
         List<Type> paramTypes { get; set; }
@@ -287,13 +259,15 @@ public with sharing class ATKMock implements System.StubProvider {
     private virtual class MatchableInvocation extends Invocation {
         protected List<ArgumentMatcher> matchers = new List<ArgumentMatcher>();
 
-        private void populate(Invocation invocation) {
+        private void populate(Invocation invocation, List<ArgumentMatcher> matchers) {
+            this.mock = invocation.mock;
             this.method = invocation.method;
             this.listOfArgs = invocation.listOfArgs;
+            this.matchers.addAll(matchers);
         }
 
         public Boolean matches(Invocation candidate) {
-            if (this.method != candidate.method) {
+            if (this.mock != candidate.mock || this.method != candidate.method) {
                 return false;
             }
 
@@ -310,7 +284,7 @@ public with sharing class ATKMock implements System.StubProvider {
         }
     }
 
-    private abstract class Stub extends MatchableInvocation implements Answer {
+    private abstract class StubbedInvocation extends MatchableInvocation implements Answer {
         protected List<ATK.Answer> answers = new List<ATK.Answer>();
         protected Integer answeredIndex = 0;
 
@@ -340,7 +314,7 @@ public with sharing class ATKMock implements System.StubProvider {
         }
     }
 
-    public class GivenStub extends Stub implements ATK.Given {
+    public class GivenStub extends StubbedInvocation implements ATK.Given {
         public ATK.Given willReturn(Object value) {
             this.addAnswer(new ValueAnswer(value));
             return this;
@@ -357,7 +331,7 @@ public with sharing class ATKMock implements System.StubProvider {
         }
     }
 
-    public class WillStub extends Stub implements ATK.Will {
+    public class WillStub extends StubbedInvocation implements ATK.Will {
         public ATK.Will willReturn(Object value) {
             this.addAnswer(new ValueAnswer(value));
             return this;
@@ -1051,13 +1025,9 @@ public with sharing class ATKMock implements System.StubProvider {
     // #endregion
 
     public class ArgumentManager implements ATK.ArgumentManager {
-        Integer sequence { get; set; }
-        Integer matchIndex { get; set; }
         List<ArgumentMatcher> matchers { get; set; }
 
         private ArgumentManager() {
-            this.sequence = -2147483647;
-            this.matchIndex = 0;
             this.matchers = new List<ArgumentMatcher>();
         }
 
@@ -1066,9 +1036,7 @@ public with sharing class ATKMock implements System.StubProvider {
         }
 
         private void reset() {
-            this.sequence = -2147483647;
-            this.matchIndex = 0;
-            this.matchers.clear();
+            this.matchers = new List<ArgumentMatcher>();
         }
 
         private Boolean hasMatchers() {
