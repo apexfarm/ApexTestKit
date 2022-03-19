@@ -66,7 +66,19 @@ public with sharing class ATK {
         return null;
     }
 
-    public static InOrder inOrder(Object mock, Object mock2, Object mock3) {
+    public static InOrder inOrder(Object mock1, Object mock2, Object mock3) {
+        return null;
+    }
+
+    public static InOrder inOrder(Object mock1, Object mock2, Object mock3, Object mock4) {
+        return null;
+    }
+
+    public static InOrder inOrder(Object mock1, Object mock2, Object mock3, Object mock4, Object mock5) {
+        return null;
+    }
+
+    public static InOrder inOrder(List<Object> mocks) {
         return null;
     }
 
@@ -101,9 +113,12 @@ public with sharing class ATK {
 
     public interface Should {
         Object never();
+        Object only();
         Object times(Integer times);
         Object atLeast(Integer times);
+        Object atLeastOnce();
         Object atMost(Integer times);
+        Object atMostOnce();
     }
 
     // #endregion
@@ -137,6 +152,10 @@ public with sharing class ATK {
         return mockInstance.argumentManager.anyDatetime();
     }
 
+    public static Time anyTime() {
+        return mockInstance.argumentManager.anyTime();
+    }
+
     public static Id anyId() {
         return mockInstance.argumentManager.anyId();
     }
@@ -147,10 +166,6 @@ public with sharing class ATK {
 
     public static Boolean anyBoolean() {
         return mockInstance.argumentManager.anyBoolean();
-    }
-
-    public static Object anyObject() {
-        return mockInstance.argumentManager.anyObject();
     }
 
     public static List<Object> anyList() {
@@ -165,9 +180,125 @@ public with sharing class ATK {
         return mockInstance.argumentManager.anyMap();
     }
 
+    public static Object any() {
+        return mockInstance.argumentManager.any();
+    }
+
+    public static Object any(Type type) {
+        return mockInstance.argumentManager.any(type);
+    }
+
+    public static Object nullable(Type type) {
+        return mockInstance.argumentManager.nullable(type);
+    }
+
+    public static SObject anySObject() {
+        return mockInstance.argumentManager.anySObject();
+    }
+
+    public static List<SObject> anySObjectList() {
+        return mockInstance.argumentManager.anySObjectList();
+    }
+
     // Value Matchers
-    public static ArgumentCaster eq(Object value) {
+    public static Object isNull() {
+        return mockInstance.argumentManager.isNull();
+    }
+
+    public static Object isNotNull() {
+        return mockInstance.argumentManager.isNotNull();
+    }
+
+    public static Object same(Object value) {
+        return mockInstance.argumentManager.same(value);
+    }
+
+    public static Object ne(Object value) {
+        return mockInstance.argumentManager.ne(value);
+    }
+
+    public static Integer neInteger(Integer value) {
+        return mockInstance.argumentManager.neInteger(value);
+    }
+
+    public static Long neLong(Long value) {
+        return mockInstance.argumentManager.neLong(value);
+    }
+
+    public static Double neDouble(Double value) {
+        return mockInstance.argumentManager.neDouble(value);
+    }
+
+    public static Decimal neDecimal(Decimal value) {
+        return mockInstance.argumentManager.neDecimal(value);
+    }
+
+    public static Date neDate(Date value) {
+        return mockInstance.argumentManager.neDate(value);
+    }
+
+    public static Datetime neDatetime(Datetime value) {
+        return mockInstance.argumentManager.neDatetime(value);
+    }
+
+    public static Time neTime(Time value) {
+        return mockInstance.argumentManager.neTime(value);
+    }
+
+    public static Id neId(Id value) {
+        return mockInstance.argumentManager.neId(value);
+    }
+
+    public static String neString(String value) {
+        return mockInstance.argumentManager.neString(value);
+    }
+
+    public static Boolean neBoolean(Boolean value) {
+        return mockInstance.argumentManager.neBoolean(value);
+    }
+
+    public static Object eq(Object value) {
         return mockInstance.argumentManager.eq(value);
+    }
+
+    public static Integer eqInteger(Integer value) {
+        return mockInstance.argumentManager.eqInteger(value);
+    }
+
+    public static Long eqLong(Long value) {
+        return mockInstance.argumentManager.eqLong(value);
+    }
+
+    public static Double eqDouble(Double value) {
+        return mockInstance.argumentManager.eqDouble(value);
+    }
+
+    public static Decimal eqDecimal(Decimal value) {
+        return mockInstance.argumentManager.eqDecimal(value);
+    }
+
+    public static Date eqDate(Date value) {
+        return mockInstance.argumentManager.eqDate(value);
+    }
+
+    public static Datetime eqDatetime(Datetime value) {
+        return mockInstance.argumentManager.eqDatetime(value);
+    }
+
+    public static Time eqTime(Time value) {
+        return mockInstance.argumentManager.eqTime(value);
+    }
+
+    public static Id eqId(Id value) {
+        return mockInstance.argumentManager.eqId(value);
+    }
+
+    public static String eqString(String value) {
+        return mockInstance.argumentManager.eqString(value);
+    }
+
+    public static Boolean eqBoolean(Boolean value) {
+        return mockInstance.argumentManager.eqBoolean(value);
     }
 
     public static ComparableArgumentCaster gt(Object value) {
@@ -196,6 +327,62 @@ public with sharing class ATK {
 
     public static ComparableArgumentCaster between(Object minValue, Boolean minInclusive, Object maxValue, Boolean maxInclusive) {
         return mockInstance.argumentManager.between(minValue, minInclusive, maxValue, maxInclusive);
+    }
+
+    public static String isBlank() {
+        return mockInstance.argumentManager.isBlank();
+    }
+
+    public static String isNotBlank() {
+        return mockInstance.argumentManager.isNotBlank();
+    }
+
+    public static String contains(String value) {
+        return mockInstance.argumentManager.contains(value);
+    }
+
+    public static String startsWith(String value) {
+        return mockInstance.argumentManager.startsWith(value);
+    }
+
+    public static String endsWith(String value) {
+        return mockInstance.argumentManager.endsWith(value);
+    }
+
+    public static String matches(String regexp) {
+        return mockInstance.argumentManager.matches(regexp);
+    }
+
+    public static SObject sObjectWithId(Id value) {
+        return mockInstance.argumentManager.sObjectWithId(value);
+    }
+
+    public static SObject sObjectWithName(String value) {
+        return mockInstance.argumentManager.sObjectWithName(value);
+    }
+
+    public static SObject sObjectWith(SObjectField field, Object value) {
+        return mockInstance.argumentManager.sObjectWith(field, value);
+    }
+
+    public static SObject sObjectWith(Map<SObjectField, Object> value) {
+        return mockInstance.argumentManager.sObjectWith(value);
+    }
+
+    public static LIst<SObject> sObjectListWith(SObjectField field, Object value) {
+        return mockInstance.argumentManager.sObjectListWith(field, value);
+    }
+
+    public static LIst<SObject> sObjectListWith(Map<SObjectField, Object> value) {
+        return mockInstance.argumentManager.sObjectListWith(value);
+    }
+
+    public static LIst<SObject> sObjectListWith(List<Map<SObjectField, Object>> value) {
+        return mockInstance.argumentManager.sObjectListWith(value, false);
+    }
+
+    public static LIst<SObject> sObjectListWith(List<Map<SObjectField, Object>> value, Boolean inOrder) {
+        return mockInstance.argumentManager.sObjectListWith(value, inOrder);
     }
 
     // Combo Matchers
@@ -263,7 +450,7 @@ public with sharing class ATK {
         return mockInstance.argumentManager.noneOf(os);
     }
 
-    public interface ArgumentMatcher {
+    public interface Matcher {
         Boolean matches(Type type, Object arg);
     }
 
@@ -275,17 +462,49 @@ public with sharing class ATK {
         Decimal anyDecimal();
         Date anyDate();
         Datetime anyDatetime();
+        Time anyTime();
         Id anyId();
         String anyString();
         Boolean anyBoolean();
-        Object anyObject();
+
         List<Object> anyList();
         Object anySet();
         Object anyMap();
 
+        Object any();
+        Object any(Type type);
+        Object nullable(Type type);
+
+        SObject anySObject();
+        List<SObject> anySObjectList();
+
         // Value Matchers
-        ArgumentCaster isNull();
-        ArgumentCaster eq(Object value);
+        Object isNull();
+        Object isNotNull();
+        Object same(Object value);
+
+        Object ne(Object value);
+        Integer neInteger(Integer value);
+        Long neLong(Long value);
+        Double neDouble(Double value);
+        Decimal neDecimal(Decimal value);
+        Date neDate(Date value);
+        Datetime neDatetime(Datetime value);
+        Time neTime(Time value);
+        Id neId(Id value);
+        String neString(String value);
+        Boolean neBoolean(Boolean value);
+        Object eq(Object value);
+        Integer eqInteger(Integer value);
+        Long eqLong(Long value);
+        Double eqDouble(Double value);
+        Decimal eqDecimal(Decimal value);
+        Date eqDate(Date value);
+        Datetime eqDatetime(Datetime value);
+        Time eqTime(Time value);
+        Id eqId(Id value);
+        String eqString(String value);
+        Boolean eqBoolean(Boolean value);
         ComparableArgumentCaster gt(Object value);
         ComparableArgumentCaster gte(Object value);
         ComparableArgumentCaster lt(Object value);
@@ -293,6 +512,21 @@ public with sharing class ATK {
         ComparableArgumentCaster between(Object minValue, Object maxValue);
         ComparableArgumentCaster between(Object minValue, Object maxValue, Boolean inclusive);
         ComparableArgumentCaster between(Object minValue, Boolean minInclusive, Object maxValue, Boolean maxInclusive);
+
+        String isBlank();
+        String isNotBlank();
+        String contains(String value);
+        String startsWith(String value);
+        String endsWith(String value);
+        String matches(String regexp);
+
+        SObject sObjectWithId(Id value);
+        SObject sObjectWithName(String value);
+        SObject sObjectWith(SObjectField field, Object value);
+        SObject sObjectWith(Map<SObjectField, Object> value);
+        LIst<SObject> sObjectListWith(SObjectField field, Object value);
+        LIst<SObject> sObjectListWith(Map<SObjectField, Object> value);
+        LIst<SObject> sObjectListWith(List<Map<SObjectField, Object>> value, Boolean inOrder);
 
         // Combo Matchers
         Object allOf(Object o1, Object o2);
@@ -320,13 +554,9 @@ public with sharing class ATK {
         Decimal asDecimal();
         Date asDate();
         Datetime asDatetime();
+        Time asTime();
         Id asId();
         String asString();
-    }
-
-    public interface ArgumentCaster extends ComparableArgumentCaster {
-        Boolean asBoolean();
-        Object asObject();
     }
 
     // #endregion

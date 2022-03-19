@@ -15,10 +15,11 @@
  * limitations under the License.
  */
 
-public with sharing virtual class ATKMock implements System.StubProvider {
+public with sharing class ATKMock implements System.StubProvider {
     public ArgumentManager argumentManager { get; set; }
     private Map<Object, Mock> mockByStub { get; set; }
     private Boolean isStubbing = false;
+    private InvocationContainer container { get; set; }
 
     private Mock currentMock { get; set; }
     private Stub currentStub { get; set; }
@@ -26,6 +27,14 @@ public with sharing virtual class ATKMock implements System.StubProvider {
 
     public class NonArgumentException extends Exception {
         String msg = 'Argument cannot be null.';
+
+        {
+            this.setMessage(msg);
+        }
+    }
+
+    public class NotStartStubbingException extends Exception {
+        String msg = 'startStubbing() is not called';
 
         {
             this.setMessage(msg);
@@ -41,6 +50,7 @@ public with sharing virtual class ATKMock implements System.StubProvider {
 
     {
         argumentManager = new ArgumentManager();
+        container = new InvocationContainer();
         mockByStub = new Map<Object, Mock>();
     }
 
@@ -49,6 +59,9 @@ public with sharing virtual class ATKMock implements System.StubProvider {
     }
 
     public void stopStubbing() {
+        if (!this.isStubbing) {
+            throw new NotStartStubbingException();
+        }
         this.isStubbing = false;
     }
 
@@ -63,9 +76,8 @@ public with sharing virtual class ATKMock implements System.StubProvider {
     }
 
     public Object handleMethodCall(Object mock, String methodName, Type returnType, List<Type> paramTypes, List<String> paramNames, List<Object> listOfArgs) {
-        Invocation invocation = new Invocation();
-        invocation.populate(mock, methodName, returnType, paramTypes, paramNames, listOfArgs);
-        invocation.debug();
+        Invocation invocation = new Invocation(mock, methodName, returnType, paramTypes, paramNames, listOfArgs);
+        // invocation.debug();
 
         if (this.isStubbing) {
             this.currentMock = this.getMock(mock);
@@ -87,6 +99,7 @@ public with sharing virtual class ATKMock implements System.StubProvider {
             return null;
         }
 
+        this.container.addInvocation(invocation);
         return this.getMock(mock).invoke(invocation);
     }
 
@@ -113,11 +126,78 @@ public with sharing virtual class ATKMock implements System.StubProvider {
         this.currentMock = null;
     }
 
+    // #region Verificatoin
+
     public ATK.ThenOf then(Object mock) {
-        return this.getMock(mock);
+        return new Verification(mock);
     }
 
-    public class Mock implements ATK.ThenOf, ATK.Should {
+    private class InvocationContainer {
+        List<Invocation> invocations { get; set; }
+
+        InvocationContainer() {
+            invocations = new List<Invocation>();
+        }
+
+        private void addInvocation(Invocation invocation) {
+            this.invocations.add(invocation);
+        }
+    }
+
+    public class InOrder implements ATK.InOrder {
+    }
+
+    public class Verification extends MatchableInvocation implements ATK.ThenOf, ATK.Should {
+        Object mock { get; set; }
+
+        Verification(Object mock) {
+            this.mock = mock;
+        }
+
+        public Boolean verify(Object mock, Invocation invocation) {
+            return false;
+        }
+
+        public ATK.Should should() {
+            return this;
+        }
+
+        public ATK.Should should(ATK.InOrder inOrder) {
+            return this;
+        }
+
+        public Object never() {
+            return mock;
+        }
+
+        public Object only() {
+            return mock;
+        }
+
+        public Object times(Integer times) {
+            return mock;
+        }
+
+        public Object atLeast(Integer times) {
+            return mock;
+        }
+
+        public Object atLeastOnce() {
+            return mock;
+        }
+
+        public Object atMost(Integer times) {
+            return mock;
+        }
+
+        public Object atMostOnce() {
+            return mock;
+        }
+    }
+
+    // #endregion
+
+    public class Mock {
         public Object mock { get; set; }
         Map<Method, List<Stub>> stubByMethod { get; set; }
 
@@ -143,30 +223,6 @@ public with sharing virtual class ATKMock implements System.StubProvider {
             }
             return null;
         }
-
-        public ATK.Should should() {
-            return this;
-        }
-
-        public ATK.Should should(ATK.InOrder inOrder) {
-            return this;
-        }
-
-        public Object never() {
-            return null;
-        }
-
-        public Object times(Integer times) {
-            return null;
-        }
-
-        public Object atLeast(Integer times) {
-            return null;
-        }
-
-        public Object atMost(Integer times) {
-            return null;
-        }
     }
 
     private class Method {
@@ -174,15 +230,6 @@ public with sharing virtual class ATKMock implements System.StubProvider {
         List<Type> paramTypes { get; set; }
         List<String> paramNames { get; set; }
         Type returnType { get; set; }
-        String paramTypesName {
-            get {
-                List<String> typeNames = new List<String>();
-                for (Type t : this.paramTypes) {
-                    typeNames.add(t.getName());
-                }
-                return String.join(typeNames, '_');
-            }
-        }
 
         public Boolean equals(Object obj) {
             if (this === obj) {
@@ -200,10 +247,15 @@ public with sharing virtual class ATKMock implements System.StubProvider {
 
     private virtual class Invocation implements ATK.Invocation {
         Method method { get; set; }
+        Object mock { get; set; }
         List<Object> listOfArgs { get; set; }
 
-        private void populate(Object mock, String methodName, Type returnType, List<Type> paramTypes, List<String> paramNames, List<Object> listOfArgs) {
+        Invocation() {
+        }
+
+        Invocation(Object mock, String methodName, Type returnType, List<Type> paramTypes, List<String> paramNames, List<Object> listOfArgs) {
             this.method = new Method();
+            this.mock = mock;
             this.method.name = methodName;
             this.method.returnType = returnType;
             this.method.paramTypes = paramTypes;
@@ -232,16 +284,8 @@ public with sharing virtual class ATKMock implements System.StubProvider {
         }
     }
 
-    private abstract class Stub extends Invocation implements Answer {
+    private virtual class MatchableInvocation extends Invocation {
         protected List<ArgumentMatcher> matchers = new List<ArgumentMatcher>();
-        protected List<ATK.Answer> answers = new List<ATK.Answer>();
-        protected Integer answeredIndex = 0;
-
-        private Boolean isConsecutive {
-            get {
-                return answers.size() > 1;
-            }
-        }
 
         private void populate(Invocation invocation) {
             this.method = invocation.method;
@@ -263,6 +307,17 @@ public with sharing virtual class ATKMock implements System.StubProvider {
             }
 
             return true;
+        }
+    }
+
+    private abstract class Stub extends MatchableInvocation implements Answer {
+        protected List<ATK.Answer> answers = new List<ATK.Answer>();
+        protected Integer answeredIndex = 0;
+
+        private Boolean isConsecutive {
+            get {
+                return answers.size() > 1;
+            }
         }
 
         public Object answer(ATK.Invocation invocation) {
@@ -361,121 +416,117 @@ public with sharing virtual class ATKMock implements System.StubProvider {
         }
     }
 
-    private class MockHandler {
-        private Object handle(Invocation invocation) {
-            return null;
-        }
-
-        private InvocationContainer getInvocationContainer() {
-            return null;
-        }
-    }
-
-    private class InvocationContainer {
-    }
-
-    // #region Argument Matchers
-    public interface ArgumentMatcher extends ATK.ArgumentMatcher {
-    }
-
-    interface ArgumentMatcherCombo {
-        void addMatcher(ArgumentMatcher matcher);
-    }
-
-    public virtual class ArgumentCaster implements ATK.ArgumentCaster {
-        public Integer asInteger() {
-            return null;
-        }
-
-        public Long asLong() {
-            return null;
-        }
-
-        public Double asDouble() {
-            return null;
-        }
-
-        public Decimal asDecimal() {
-            return null;
-        }
-
-        public Date asDate() {
-            return null;
-        }
-
-        public Datetime asDatetime() {
-            return null;
-        }
-
-        public Boolean asBoolean() {
-            return null;
-        }
-
-        public Id asId() {
-            return null;
-        }
-
-        public String asString() {
-            return null;
-        }
-
-        public Object asObject() {
-            return null;
-        }
-    }
-
-    // Type Matchers
-    public class TypeMatcher implements ArgumentMatcher {
-        Type type { get; set; }
-
-        TypeMatcher(Type type) {
-            this.type = type;
-        }
-
+    // #region Type Matchers
+    public class AnyMatcher implements ArgumentMatcher {
         public Boolean matches(Type type, Object arg) {
-            return this.type == type && arg != null;
+            return true;
         }
     }
 
     public class AnyTypeMatcher implements ArgumentMatcher {
+        Type type { get; set; }
+
+        AnyTypeMatcher(Type type) {
+            this.type = type;
+        }
+
         public Boolean matches(Type type, Object arg) {
-            return true && arg != null;
+            if (arg == null) {
+                return false;
+            }
+
+            if (this.type == SObject.class) {
+                return arg instanceof SObject;
+            }
+
+            if (this.type == List<SObject>.class) {
+                return arg instanceof List<SObject>;
+            }
+
+            return this.type == type;
+        }
+    }
+
+    public class NullableTypeMatcher implements ArgumentMatcher {
+        Type type { get; set; }
+
+        NullableTypeMatcher(Type type) {
+            this.type = type;
+        }
+
+        public Boolean matches(Type type, Object arg) {
+            return this.type == type;
         }
     }
 
     public class ListTypeMatcher implements ArgumentMatcher {
         public Boolean matches(Type type, Object arg) {
-            return type.getName().startsWith('List<') && arg != null;
+            return arg != null && arg instanceof List<Object>;
         }
     }
 
     public class SetTypeMatcher implements ArgumentMatcher {
         public Boolean matches(Type type, Object arg) {
-            return type.getName().startsWith('Set<') && arg != null;
+            return arg != null && type.getName().startsWith('Set<');
         }
     }
 
     public class MapTypeMatcher implements ArgumentMatcher {
         public Boolean matches(Type type, Object arg) {
-            return type.getName().startsWith('Map<') && arg != null;
+            return arg != null && type.getName().startsWith('Map<');
         }
     }
 
-    // Value Matchers
-    public virtual class NullMatcher extends ArgumentCaster implements ArgumentMatcher {
-        public virtual Boolean matches(Type type, Object arg) {
-            return arg == null;
+    // #endregion
+
+    // #region Value Matchers
+    public class NullMatcher extends ArgumentCaster implements ArgumentMatcher {
+        Boolean isNull { get; set; }
+
+        NullMatcher(Boolean isNull) {
+            this.isNull = isNull;
+        }
+
+        public Boolean matches(Type type, Object arg) {
+            if (this.isNull) {
+                return arg == null;
+            }
+            return arg != null;
         }
     }
 
-    public class EqMatcher extends NullMatcher implements ArgumentMatcher {
+    public class SameMatcher implements ArgumentMatcher {
+        Object value { get; set; }
+
+        SameMatcher(Object value) {
+            this.value = value;
+        }
+
+        public Boolean matches(Type type, Object arg) {
+            return arg === value;
+        }
+    }
+
+    public class NeMatcher extends ArgumentCaster implements ArgumentMatcher {
+        Object value { get; set; }
+
+        NeMatcher(Object value) {
+            this.value = value;
+        }
+
+        public Boolean matches(Type type, Object arg) {
+            return arg != value;
+        }
+    }
+
+    public class EqMatcher extends ArgumentCaster implements ArgumentMatcher {
         Object value { get; set; }
 
         EqMatcher(Object value) {
             this.value = value;
         }
 
-        public override Boolean matches(Type type, Object arg) {
+        public Boolean matches(Type type, Object arg) {
             return arg == value;
         }
     }
@@ -504,6 +555,8 @@ public with sharing virtual class ATKMock implements System.StubProvider {
                 return (Date) arg > (Date) this.value;
             } else if (type == Datetime.class) {
                 return (Datetime) arg > (Datetime) this.value;
+            } else if (type == Time.class) {
+                return (Time) arg > (Time) this.value;
             } else if (type == String.class) {
                 return (String) arg > (String) this.value;
             } else if (type == Id.class) {
@@ -535,8 +588,10 @@ public with sharing virtual class ATKMock implements System.StubProvider {
                 return (Decimal) arg >= (Decimal) this.value;
             } else if (type == Date.class) {
                 return (Date) arg >= (Date) this.value;
-            } else if (type == Datetime.class) {
-                return (Datetime) arg >= (Datetime) this.value;
+            } else if (type == DateTime.class) {
+                return (DateTime) arg >= (DateTime) this.value;
+            } else if (type == Time.class) {
+                return (Time) arg >= (Time) this.value;
             } else if (type == String.class) {
                 return (String) arg >= (String) this.value;
             } else if (type == Id.class) {
@@ -570,6 +625,8 @@ public with sharing virtual class ATKMock implements System.StubProvider {
                 return (Date) arg < (Date) this.value;
             } else if (type == Datetime.class) {
                 return (Datetime) arg < (Datetime) this.value;
+            } else if (type == Time.class) {
+                return (Time) arg < (Time) this.value;
             } else if (type == String.class) {
                 return (String) arg < (String) this.value;
             } else if (type == Id.class) {
@@ -603,6 +660,8 @@ public with sharing virtual class ATKMock implements System.StubProvider {
                 return (Date) arg <= (Date) this.value;
             } else if (type == Datetime.class) {
                 return (Datetime) arg <= (Datetime) this.value;
+            } else if (type == Time.class) {
+                return (Time) arg <= (Time) this.value;
             } else if (type == String.class) {
                 return (String) arg <= (String) this.value;
             } else if (type == Id.class) {
@@ -655,6 +714,8 @@ public with sharing virtual class ATKMock implements System.StubProvider {
                     return (Date) arg > (Date) this.minValue && (Date) arg < (Date) this.maxValue;
                 } else if (type == Datetime.class) {
                     return (Datetime) arg > (Datetime) this.minValue && (Datetime) arg < (Datetime) this.maxValue;
+                } else if (type == Time.class) {
+                    return (Time) arg > (Time) this.minValue && (Time) arg < (Time) this.maxValue;
                 } else if (type == String.class) {
                     return (String) arg > (String) this.minValue && (String) arg < (String) this.maxValue;
                 } else if (type == Id.class) {
@@ -675,6 +736,8 @@ public with sharing virtual class ATKMock implements System.StubProvider {
                     return (Date) arg >= (Date) this.minValue && (Date) arg < (Date) this.maxValue;
                 } else if (type == Datetime.class) {
                     return (Datetime) arg >= (Datetime) this.minValue && (Datetime) arg < (Datetime) this.maxValue;
+                } else if (type == Time.class) {
+                    return (Time) arg >= (Time) this.minValue && (Time) arg < (Time) this.maxValue;
                 } else if (type == String.class) {
                     return (String) arg >= (String) this.minValue && (String) arg < (String) this.maxValue;
                 } else if (type == Id.class) {
@@ -695,6 +758,8 @@ public with sharing virtual class ATKMock implements System.StubProvider {
                     return (Date) arg > (Date) this.minValue && (Date) arg <= (Date) this.maxValue;
                 } else if (type == Datetime.class) {
                     return (Datetime) arg > (Datetime) this.minValue && (Datetime) arg <= (Datetime) this.maxValue;
+                } else if (type == Time.class) {
+                    return (Time) arg > (Time) this.minValue && (Time) arg <= (Time) this.maxValue;
                 } else if (type == String.class) {
                     return (String) arg > (String) this.minValue && (String) arg <= (String) this.maxValue;
                 } else if (type == Id.class) {
@@ -715,6 +780,8 @@ public with sharing virtual class ATKMock implements System.StubProvider {
                     return (Date) arg >= (Date) this.minValue && (Date) arg <= (Date) this.maxValue;
                 } else if (type == Datetime.class) {
                     return (Datetime) arg >= (Datetime) this.minValue && (Datetime) arg <= (Datetime) this.maxValue;
+                } else if (type == Time.class) {
+                    return (Time) arg >= (Time) this.minValue && (Time) arg <= (Time) this.maxValue;
                 } else if (type == String.class) {
                     return (String) arg >= (String) this.minValue && (String) arg <= (String) this.maxValue;
                 } else if (type == Id.class) {
@@ -726,42 +793,234 @@ public with sharing virtual class ATKMock implements System.StubProvider {
         }
     }
 
-    // Comobo Matchers
-    public class AllMatcher implements ArgumentMatcher, ArgumentMatcherCombo {
-        List<ArgumentMatcher> matchers { get; set; }
+    public class IsBlankMatcher implements ArgumentMatcher {
+        Boolean isBlank { get; set; }
 
-        AllMatcher() {
-            matchers = new List<ArgumentMatcher>();
-        }
-
-        public void addMatcher(ArgumentMatcher matcher) {
-            this.matchers.add(matcher);
+        IsBlankMatcher(Boolean isBlank) {
+            this.isBlank = isBlank;
         }
 
         public Boolean matches(Type type, Object arg) {
-            Boolean hasMatched = true;
-            for (ArgumentMatcher matcher : this.matchers) {
-                if (!matcher.matches(type, arg)) {
-                    hasMatched = false;
-                    break;
-                }
+            if (this.isBlank) {
+                return String.isBlank((String) arg);
             }
-
-            return hasMatched;
+            return String.isNotBlank((String) arg);
         }
     }
 
-    public class AnyMatcher implements ArgumentMatcher, ArgumentMatcherCombo {
+    public class ContainsMatcher implements ArgumentMatcher {
+        String value { get; set; }
+
+        ContainsMatcher(String value) {
+            this.value = (String) validateNotNull(value);
+        }
+
+        public Boolean matches(Type type, Object arg) {
+            return arg != null && ((String) arg).contains(this.value);
+        }
+    }
+
+    public class StartsWithMatcher implements ArgumentMatcher {
+        String value { get; set; }
+
+        StartsWithMatcher(String value) {
+            this.value = (String) validateNotNull(value);
+        }
+
+        public Boolean matches(Type type, Object arg) {
+            return arg != null && ((String) arg).startsWith(this.value);
+        }
+    }
+
+    public class EndsWithMatcher implements ArgumentMatcher {
+        String value { get; set; }
+
+        EndsWithMatcher(String value) {
+            this.value = (String) validateNotNull(value);
+        }
+
+        public Boolean matches(Type type, Object arg) {
+            return arg != null && ((String) arg).endsWith(this.value);
+        }
+    }
+
+    public class RegExpMatcher implements ArgumentMatcher {
+        Pattern regExpPattern { get; set; }
+
+        RegExpMatcher(String regexp) {
+            this.regExpPattern = Pattern.compile((String) validateNotNull(regexp));
+        }
+
+        public Boolean matches(Type type, Object arg) {
+            if (arg == null) {
+                return false;
+            }
+
+            System.Matcher matcher = this.regExpPattern.matcher((String) arg);
+            return matcher.matches();
+        }
+    }
+
+    public class SObjectFieldMatcher implements ArgumentMatcher {
+        String fieldName { get; set; }
+        Object value { get; set; }
+
+        SObjectFieldMatcher(String fieldName, Object value) {
+            this.fieldName = fieldName;
+            this.value = value;
+        }
+
+        SObjectFieldMatcher(SObjectField field, Object value) {
+            DescribeFieldResult dfr = field.getDescribe();
+            this.fieldName = dfr.getName();
+            this.value = value;
+        }
+
+        public Boolean matches(Type type, Object arg) {
+            if (arg == null || !(arg instanceof SObject)) {
+                return false;
+            }
+            SObject sobj = (SOBject) arg;
+            return sobj.get(this.fieldName) == value;
+        }
+    }
+
+    public class SObjectMatcher implements ArgumentMatcher {
+        List<SObjectFieldMatcher> matchers { get; set; }
+
+        SObjectMatcher(Map<SObjectField, Object> matchRules) {
+            this.matchers = new List<SObjectFieldMatcher>();
+            for (SObjectField field : matchRules.keySet()) {
+                this.matchers.add(new SObjectFieldMatcher(field, matchRules.get(field)));
+            }
+        }
+
+        public Boolean matches(Type type, Object arg) {
+            for (SObjectFieldMatcher matcher : matchers) {
+                if (!matcher.matches(type, arg)) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+    }
+
+    public class SObjectListMatcher implements ArgumentMatcher {
         List<ArgumentMatcher> matchers { get; set; }
 
-        AnyMatcher() {
+        SObjectListMatcher(SObjectField field, Object value) {
+            this.matchers = new List<ArgumentMatcher>();
+            this.matchers.add(new SObjectFieldMatcher(field, value));
+        }
+
+        SObjectListMatcher(Map<SObjectField, Object> value) {
+            this.matchers = new List<ArgumentMatcher>();
+            for (SObjectField field : value.keySet()) {
+                this.matchers.add(new SObjectFieldMatcher(field, value.get(field)));
+            }
+        }
+
+        public Boolean matches(Type type, Object arg) {
+            if (arg == null || !(arg instanceof List<SObject>)) {
+                return false;
+            }
+            List<SObject> sobjs = (List<SOBject>) arg;
+
+            for (SObject sobj : sobjs) {
+                for (ArgumentMatcher matcher : this.matchers) {
+                    if (!matcher.matches(SObjectType.class, sobj)) {
+                        return false;
+                    }
+                }
+            }
+
+            return true;
+        }
+    }
+
+    public class MultiSObjectListMatcher implements ArgumentMatcher {
+        List<ArgumentMatcher> matchers { get; set; }
+        Boolean inOrder { get; set; }
+
+        MultiSObjectListMatcher(List<Map<SObjectField, Object>> value, Boolean inOrder) {
+            this.matchers = new List<ArgumentMatcher>();
+            this.inOrder = inOrder;
+
+            for (Map<SObjectField, Object> matchRules : value) {
+                this.matchers.add(new SObjectMatcher(matchRules));
+            }
+        }
+
+        public Boolean matches(Type type, Object arg) {
+            if (arg == null || !(arg instanceof List<SObject>)) {
+                return false;
+            }
+            List<SObject> sobjs = (List<SOBject>) arg;
+
+            if (this.matchers.size() != sobjs.size()) {
+                return false;
+            }
+
+            if (this.inOrder) {
+                for (Integer i = 0; i < sobjs.size(); i++) {
+                    SObject sobj = sobjs[i];
+                    ArgumentMatcher matcher = this.matchers[i];
+                    if (!matcher.matches(SObjectType.class, sobj)) {
+                        return false;
+                    }
+                }
+                return true;
+            }
+
+            List<Integer> matchedIndexes = new List<Integer>();
+            for (Integer i = 0; i < sobjs.size(); i++) {
+                SObject sobj = sobjs[i];
+                for (Integer j = 0; j < matchers.size(); j++) {
+                    if (matchedIndexes.contains(j)) {
+                        continue;
+                    }
+                    ArgumentMatcher matcher = this.matchers[j];
+                    if (matcher.matches(SObjectType.class, sobj)) {
+                        matchedIndexes.add(j);
+                        break;
+                    }
+                }
+            }
+
+            return matchedIndexes.size() == sobjs.size();
+        }
+    }
+
+    // #endregion
+
+    // #region Comobo Matchers
+
+    public virtual class MatcherCombo {
+        protected List<ArgumentMatcher> matchers { get; set; }
+
+        MatcherCombo() {
             matchers = new List<ArgumentMatcher>();
         }
 
         public void addMatcher(ArgumentMatcher matcher) {
             this.matchers.add(matcher);
         }
+    }
 
+    public class AllOfMatcher extends MatcherCombo implements ArgumentMatcher {
+        public Boolean matches(Type type, Object arg) {
+            for (ArgumentMatcher matcher : this.matchers) {
+                if (!matcher.matches(type, arg)) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+    }
+
+    public class AnyOfMatcher extends MatcherCombo implements ArgumentMatcher {
         public Boolean matches(Type type, Object arg) {
             Boolean hasMatched = false;
             for (ArgumentMatcher matcher : this.matchers) {
@@ -775,17 +1034,7 @@ public with sharing virtual class ATKMock implements System.StubProvider {
         }
     }
 
-    public class NoneMatcher implements ArgumentMatcher, ArgumentMatcherCombo {
-        List<ArgumentMatcher> matchers { get; set; }
-
-        NoneMatcher() {
-            matchers = new List<ArgumentMatcher>();
-        }
-
-        public void addMatcher(ArgumentMatcher matcher) {
-            this.matchers.add(matcher);
-        }
-
+    public class NoneOfMatcher extends MatcherCombo implements ArgumentMatcher {
         public Boolean matches(Type type, Object arg) {
             Boolean hasMatched = false;
             for (ArgumentMatcher matcher : this.matchers) {
@@ -798,6 +1047,8 @@ public with sharing virtual class ATKMock implements System.StubProvider {
             return !hasMatched;
         }
     }
+
+    // #endregion
 
     public class ArgumentManager implements ATK.ArgumentManager {
         Integer sequence { get; set; }
@@ -824,14 +1075,20 @@ public with sharing virtual class ATKMock implements System.StubProvider {
             return this.matchers.size() > 0;
         }
 
-        private void moveMatcher(ArgumentMatcherCombo combo, Integer count) {
-            for (Integer i = 0; i < count; i++) {
-                ArgumentMatcher lastMatcher = this.matchers.remove(this.matchers.size() - 1);
-                combo.addMatcher(lastMatcher);
+        private void moveMatchers(MatcherCombo combo, Integer size) {
+            for (Integer i = size; i > 0; i--) {
+                ArgumentMatcher matcher = this.matchers.remove(this.matchers.size() - i);
+                combo.addMatcher(matcher);
             }
         }
 
-        // Combo Matchers
+        private void removeMatchers(Integer size) {
+            for (Integer i = 0; i < size; i++) {
+                this.matchers.remove(this.matchers.size() - 1);
+            }
+        }
+
+        // #region Combo Matchers
         public Object allOf(Object o1, Object o2) {
             return this.allOf(new List<Object>{ o1, o2 });
         }
@@ -849,8 +1106,8 @@ public with sharing virtual class ATKMock implements System.StubProvider {
         }
 
         public Object allOf(List<Object> os) {
-            ArgumentMatcherCombo combo = new AllMatcher();
-            this.moveMatcher(combo, os.size());
+            MatcherCombo combo = new AllOfMatcher();
+            this.moveMatchers(combo, os.size());
             this.addMatcher((ArgumentMatcher) combo);
             return null;
         }
@@ -872,8 +1129,8 @@ public with sharing virtual class ATKMock implements System.StubProvider {
         }
 
         public Object anyOf(List<Object> os) {
-            ArgumentMatcherCombo combo = new AnyMatcher();
-            this.moveMatcher(combo, os.size());
+            MatcherCombo combo = new AnyOfMatcher();
+            this.moveMatchers(combo, os.size());
             this.addMatcher((ArgumentMatcher) combo);
             return null;
         }
@@ -899,60 +1156,62 @@ public with sharing virtual class ATKMock implements System.StubProvider {
         }
 
         public Object noneOf(List<Object> os) {
-            ArgumentMatcherCombo combo = new NoneMatcher();
-            this.moveMatcher(combo, os.size());
+            MatcherCombo combo = new NoneOfMatcher();
+            this.moveMatchers(combo, os.size());
             this.addMatcher((ArgumentMatcher) combo);
             return null;
         }
 
-        // Type Matchers
+        // #endregion
+
+        // #region Type Matchers
         public Integer anyInteger() {
-            this.addMatcher(new TypeMatcher(Integer.class));
+            this.addMatcher(new AnyTypeMatcher(Integer.class));
             return null;
         }
 
         public Long anyLong() {
-            this.addMatcher(new TypeMatcher(Long.class));
+            this.addMatcher(new AnyTypeMatcher(Long.class));
             return null;
         }
 
         public Double anyDouble() {
-            this.addMatcher(new TypeMatcher(Double.class));
+            this.addMatcher(new AnyTypeMatcher(Double.class));
             return null;
         }
 
         public Decimal anyDecimal() {
-            this.addMatcher(new TypeMatcher(Decimal.class));
+            this.addMatcher(new AnyTypeMatcher(Decimal.class));
             return null;
         }
 
         public Date anyDate() {
-            this.addMatcher(new TypeMatcher(Date.class));
+            this.addMatcher(new AnyTypeMatcher(Date.class));
             return null;
         }
 
         public Datetime anyDatetime() {
-            this.addMatcher(new TypeMatcher(Datetime.class));
+            this.addMatcher(new AnyTypeMatcher(Datetime.class));
+            return null;
+        }
+
+        public Time anyTime() {
+            this.addMatcher(new AnyTypeMatcher(Time.class));
             return null;
         }
 
         public Id anyId() {
-            this.addMatcher(new TypeMatcher(Id.class));
+            this.addMatcher(new AnyTypeMatcher(Id.class));
             return null;
         }
 
         public String anyString() {
-            this.addMatcher(new TypeMatcher(String.class));
+            this.addMatcher(new AnyTypeMatcher(String.class));
             return null;
         }
 
         public Boolean anyBoolean() {
-            this.addMatcher(new TypeMatcher(Boolean.class));
-            return null;
-        }
-
-        public Object anyObject() {
-            this.addMatcher(new AnyTypeMatcher());
+            this.addMatcher(new AnyTypeMatcher(Boolean.class));
             return null;
         }
 
@@ -971,17 +1230,177 @@ public with sharing virtual class ATKMock implements System.StubProvider {
             return null;
         }
 
-        // Value Matchers
-        public ArgumentCaster isNull() {
-            ArgumentCaster caster = new NullMatcher();
-            this.addMatcher((ArgumentMatcher) caster);
-            return caster;
+        public Object any() {
+            this.addMatcher(new AnyMatcher());
+            return null;
         }
 
-        public ArgumentCaster eq(Object value) {
+        public Object any(Type type) {
+            this.addMatcher(new AnyTypeMatcher(type));
+            return null;
+        }
+
+        public Object nullable(Type type) {
+            this.addMatcher(new NullableTypeMatcher(type));
+            return null;
+        }
+
+        public SObject anySObject() {
+            this.addMatcher(new AnyTypeMatcher(SObject.class));
+            return null;
+        }
+
+        public List<SObject> anySObjectList() {
+            this.addMatcher(new AnyTypeMatcher(List<SObject>.class));
+            return null;
+        }
+
+        // #endregion
+
+        // #region Value Matchers
+        public Object isNull() {
+            this.addMatcher(new NullMatcher(true));
+            return null;
+        }
+
+        public Object isNotNull() {
+            this.addMatcher(new NullMatcher(false));
+            return null;
+        }
+
+        public Object same(Object value) {
+            this.addMatcher(new SameMatcher(value));
+            return null;
+        }
+
+        public Object ne(Object value) {
+            this.addMatcher(new NeMatcher(value));
+            return null;
+        }
+
+        public Integer neInteger(Integer value) {
+            ArgumentCaster caster = new NeMatcher(value);
+            this.addMatcher((ArgumentMatcher) caster);
+            return caster.asInteger();
+        }
+
+        public Long neLong(Long value) {
+            ArgumentCaster caster = new NeMatcher(value);
+            this.addMatcher((ArgumentMatcher) caster);
+            return caster.asLong();
+        }
+
+        public Double neDouble(Double value) {
+            ArgumentCaster caster = new NeMatcher(value);
+            this.addMatcher((ArgumentMatcher) caster);
+            return caster.asDouble();
+        }
+
+        public Decimal neDecimal(Decimal value) {
+            ArgumentCaster caster = new NeMatcher(value);
+            this.addMatcher((ArgumentMatcher) caster);
+            return caster.asDecimal();
+        }
+
+        public Date neDate(Date value) {
+            ArgumentCaster caster = new NeMatcher(value);
+            this.addMatcher((ArgumentMatcher) caster);
+            return caster.asDate();
+        }
+
+        public Datetime neDatetime(Datetime value) {
+            ArgumentCaster caster = new NeMatcher(value);
+            this.addMatcher((ArgumentMatcher) caster);
+            return caster.asDatetime();
+        }
+
+        public Time neTime(Time value) {
+            ArgumentCaster caster = new NeMatcher(value);
+            this.addMatcher((ArgumentMatcher) caster);
+            return caster.asTime();
+        }
+
+        public Id neId(Id value) {
+            ArgumentCaster caster = new NeMatcher(value);
+            this.addMatcher((ArgumentMatcher) caster);
+            return caster.asId();
+        }
+
+        public String neString(String value) {
+            ArgumentCaster caster = new NeMatcher(value);
+            this.addMatcher((ArgumentMatcher) caster);
+            return caster.asString();
+        }
+
+        public Boolean neBoolean(Boolean value) {
+            ArgumentCaster caster = new NeMatcher(value);
+            this.addMatcher((ArgumentMatcher) caster);
+            return caster.asBoolean();
+        }
+
+        public Object eq(Object value) {
+            this.addMatcher(new EqMatcher(value));
+            return null;
+        }
+
+        public Integer eqInteger(Integer value) {
             ArgumentCaster caster = new EqMatcher(value);
             this.addMatcher((ArgumentMatcher) caster);
-            return caster;
+            return caster.asInteger();
+        }
+
+        public Long eqLong(Long value) {
+            ArgumentCaster caster = new EqMatcher(value);
+            this.addMatcher((ArgumentMatcher) caster);
+            return caster.asLong();
+        }
+
+        public Double eqDouble(Double value) {
+            ArgumentCaster caster = new EqMatcher(value);
+            this.addMatcher((ArgumentMatcher) caster);
+            return caster.asDouble();
+        }
+
+        public Decimal eqDecimal(Decimal value) {
+            ArgumentCaster caster = new EqMatcher(value);
+            this.addMatcher((ArgumentMatcher) caster);
+            return caster.asDecimal();
+        }
+
+        public Date eqDate(Date value) {
+            ArgumentCaster caster = new EqMatcher(value);
+            this.addMatcher((ArgumentMatcher) caster);
+            return caster.asDate();
+        }
+
+        public Datetime eqDatetime(Datetime value) {
+            ArgumentCaster caster = new EqMatcher(value);
+            this.addMatcher((ArgumentMatcher) caster);
+            return caster.asDatetime();
+        }
+
+        public Time eqTime(Time value) {
+            ArgumentCaster caster = new EqMatcher(value);
+            this.addMatcher((ArgumentMatcher) caster);
+            return caster.asTime();
+        }
+
+        public Id eqId(Id value) {
+            ArgumentCaster caster = new EqMatcher(value);
+            this.addMatcher((ArgumentMatcher) caster);
+            return caster.asId();
+        }
+
+        public String eqString(String value) {
+            ArgumentCaster caster = new EqMatcher(value);
+            this.addMatcher((ArgumentMatcher) caster);
+            return caster.asString();
+        }
+
+        public Boolean eqBoolean(Boolean value) {
+            ArgumentCaster caster = new EqMatcher(value);
+            this.addMatcher((ArgumentMatcher) caster);
+            return caster.asBoolean();
         }
 
         public ArgumentCaster gt(Object value) {
@@ -1025,7 +1444,120 @@ public with sharing virtual class ATKMock implements System.StubProvider {
             this.addMatcher((ArgumentMatcher) caster);
             return caster;
         }
+
+        public String isBlank() {
+            this.addMatcher(new IsBlankMatcher(true));
+            return null;
+        }
+
+        public String isNotBlank() {
+            this.addMatcher(new IsBlankMatcher(false));
+            return null;
+        }
+
+        public String contains(String value) {
+            this.addMatcher(new ContainsMatcher(value));
+            return null;
+        }
+
+        public String startsWith(String value) {
+            this.addMatcher(new StartsWithMatcher(value));
+            return null;
+        }
+
+        public String endsWith(String value) {
+            this.addMatcher(new EndsWithMatcher(value));
+            return null;
+        }
+
+        public String matches(String regexp) {
+            this.addMatcher(new RegExpMatcher(regexp));
+            return null;
+        }
+
+        public SObject sObjectWithId(Id value) {
+            this.addMatcher(new SObjectFieldMatcher('Id', value));
+            return null;
+        }
+
+        public SObject sObjectWithName(String value) {
+            this.addMatcher(new SObjectFieldMatcher('Name', value));
+            return null;
+        }
+
+        public SObject sObjectWith(SObjectField field, Object value) {
+            this.addMatcher(new SObjectFieldMatcher(field, value));
+            return null;
+        }
+
+        public SObject sObjectWith(Map<SObjectField, Object> value) {
+            this.addMatcher(new SObjectMatcher(value));
+            return null;
+        }
+
+        public LIst<SObject> sObjectListWith(SObjectField field, Object value) {
+            this.addMatcher(new SObjectListMatcher(field, value));
+            return null;
+        }
+
+        public LIst<SObject> sObjectListWith(Map<SObjectField, Object> value) {
+            this.addMatcher(new SObjectListMatcher(value));
+            return null;
+        }
+
+        public LIst<SObject> sObjectListWith(List<Map<SObjectField, Object>> value, Boolean inOrder) {
+            this.addMatcher(new MultiSObjectListMatcher(value, inOrder));
+            return null;
+        }
+        // #endregion
     }
 
-    // #endregion
+    public interface ArgumentMatcher extends ATK.Matcher {
+    }
+
+    public virtual class ArgumentCaster implements ATK.ComparableArgumentCaster {
+        public Integer asInteger() {
+            return null;
+        }
+
+        public Long asLong() {
+            return null;
+        }
+
+        public Double asDouble() {
+            return null;
+        }
+
+        public Decimal asDecimal() {
+            return null;
+        }
+
+        public Date asDate() {
+            return null;
+        }
+
+        public Datetime asDatetime() {
+            return null;
+        }
+
+        public Time asTime() {
+            return null;
+        }
+
+        public Boolean asBoolean() {
+            return null;
+        }
+
+        public Id asId() {
+            return null;
+        }
+
+        public String asString() {
+            return null;
+        }
+
+        public Object asObject() {
+            return null;
+        }
+    }
 }
