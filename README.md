@@ -17,11 +17,7 @@ Apex Test Kit can help generate massive records for Apex test classes, including
 
 Wiki Page [Apex Test Kit with BDD](https://github.com/apexfarm/ApexTestKit/wiki/Apex-Test-Kit-with-BDD)
 
-[Mockito](https://site.mockito.org/) BDD flavor has been brought into Apex Test Kit with some twists. Some developments are still needed before its final release, such as:
-
-1. Implement "in order" verification. (This is the only major feature currently missing.)
-2. Add more exceptions and guards to help developers understand how to use the BDD API correctly.
-3. Add more unit tests to cover wide variety scenarios.
+[Mockito](https://site.mockito.org/) BDD flavor has been brought into Apex Test Kit with some twists.
 
 ```java
 ATKMockTest mock = (ATKMockTest) ATK.mock(ATKMockTest.class);
@@ -31,7 +27,7 @@ ATK.given(mock.doWithInteger(1)).willReturn('return 1');
 ATK.stopStubbing();
 
 // When
-String returnValue = mock.doWithInteteger(1);
+String returnValue = mock.doWithInteger(1);
 
 // Then
 System.assertEquals('return 1', returnValue);
