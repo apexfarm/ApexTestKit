@@ -13,25 +13,38 @@ Apex Test Kit can help generate massive records for Apex test classes, including
 | Sandbox               | <a target="_blank" href="https://test.salesforce.com/packaging/installPackage.apexp?p0=04t2v000007GTZOAA4"><img src="docs/images/deploy-button.png"></a> | ver 3.5.3 |
 
 ------
-### **v3.5 Release Notes**
+## &#128293; v4.0.0 preview @ branch v4.0.0
 
-#### Minor Changes
-- Increase api versions to 53.0
-- Increase number of accepted parameters of `repeat()` from 3 to 5.
-- **v3.5.2 [RepeatX](#basic-field-keywords)**: Introduce a new field keyword family `repeatX('A', 3, 'B', 2)`, thus repeat A three times and B two times.
-- **v3.5.1 Fixes**: `Illegal assignment from Decimal to Integer`, when use arithmetic keywords against integer field types such as `Number(8, 0)`.
+Wiki Page [Apex Test Kit with BDD ](https://github.com/apexfarm/ApexTestKit/wiki/Apex-Test-Kit-with-BDD)
 
-#### Major Changes (Experimental)
-- [**Many to Many with Junction**](#many-to-many-with-junction): Introduce a new keyword `junctionOf()`, it can annotate an sObject as the junction of a many-to-many relationship. Its main purpose is to distribute parents of the junction object from one branch to another. **Caution**: `junctionOf()` API or behavior is subject to change, please avoid use it in test classes until version v3.6.
-  - **Pros**: `junctionOf()` is verified with several complex use cases, and it works well with a combination of other entity keywords to fulfill wider business scenarios. 
-  - **Cons**: `junctionOf()` will result in meaningless distribution logic if two parents share a common ancestor. 
-- **v3.5.3 keyword deprecated**: ~~`withJunciton()`~~ is deprecated, because the new `junctionOf()` is more flexible, since it can be applied to `withChildren()`, prepare()` and `withParents()`.
-- Account, Contact, Case, User are the only sObjects used in test classes.
+[Mockito](https://site.mockito.org/) BDD flavor has been brought into Apex Test Kit with some twists. Some developments are still needed before its final release, such as:
 
-#### Next Release
+1. Implement "in order" verification. (This is the only major feature currently missing.)
+2. Add more exceptions and guards to help developers understand how to use the BDD API correctly.
+3. Add more unit tests to cover wide variety scenarios.
 
-- Bring a solution for the `junctionOf()` when two parents sharing a common ancestor.
-- Bring a demo to generate object graph of B2B Commerce Cloud to further verify the robustness and stability of `junctionOf()` keyword.
+```java
+ATKMockTest mock = (ATKMockTest) ATK.mock(ATKMockTest.class);
+ATK.startStubbing();
+// Given
+ATK.given(mock.doWithInteger(1)).willReturn('return 1');
+ATK.stopStubbing();
+
+// When
+String returnValue = mock.doWithInteteger(1);
+
+// Then
+System.assertEquals('return 1', returnValue);
+((ATKMockTest) ATK.then(mock).should().once()).doWithInteger(1);
+```
+
+| Environment           | Installation Link                                            | Version           |
+| --------------------- | ------------------------------------------------------------ | ----------------- |
+| Production, Developer | <a target="_blank" href="https://login.salesforce.com/packaging/installPackage.apexp?p0=04t2v000007GUCxAAO"><img src="docs/images/deploy-button.png"></a> | ver 4.0.0 preview |
+| Sandbox               | <a target="_blank" href="https://test.salesforce.com/packaging/installPackage.apexp?p0=04t2v000007GUCxAAO"><img src="docs/images/deploy-button.png"></a> | ver 4.0.0 preview |
+
+Please give your feedback in GitHub issue [v4.0 with BDD](https://github.com/apexfarm/ApexTestKit/issues/34), any missing features or API suggestions are welcomed. Also please help give a star if you like the BDD feature, it might help accelerate the release :).
+
 ------
 
 

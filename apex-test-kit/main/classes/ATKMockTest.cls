@@ -200,8 +200,8 @@ public with sharing class ATKMockTest {
         ATK.given(mock.doWithInteger(ATK.gte(5).asInteger())).willReturn('>=5');
         ATK.given(mock.doWithInteger(ATK.between(7, true, 11, false).asInteger())).willReturn('7-10');
         ATK.given(mock.doWithInteger(ATK.between(7, false, 11, true).asInteger())).willReturn('8-11');
-        ATK.given(mock.doWithInteger(ATK.between(8, 10, true).asInteger())).willReturn('8-10');
-        ATK.given(mock.doWithInteger(ATK.between(8, 10).asInteger())).willReturn('9');
+        ATK.given(mock.doWithInteger(ATK.between(8, 10).asInteger())).willReturn('8-10');
+        ATK.given(mock.doWithInteger(ATK.between(8, 10, false).asInteger())).willReturn('9');
         ATK.stopStubbing();
 
         System.assertEquals('<=1', mock.doWithInteger(0));
@@ -229,8 +229,8 @@ public with sharing class ATKMockTest {
         ATK.given(mock.doWithLong(ATK.gte(5).asLong())).willReturn('>=5');
         ATK.given(mock.doWithLong(ATK.between(7, true, 11, false).asLong())).willReturn('7-10');
         ATK.given(mock.doWithLong(ATK.between(7, false, 11, true).asLong())).willReturn('8-11');
-        ATK.given(mock.doWithLong(ATK.between(8, 10, true).asLong())).willReturn('8-10');
-        ATK.given(mock.doWithLong(ATK.between(8, 10).asLong())).willReturn('9');
+        ATK.given(mock.doWithLong(ATK.between(8, 10).asLong())).willReturn('8-10');
+        ATK.given(mock.doWithLong(ATK.between(8, 10, false).asLong())).willReturn('9');
         ATK.stopStubbing();
 
         System.assertEquals('<=1', mock.doWithLong(0));
@@ -258,8 +258,8 @@ public with sharing class ATKMockTest {
         ATK.given(mock.doWithDouble(ATK.gte(5.0d).asDouble())).willReturn('>=5');
         ATK.given(mock.doWithDouble(ATK.between(7.0d, true, 11.0d, false).asDouble())).willReturn('7-10');
         ATK.given(mock.doWithDouble(ATK.between(7.0d, false, 11.0d, true).asDouble())).willReturn('8-11');
-        ATK.given(mock.doWithDouble(ATK.between(8.0d, 10.0d, true).asDouble())).willReturn('8-10');
-        ATK.given(mock.doWithDouble(ATK.between(8.0d, 10.0d).asDouble())).willReturn('9');
+        ATK.given(mock.doWithDouble(ATK.between(8.0d, 10.0d).asDouble())).willReturn('8-10');
+        ATK.given(mock.doWithDouble(ATK.between(8.0d, 10.0d, false).asDouble())).willReturn('9');
         ATK.stopStubbing();
 
         System.assertEquals('<=1', mock.doWithDouble(0.0d));
@@ -287,8 +287,8 @@ public with sharing class ATKMockTest {
         ATK.given(mock.doWithDecimal(ATK.gte(5.0).asDecimal())).willReturn('>=5');
         ATK.given(mock.doWithDecimal(ATK.between(7.0, true, 11.0, false).asDecimal())).willReturn('7-10');
         ATK.given(mock.doWithDecimal(ATK.between(7.0, false, 11.0, true).asDecimal())).willReturn('8-11');
-        ATK.given(mock.doWithDecimal(ATK.between(8.0, 10.0, true).asDecimal())).willReturn('8-10');
-        ATK.given(mock.doWithDecimal(ATK.between(8.0, 10.0).asDecimal())).willReturn('9');
+        ATK.given(mock.doWithDecimal(ATK.between(8.0, 10.0).asDecimal())).willReturn('8-10');
+        ATK.given(mock.doWithDecimal(ATK.between(8.0, 10.0, false).asDecimal())).willReturn('9');
         ATK.stopStubbing();
 
         System.assertEquals('<=1', mock.doWithDecimal(0.0));
@@ -316,8 +316,8 @@ public with sharing class ATKMockTest {
         ATK.given(mock.doWithDate(ATK.gte(Date.newInstance(2022, 1, 5)).asDate())).willReturn('>=5');
         ATK.given(mock.doWithDate(ATK.between(Date.newInstance(2022, 1, 7), true, Date.newInstance(2022, 1, 11), false).asDate())).willReturn('7-10');
         ATK.given(mock.doWithDate(ATK.between(Date.newInstance(2022, 1, 7), false, Date.newInstance(2022, 1, 11), true).asDate())).willReturn('8-11');
-        ATK.given(mock.doWithDate(ATK.between(Date.newInstance(2022, 1, 8), Date.newInstance(2022, 1, 10), true).asDate())).willReturn('8-10');
-        ATK.given(mock.doWithDate(ATK.between(Date.newInstance(2022, 1, 8), Date.newInstance(2022, 1, 10)).asDate())).willReturn('9');
+        ATK.given(mock.doWithDate(ATK.between(Date.newInstance(2022, 1, 8), Date.newInstance(2022, 1, 10)).asDate())).willReturn('8-10');
+        ATK.given(mock.doWithDate(ATK.between(Date.newInstance(2022, 1, 8), Date.newInstance(2022, 1, 10), false).asDate())).willReturn('9');
         ATK.stopStubbing();
 
         System.assertEquals('<=1', mock.doWithDate(Date.newInstance(2021, 12, 31)));
@@ -345,8 +345,8 @@ public with sharing class ATKMockTest {
         ATK.given(mock.doWithDatetime(ATK.gte(Datetime.newInstance(2022, 1, 5)).asDatetime())).willReturn('>=5');
         ATK.given(mock.doWithDatetime(ATK.between(Datetime.newInstance(2022, 1, 7), true, Datetime.newInstance(2022, 1, 11), false).asDatetime())).willReturn('7-10');
         ATK.given(mock.doWithDatetime(ATK.between(Datetime.newInstance(2022, 1, 7), false, Datetime.newInstance(2022, 1, 11), true).asDatetime())).willReturn('8-11');
-        ATK.given(mock.doWithDatetime(ATK.between(Datetime.newInstance(2022, 1, 8), Datetime.newInstance(2022, 1, 10), true).asDatetime())).willReturn('8-10');
-        ATK.given(mock.doWithDatetime(ATK.between(Datetime.newInstance(2022, 1, 8), Datetime.newInstance(2022, 1, 10)).asDatetime())).willReturn('9');
+        ATK.given(mock.doWithDatetime(ATK.between(Datetime.newInstance(2022, 1, 8), Datetime.newInstance(2022, 1, 10)).asDatetime())).willReturn('8-10');
+        ATK.given(mock.doWithDatetime(ATK.between(Datetime.newInstance(2022, 1, 8), Datetime.newInstance(2022, 1, 10), false).asDatetime())).willReturn('9');
         ATK.stopStubbing();
 
         System.assertEquals('<=1', mock.doWithDatetime(Datetime.newInstance(2021, 12, 31)));
@@ -374,8 +374,8 @@ public with sharing class ATKMockTest {
         ATK.given(mock.doWithId(ATK.gte(ATK.fakeId(Account.SObjectType, 5)).asId())).willReturn('>=5');
         ATK.given(mock.doWithId(ATK.between(ATK.fakeId(Account.SObjectType, 7), true, ATK.fakeId(Account.SObjectType, 11), false).asId())).willReturn('7-10');
         ATK.given(mock.doWithId(ATK.between(ATK.fakeId(Account.SObjectType, 7), false, ATK.fakeId(Account.SObjectType, 11), true).asId())).willReturn('8-11');
-        ATK.given(mock.doWithId(ATK.between(ATK.fakeId(Account.SObjectType, 8), ATK.fakeId(Account.SObjectType, 10), true).asId())).willReturn('8-10');
-        ATK.given(mock.doWithId(ATK.between(ATK.fakeId(Account.SObjectType, 8), ATK.fakeId(Account.SObjectType, 10)).asId())).willReturn('9');
+        ATK.given(mock.doWithId(ATK.between(ATK.fakeId(Account.SObjectType, 8), ATK.fakeId(Account.SObjectType, 10)).asId())).willReturn('8-10');
+        ATK.given(mock.doWithId(ATK.between(ATK.fakeId(Account.SObjectType, 8), ATK.fakeId(Account.SObjectType, 10), false).asId())).willReturn('9');
         ATK.stopStubbing();
 
         System.assertEquals('<=1', mock.doWithId(ATK.fakeId(Account.SObjectType, 0)));
@@ -403,8 +403,8 @@ public with sharing class ATKMockTest {
         ATK.given(mock.doWithString(ATK.gte('05').asString())).willReturn('>=05');
         ATK.given(mock.doWithString(ATK.between('07', true, '11', false).asString())).willReturn('07-10');
         ATK.given(mock.doWithString(ATK.between('07', false, '11', true).asString())).willReturn('08-11');
-        ATK.given(mock.doWithString(ATK.between('08', '10', true).asString())).willReturn('08-10');
-        ATK.given(mock.doWithString(ATK.between('08', '10').asString())).willReturn('09');
+        ATK.given(mock.doWithString(ATK.between('08', '10').asString())).willReturn('08-10');
+        ATK.given(mock.doWithString(ATK.between('08', '10', false).asString())).willReturn('09');
         ATK.stopStubbing();
 
         System.assertEquals('<=01', mock.doWithString('00'));
@@ -640,25 +640,106 @@ public with sharing class ATKMockTest {
     }
 
     @IsTest
-    static void test_then_for_verification() {
-        // ATKMockTest mock = (ATKMockTest) ATK.mock(ATKMockTest.class);
+    static void test_then_for_verification_positive() {
+        ATKMockTest mock = (ATKMockTest) ATK.mock(ATKMockTest.class);
 
-        // ((ATKMockTest) ATK.then(mock).should().times(1)).doWithInteger(0);
-        // ((ATKMockTest) ATK.then(mock).should().times(1)).doVoidReturn();
+        mock.doWithInteger(1);
+        mock.doWithInteger(2);
+        mock.doWithInteger(2);
+        mock.doWithIntegers(3, 4, 5);
+        mock.doWithIntegers(3, 4, 5);
+        mock.doWithIntegers(3, 4, 5);
 
-        // ((ATKMockTest) ATK.then(mock).should().times(8)).doWithInteger(ATK.anyInteger());
+        ((ATKMockTest) ATK.then(mock).should().never()).doWithInteger(0);
+        ((ATKMockTest) ATK.then(mock).should().atMostOnce()).doWithInteger(0);
 
-        // ((ATKMockTest) ATK.then(mock).should().times(2)).doWithInteger(4);
-        // ((ATKMockTest) ATK.then(mock).should().atLeast(2)).doWithInteger(4);
-        // ((ATKMockTest) ATK.then(mock).should().atMost(2)).doWithInteger(4);
+        ((ATKMockTest) ATK.then(mock).should().once()).doWithInteger(1);
+        ((ATKMockTest) ATK.then(mock).should().atMostOnce()).doWithInteger(1);
+        ((ATKMockTest) ATK.then(mock).should().atLeastOnce()).doWithInteger(1);
 
-        // ((ATKMockTest) ATK.then(mock).should().never()).doWithInteger(5);
+        ((ATKMockTest) ATK.then(mock).should().times(2)).doWithInteger(2);
+        ((ATKMockTest) ATK.then(mock).should().atLeastOnce()).doWithInteger(2);
+        ((ATKMockTest) ATK.then(mock).should().atLeast(2)).doWithInteger(2);
+        ((ATKMockTest) ATK.then(mock).should().atMost(2)).doWithInteger(2);
+        ((ATKMockTest) ATK.then(mock).should().atMost(3)).doWithInteger(2);
 
-        // ATK.InOrder inOrder = ATK.inOrder(mock);
-        // ((ATKMockTest) ATK.then(mock).should(inOrder).times(1)).doWithInteger(0);
-        // ((ATKMockTest) ATK.then(mock).should(inOrder).atLeast(1)).doWithInteger(ATK.anyInteger());
-        // ((ATKMockTest) ATK.then(mock).should(inOrder).times(1)).doWithInteger(2);
-        // ((ATKMockTest) ATK.then(mock).should(inOrder).times(1)).doWithInteger(3);
+        ((ATKMockTest) ATK.then(mock).should().times(3)).doWithIntegers(3, 4, 5);
+        ((ATKMockTest) ATK.then(mock).should().atLeast(2)).doWithIntegers(3, 4, 5);
+        ((ATKMockTest) ATK.then(mock).should().atLeast(3)).doWithIntegers(3, 4, 5);
+        ((ATKMockTest) ATK.then(mock).should().atMost(3)).doWithIntegers(3, 4, 5);
+        ((ATKMockTest) ATK.then(mock).should().atMost(4)).doWithIntegers(3, 4, 5);
+    }
+
+    @IsTest
+    static void test_then_for_verification_negative() {
+        ATKMockTest mock = (ATKMockTest) ATK.mock(ATKMockTest.class);
+
+        mock.doWithInteger(0);
+        mock.doWithInteger(0);
+
+        ATK.VerificationException exp;
+        try {
+            ((ATKMockTest) ATK.then(mock).should().never()).doWithInteger(0);
+        } catch (ATK.VerificationException ex) {
+            exp = ex;
+        }
+        System.assert(exp != null);
+        System.debug(exp.getMessage());
+        exp = null;
+
+        try {
+            ((ATKMockTest) ATK.then(mock).should().once()).doWithIntegers(1, 2, 3);
+        } catch (ATK.VerificationException ex) {
+            exp = ex;
+        }
+        System.assert(exp != null);
+        System.debug(exp.getMessage());
+        exp = null;
+
+        try {
+            ((ATKMockTest) ATK.then(mock).should().times(3)).doWithIntegers(1, 2, 3);
+        } catch (ATK.VerificationException ex) {
+            exp = ex;
+        }
+        System.assert(exp != null);
+        System.debug(exp.getMessage());
+        exp = null;
+
+        try {
+            ((ATKMockTest) ATK.then(mock).should().atLeast(3)).doWithIntegers(1, 2, 3);
+        } catch (ATK.VerificationException ex) {
+            exp = ex;
+        }
+        System.assert(exp != null);
+        System.debug(exp.getMessage());
+        exp = null;
+
+        try {
+            ((ATKMockTest) ATK.then(mock).should().atLeastOnce()).doWithIntegers(1, 2, 3);
+        } catch (ATK.VerificationException ex) {
+            exp = ex;
+        }
+        System.assert(exp != null);
+        System.debug(exp.getMessage());
+        exp = null;
+
+        try {
+            ((ATKMockTest) ATK.then(mock).should().atMost(1)).doWithInteger(0);
+        } catch (ATK.VerificationException ex) {
+            exp = ex;
+        }
+        System.assert(exp != null);
+        System.debug(exp.getMessage());
+        exp = null;
+
+        try {
+            ((ATKMockTest) ATK.then(mock).should().atMostOnce()).doWithInteger(0);
+        } catch (ATK.VerificationException ex) {
+            exp = ex;
+        }
+        System.assert(exp != null);
+        System.debug(exp.getMessage());
+        exp = null;
     }
 
     // ******************

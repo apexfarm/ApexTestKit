@@ -19,6 +19,7 @@ public with sharing class ATKMock implements System.StubProvider {
     private InvocationContainer container { get; set; }
     public ArgumentManager argumentManager { get; set; }
     private Boolean isStubbing = false;
+    private Boolean isVerifying = false;
 
     private MatchableInvocation currentMatchable { get; set; }
     private Invocation currentInvocation { get; set; }
@@ -69,11 +70,10 @@ public with sharing class ATKMock implements System.StubProvider {
     public Object handleMethodCall(Object mock, String methodName, Type returnType, List<Type> paramTypes, List<String> paramNames, List<Object> arguments) {
         Invocation invocation = new Invocation(mock, methodName, returnType, paramTypes, paramNames, arguments);
 
-        if (this.isStubbing) {
+        if (this.isStubbing || this.isVerifying) {
             this.currentInvocation = invocation;
             if (!this.argumentManager.hasMatchers()) {
-                for (Integer i = 0; i < arguments.size(); i++) {
-                    Object arg = arguments[i];
+                for (Object arg : arguments) {
                     this.argumentManager.eq(arg);
                 }
             }
@@ -81,11 +81,16 @@ public with sharing class ATKMock implements System.StubProvider {
             // Will stubbing will end here
             if (this.currentMatchable != null) {
                 this.attach();
-
-                // if (this.currentMatchable instanceof ThenStubbing) {
-                //     ((ThenStubbing) this.currentMatchable).verify(this.container);
-                // }
-
+                if (this.isVerifying) {
+                    try {
+                        ((VerifiableInvocation) this.currentMatchable).verify(this.container);
+                    } catch (ATK.VerificationException exp) {
+                        throw exp;
+                    } finally {
+                        this.isVerifying = false;
+                        this.reset();
+                    }
+                }
                 this.reset();
             }
 
@@ -99,7 +104,9 @@ public with sharing class ATKMock implements System.StubProvider {
     private void attach() {
         this.currentMatchable.populate(this.currentInvocation);
         this.currentMatchable.populate(this.argumentManager.matchers);
-        this.container.addInvocation(this.currentMatchable);
+        if (this.isStubbing) {
+            this.container.addInvocation(this.currentMatchable);
+        }
     }
 
     private void reset() {
@@ -122,6 +129,7 @@ public with sharing class ATKMock implements System.StubProvider {
     }
 
     public ThenStubbing createThenStub(Object mock) {
+        this.isVerifying = true;
         ThenStubbing thenStub = new ThenStubbing(mock);
         this.currentMatchable = thenStub.invocation;
         return thenStub;
@@ -142,6 +150,11 @@ public with sharing class ATKMock implements System.StubProvider {
 
         public ATK.Given willThrow(Exception exp) {
             this.invocation.addAnswer(new ExceptionAnswer(exp));
+            return this;
+        }
+
+        public ATK.Given willDoNothing() {
+            this.invocation.addAnswer(new VoidAnswer());
             return this;
         }
     }
@@ -175,18 +188,12 @@ public with sharing class ATKMock implements System.StubProvider {
     }
 
     public class ThenStubbing implements ATK.ThenOf, ATK.Should {
-        MatchableInvocation invocation { get; set; }
+        VerifiableInvocation invocation { get; set; }
         Object mock { get; set; }
-        VerificationMode mode { get; set; }
 
         ThenStubbing(Object mock) {
             this.mock = mock;
-            this.invocation = new MatchableInvocation();
-        }
-
-        public Boolean verify(InvocationContainer container) {
-            this.mode.verify(container, this.invocation);
-            return false;
+            this.invocation = new VerifiableInvocation();
         }
 
         public ATK.Should should() {
@@ -198,37 +205,37 @@ public with sharing class ATKMock implements System.StubProvider {
         }
 
         public Object never() {
-            this.mode = new NeverVerificationMode();
+            this.invocation.mode = new TimesVerificationMode(0);
             return this.mock;
         }
 
-        public Object only() {
-            this.mode = new OnlyVerificationMode();
+        public Object once() {
+            this.invocation.mode = new TimesVerificationMode(1);
             return this.mock;
         }
 
         public Object times(Integer times) {
-            this.mode = new TimesVerificationMode(times);
+            this.invocation.mode = new TimesVerificationMode(times);
             return this.mock;
         }
 
         public Object atLeast(Integer times) {
-            this.mode = new AtLeastVerificationMode(times);
+            this.invocation.mode = new AtLeastVerificationMode(times);
             return this.mock;
         }
 
         public Object atLeastOnce() {
-            this.mode = new AtLeastVerificationMode(1);
+            this.invocation.mode = new AtLeastVerificationMode(1);
             return this.mock;
         }
 
         public Object atMost(Integer times) {
-            this.mode = new AtMostVerificationMode(times);
+            this.invocation.mode = new AtMostVerificationMode(times);
             return this.mock;
         }
 
         public Object atMostOnce() {
-            this.mode = new AtMostVerificationMode(1);
+            this.invocation.mode = new AtMostVerificationMode(1);
             return this.mock;
         }
     }
@@ -241,29 +248,7 @@ public with sharing class ATKMock implements System.StubProvider {
     }
 
     public interface VerificationMode {
-        Boolean verify(InvocationContainer container, MatchableInvocation invocation);
-    }
-
-    public class OnlyVerificationMode implements VerificationMode {
-        OnlyVerificationMode() {
-        }
-
-        public Boolean verify(InvocationContainer container, MatchableInvocation invocation) {
-            return false;
-        }
-    }
-
-    public class NeverVerificationMode implements VerificationMode {
-        public Boolean verify(InvocationContainer container, MatchableInvocation invocation) {
-            Boolean found = false;
-            for (Invocation candidate : container.invocations) {
-                if (invocation.matches(candidate)) {
-                    found = true;
-                    break;
-                }
-            }
-            return !found;
-        }
+        Boolean verify(Invocation invocation, Integer occurrences);
     }
 
     public class TimesVerificationMode implements VerificationMode {
@@ -273,14 +258,13 @@ public with sharing class ATKMock implements System.StubProvider {
             this.times = (Integer) validateNotNull(times);
         }
 
-        public Boolean verify(InvocationContainer container, MatchableInvocation invocation) {
-            Integer occurrence = 0;
-            for (Invocation candidate : container.invocations) {
-                if (invocation.matches(candidate)) {
-                    occurrence++;
-                }
+        public Boolean verify(Invocation invocation, Integer occurrences) {
+            if (occurrences != this.times) {
+                throw new ATK.VerificationException(
+                    String.format('Expected "[{0}].{1}" to be called {2} time(s). But has been called {3} time(s).', new List<Object>{ invocation.mockClassName, invocation, this.times, occurrences })
+                );
             }
-            return occurrence == this.times;
+            return true;
         }
     }
 
@@ -291,16 +275,16 @@ public with sharing class ATKMock implements System.StubProvider {
             this.times = (Integer) validateNotNull(times);
         }
 
-        public Boolean verify(InvocationContainer container, MatchableInvocation invocation) {
-            Integer occurrence = 0;
-            for (Invocation candidate : container.invocations) {
-                if (invocation.matches(candidate)) {
-                    if (++occurrence == this.times) {
-                        break;
-                    }
-                }
+        public Boolean verify(Invocation invocation, Integer occurrences) {
+            if (occurrences < this.times) {
+                throw new ATK.VerificationException(
+                    String.format(
+                        'Expected "[{0}].{1}" to be called at least {2} time(s). But has been called {3} time(s).',
+                        new List<Object>{ invocation.mockClassName, invocation, this.times, occurrences }
+                    )
+                );
             }
-            return occurrence == this.times;
+            return true;
         }
     }
 
@@ -311,14 +295,16 @@ public with sharing class ATKMock implements System.StubProvider {
             this.times = (Integer) validateNotNull(times);
         }
 
-        public Boolean verify(InvocationContainer container, MatchableInvocation invocation) {
-            Integer occurrence = 0;
-            for (Invocation candidate : container.invocations) {
-                if (invocation.matches(candidate)) {
-                    occurrence++;
-                }
+        public Boolean verify(Invocation invocation, Integer occurrences) {
+            if (occurrences > this.times) {
+                throw new ATK.VerificationException(
+                    String.format(
+                        'Expected "[{0}].{1}" to be called at most {2} time(s). But has been called {3} time(s).',
+                        new List<Object>{ invocation.mockClassName, invocation, this.times, occurrences }
+                    )
+                );
             }
-            return occurrence < this.times;
+            return true;
         }
     }
 
@@ -330,11 +316,11 @@ public with sharing class ATKMock implements System.StubProvider {
     // ===================
 
     private class InvocationContainer {
-        List<VerifiableInvocation> invocations { get; set; }
+        List<Invocation> invocations { get; set; }
         List<StubbedInvocation> stubbedInvocations { get; set; }
 
         InvocationContainer() {
-            this.invocations = new List<VerifiableInvocation>();
+            this.invocations = new List<Invocation>();
             this.stubbedInvocations = new List<StubbedInvocation>();
         }
 
@@ -342,7 +328,7 @@ public with sharing class ATKMock implements System.StubProvider {
             if (invocation instanceof StubbedInvocation) {
                 this.stubbedInvocations.add((StubbedInvocation) invocation);
             } else {
-                this.invocations.add(new VerifiableInvocation(invocation));
+                this.invocations.add(invocation);
             }
         }
 
@@ -354,6 +340,16 @@ public with sharing class ATKMock implements System.StubProvider {
                 }
             }
             return null;
+        }
+
+        private Integer getOccurrences(MatchableInvocation invocation) {
+            Integer occurrences = 0;
+            for (Invocation candidate : this.invocations) {
+                if (invocation.matches(candidate)) {
+                    occurrences++;
+                }
+            }
+            return occurrences;
         }
     }
 
@@ -380,6 +376,12 @@ public with sharing class ATKMock implements System.StubProvider {
     }
 
     private virtual class Invocation extends ATK.Invocation {
+        private String mockClassName {
+            get {
+                return String.valueOf(this.mock).split('__sfdc_ApexStub')[0];
+            }
+        }
+
         Invocation() {
         }
 
@@ -416,12 +418,12 @@ public with sharing class ATKMock implements System.StubProvider {
         }
     }
 
-    public class VerifiableInvocation extends Invocation {
-        Boolean isVerified { get; set; }
+    private virtual class VerifiableInvocation extends MatchableInvocation {
+        VerificationMode mode { get; set; }
 
-        VerifiableInvocation(Invocation invocation) {
-            super(invocation);
-            this.isVerified = false;
+        public void verify(InvocationContainer container) {
+            Integer occurrence = container.getOccurrences(this);
+            this.mode.verify(this, occurrence);
         }
     }
 
@@ -453,6 +455,16 @@ public with sharing class ATKMock implements System.StubProvider {
             }
 
             return true;
+        }
+
+        public override String toString() {
+            List<String> matcherNames = new List<String>();
+
+            for (ArgumentMatcher matcher : matchers) {
+                matcherNames.add(String.valueOf(matcher));
+            }
+
+            return this.method.name + '(' + String.join(matcherNames, ', ') + ')';
         }
     }
 
@@ -530,13 +542,17 @@ public with sharing class ATKMock implements System.StubProvider {
         public Boolean matches(Type type, Object arg) {
             return true;
         }
+
+        public override String toString() {
+            return 'ATK.any()';
+        }
     }
 
     public class AnyTypeMatcher implements ArgumentMatcher {
         Type type { get; set; }
 
         AnyTypeMatcher(Type type) {
-            this.type = type;
+            this.type = (Type) validateNotNull(type);
         }
 
         public Boolean matches(Type type, Object arg) {
@@ -554,17 +570,25 @@ public with sharing class ATKMock implements System.StubProvider {
 
             return this.type == type;
         }
+
+        public override String toString() {
+            return 'ATK.any(' + this.type.getName() + '.class)';
+        }
     }
 
     public class NullableTypeMatcher implements ArgumentMatcher {
         Type type { get; set; }
 
         NullableTypeMatcher(Type type) {
-            this.type = type;
+            this.type = (Type) validateNotNull(type);
         }
 
         public Boolean matches(Type type, Object arg) {
             return this.type == type;
+        }
+
+        public override String toString() {
+            return 'ATK.nullable(' + this.type.getName() + '.class)';
         }
     }
 
@@ -572,17 +596,29 @@ public with sharing class ATKMock implements System.StubProvider {
         public Boolean matches(Type type, Object arg) {
             return arg != null && arg instanceof List<Object>;
         }
+
+        public override String toString() {
+            return 'ATK.anyList()';
+        }
     }
 
     public class SetTypeMatcher implements ArgumentMatcher {
         public Boolean matches(Type type, Object arg) {
             return arg != null && type.getName().startsWith('Set<');
         }
+
+        public override String toString() {
+            return 'ATK.anySet()';
+        }
     }
 
     public class MapTypeMatcher implements ArgumentMatcher {
         public Boolean matches(Type type, Object arg) {
             return arg != null && type.getName().startsWith('Map<');
+        }
+
+        public override String toString() {
+            return 'ATK.anyMap()';
         }
     }
 
@@ -606,6 +642,10 @@ public with sharing class ATKMock implements System.StubProvider {
             }
             return arg != null;
         }
+
+        public override String toString() {
+            return 'ATK.' + (this.isNull ? 'isNull()' : 'isNotNull()');
+        }
     }
 
     public class SameMatcher implements ArgumentMatcher {
@@ -617,6 +657,10 @@ public with sharing class ATKMock implements System.StubProvider {
 
         public Boolean matches(Type type, Object arg) {
             return arg === value;
+        }
+
+        public override String toString() {
+            return 'ATK.same(' + String.valueOf(this.value) + ')';
         }
     }
 
@@ -630,6 +674,10 @@ public with sharing class ATKMock implements System.StubProvider {
         public Boolean matches(Type type, Object arg) {
             return arg != value;
         }
+
+        public override String toString() {
+            return 'ATK.ne(' + String.valueOf(this.value) + ')';
+        }
     }
 
     public class EqMatcher extends ArgumentCaster implements ArgumentMatcher {
@@ -641,6 +689,10 @@ public with sharing class ATKMock implements System.StubProvider {
 
         public Boolean matches(Type type, Object arg) {
             return arg == value;
+        }
+
+        public override String toString() {
+            return 'ATK.eq(' + String.valueOf(this.value) + ')';
         }
     }
 
@@ -677,6 +729,10 @@ public with sharing class ATKMock implements System.StubProvider {
             }
             return false;
         }
+
+        public override String toString() {
+            return 'ATK.gt(' + String.valueOf(this.value) + ')';
+        }
     }
 
     public class GteMatcher extends ArgumentCaster implements ArgumentMatcher {
@@ -711,6 +767,10 @@ public with sharing class ATKMock implements System.StubProvider {
                 return (Id) arg >= (Id) this.value;
             }
             return false;
+        }
+
+        public override String toString() {
+            return 'ATK.gte(' + String.valueOf(this.value) + ')';
         }
     }
 
@@ -747,6 +807,10 @@ public with sharing class ATKMock implements System.StubProvider {
             }
             return false;
         }
+
+        public override String toString() {
+            return 'ATK.lt(' + String.valueOf(this.value) + ')';
+        }
     }
 
     public class LteMatcher extends ArgumentCaster implements ArgumentMatcher {
@@ -782,6 +846,10 @@ public with sharing class ATKMock implements System.StubProvider {
             }
             return false;
         }
+
+        public override String toString() {
+            return 'ATK.lte(' + String.valueOf(this.value) + ')';
+        }
     }
 
     public class BetweenMatcher extends ArgumentCaster implements ArgumentMatcher {
@@ -792,7 +860,7 @@ public with sharing class ATKMock implements System.StubProvider {
         Boolean maxInclusive { get; set; }
 
         BetweenMatcher(Object minValue, Object maxValue) {
-            this(minValue, maxValue, false);
+            this(minValue, maxValue, true);
         }
 
         BetweenMatcher(Object minValue, Object maxValue, Boolean inclusive) {
@@ -904,6 +972,10 @@ public with sharing class ATKMock implements System.StubProvider {
 
             return false;
         }
+
+        public override String toString() {
+            return 'ATK.between(' + String.valueOf(this.minValue) + ', ' + String.valueOf(this.maxValue) + ')';
+        }
     }
 
     public class IsBlankMatcher implements ArgumentMatcher {
@@ -919,6 +991,10 @@ public with sharing class ATKMock implements System.StubProvider {
             }
             return String.isNotBlank((String) arg);
         }
+
+        public override String toString() {
+            return 'ATK.' + (this.isBlank ? 'isBlank()' : 'isNotBlank()');
+        }
     }
 
     public class ContainsMatcher implements ArgumentMatcher {
@@ -930,6 +1006,10 @@ public with sharing class ATKMock implements System.StubProvider {
 
         public Boolean matches(Type type, Object arg) {
             return arg != null && ((String) arg).contains(this.value);
+        }
+
+        public override String toString() {
+            return 'ATK.contains(\'' + String.valueOf(this.value) + '\')';
         }
     }
 
@@ -943,6 +1023,10 @@ public with sharing class ATKMock implements System.StubProvider {
         public Boolean matches(Type type, Object arg) {
             return arg != null && ((String) arg).startsWith(this.value);
         }
+
+        public override String toString() {
+            return 'ATK.startsWith(\'' + String.valueOf(this.value) + '\')';
+        }
     }
 
     public class EndsWithMatcher implements ArgumentMatcher {
@@ -955,13 +1039,19 @@ public with sharing class ATKMock implements System.StubProvider {
         public Boolean matches(Type type, Object arg) {
             return arg != null && ((String) arg).endsWith(this.value);
         }
+
+        public override String toString() {
+            return 'ATK.endsWith(\'' + String.valueOf(this.value) + '\')';
+        }
     }
 
     public class RegExpMatcher implements ArgumentMatcher {
+        String regexp { get; set; }
         Pattern regExpPattern { get; set; }
 
         RegExpMatcher(String regexp) {
-            this.regExpPattern = Pattern.compile((String) validateNotNull(regexp));
+            this.regexp = (String) validateNotNull(regexp);
+            this.regExpPattern = Pattern.compile(regexp);
         }
 
         public Boolean matches(Type type, Object arg) {
@@ -971,6 +1061,10 @@ public with sharing class ATKMock implements System.StubProvider {
 
             System.Matcher matcher = this.regExpPattern.matcher((String) arg);
             return matcher.matches();
+        }
+
+        public override String toString() {
+            return 'ATK.matches(\'' + this.regexp + '\')';
         }
     }
 
@@ -998,6 +1092,10 @@ public with sharing class ATKMock implements System.StubProvider {
             SObject sobj = (SOBject) arg;
             return sobj.get(this.fieldName) == value;
         }
+
+        public override String toString() {
+            return 'ATK.sObjectWith(' + this.fieldName + ', ' + String.valueOf(this.value) + ')';
+        }
     }
 
     public class SObjectMatcher implements ArgumentMatcher {
@@ -1019,6 +1117,10 @@ public with sharing class ATKMock implements System.StubProvider {
             }
 
             return true;
+        }
+
+        public override String toString() {
+            return 'ATK.sObjectWith()';
         }
     }
 
@@ -1053,6 +1155,10 @@ public with sharing class ATKMock implements System.StubProvider {
             }
 
             return true;
+        }
+
+        public override String toString() {
+            return 'ATK.sObjectListWith()';
         }
     }
 
@@ -1108,6 +1214,10 @@ public with sharing class ATKMock implements System.StubProvider {
 
             return matchedIndexes.size() == sobjs.size();
         }
+
+        public override String toString() {
+            return 'ATK.sObjectListWith()';
+        }
     }
 
     // #endregion
@@ -1117,7 +1227,7 @@ public with sharing class ATKMock implements System.StubProvider {
     // #region Comobo Matchers
     // ======================
 
-    public virtual class ComboMatcher {
+    public abstract class ComboMatcher {
         protected List<ArgumentMatcher> matchers { get; set; }
 
         ComboMatcher() {
@@ -1126,6 +1236,16 @@ public with sharing class ATKMock implements System.StubProvider {
 
         public void addMatcher(ArgumentMatcher matcher) {
             this.matchers.add(matcher);
+        }
+
+        protected List<String> matcherNames() {
+            List<String> matcherNames = new List<String>();
+
+            for (ArgumentMatcher matcher : this.matchers) {
+                matcherNames.add(String.valueOf(matcher));
+            }
+
+            return matcherNames;
         }
     }
 
@@ -1138,6 +1258,10 @@ public with sharing class ATKMock implements System.StubProvider {
             }
 
             return true;
+        }
+
+        public override String toString() {
+            return 'ATK.allOf(' + String.join(this.matcherNames(), ', ') + ')';
         }
     }
 
@@ -1153,6 +1277,10 @@ public with sharing class ATKMock implements System.StubProvider {
 
             return hasMatched;
         }
+
+        public override String toString() {
+            return 'ATK.anyOf(' + String.join(this.matcherNames(), ', ') + ')';
+        }
     }
 
     public class NoneOfMatcher extends ComboMatcher implements ArgumentMatcher {
@@ -1166,6 +1294,10 @@ public with sharing class ATKMock implements System.StubProvider {
             }
 
             return !hasMatched;
+        }
+
+        public override String toString() {
+            return 'ATK.noneOf(' + String.join(this.matcherNames(), ', ') + ')';
         }
     }
 
@@ -1619,7 +1751,7 @@ public with sharing class ATKMock implements System.StubProvider {
     public interface ArgumentMatcher extends ATK.Matcher {
     }
 
-    public virtual class ArgumentCaster implements ATK.ComparableArgumentCaster {
+    public virtual class ArgumentCaster implements ATK.ArgumentCaster {
         public Integer asInteger() {
             return null;
         }

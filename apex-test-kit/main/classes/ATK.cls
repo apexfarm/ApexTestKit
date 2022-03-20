@@ -16,6 +16,9 @@
  */
 
 public with sharing class ATK {
+    public class VerificationException extends Exception {
+    }
+
     // ***********************
     // #region Mock Interfaces
     // ***********************
@@ -86,6 +89,7 @@ public with sharing class ATK {
         Given willReturn(Object value);
         Given willAnswer(Answer answer);
         Given willThrow(Exception exp);
+        Given willDoNothing();
     }
 
     public interface Will {
@@ -123,11 +127,11 @@ public with sharing class ATK {
 
     public interface Should {
         Object never();
-        Object only();
-        Object times(Integer times);
-        Object atLeast(Integer times);
+        Object once();
+        Object times(Integer n);
+        Object atLeast(Integer n);
         Object atLeastOnce();
-        Object atMost(Integer times);
+        Object atMost(Integer n);
         Object atMostOnce();
     }
 
@@ -299,32 +303,32 @@ public with sharing class ATK {
         return mockInstance.argumentManager.eqBoolean(value);
     }
 
-    public static ComparableArgumentCaster gt(Object value) {
+    public static ArgumentCaster gt(Object value) {
         return mockInstance.argumentManager.gt(value);
     }
 
-    public static ComparableArgumentCaster gte(Object value) {
+    public static ArgumentCaster gte(Object value) {
         return mockInstance.argumentManager.gte(value);
     }
 
-    public static ComparableArgumentCaster lt(Object value) {
+    public static ArgumentCaster lt(Object value) {
         return mockInstance.argumentManager.lt(value);
     }
 
-    public static ComparableArgumentCaster lte(Object value) {
+    public static ArgumentCaster lte(Object value) {
         return mockInstance.argumentManager.lte(value);
     }
 
-    public static ComparableArgumentCaster between(Object minValue, Object maxValue) {
-        return mockInstance.argumentManager.between(minValue, maxValue);
+    public static ArgumentCaster between(Object min, Object max) {
+        return mockInstance.argumentManager.between(min, max);
     }
 
-    public static ComparableArgumentCaster between(Object minValue, Object maxValue, Boolean inclusive) {
-        return mockInstance.argumentManager.between(minValue, maxValue, inclusive);
+    public static ArgumentCaster between(Object min, Object max, Boolean inclusive) {
+        return mockInstance.argumentManager.between(min, max, inclusive);
     }
 
-    public static ComparableArgumentCaster between(Object minValue, Boolean minInclusive, Object maxValue, Boolean maxInclusive) {
-        return mockInstance.argumentManager.between(minValue, minInclusive, maxValue, maxInclusive);
+    public static ArgumentCaster between(Object min, Boolean minInclusive, Object max, Boolean maxInclusive) {
+        return mockInstance.argumentManager.between(min, minInclusive, max, maxInclusive);
     }
 
     public static String isBlank() {
@@ -384,68 +388,68 @@ public with sharing class ATK {
     }
 
     // Combo Matchers
-    public static Object allOf(Object o1, Object o2) {
-        return mockInstance.argumentManager.allOf(o1, o2);
+    public static Object allOf(Object arg1, Object arg2) {
+        return mockInstance.argumentManager.allOf(arg1, arg2);
     }
 
-    public static Object allOf(Object o1, Object o2, Object o3) {
-        return mockInstance.argumentManager.allOf(o1, o2, o3);
+    public static Object allOf(Object arg1, Object arg2, Object arg3) {
+        return mockInstance.argumentManager.allOf(arg1, arg2, arg3);
     }
 
-    public static Object allOf(Object o1, Object o2, Object o3, Object o4) {
-        return mockInstance.argumentManager.allOf(o1, o2, o3, o4);
+    public static Object allOf(Object arg1, Object arg2, Object arg3, Object arg4) {
+        return mockInstance.argumentManager.allOf(arg1, arg2, arg3, arg4);
     }
 
-    public static Object allOf(Object o1, Object o2, Object o3, Object o4, Object o5) {
-        return mockInstance.argumentManager.allOf(o1, o2, o3, o4, o5);
+    public static Object allOf(Object arg1, Object arg2, Object arg3, Object arg4, Object arg5) {
+        return mockInstance.argumentManager.allOf(arg1, arg2, arg3, arg4, arg5);
     }
 
-    public static Object allOf(List<Object> os) {
-        return mockInstance.argumentManager.allOf(os);
+    public static Object allOf(List<Object> args) {
+        return mockInstance.argumentManager.allOf(args);
     }
 
-    public static Object anyOf(Object o1, Object o2) {
-        return mockInstance.argumentManager.anyOf(o1, o2);
+    public static Object anyOf(Object arg1, Object arg2) {
+        return mockInstance.argumentManager.anyOf(arg1, arg2);
     }
 
-    public static Object anyOf(Object o1, Object o2, Object o3) {
-        return mockInstance.argumentManager.anyOf(o1, o2, o3);
+    public static Object anyOf(Object arg1, Object arg2, Object arg3) {
+        return mockInstance.argumentManager.anyOf(arg1, arg2, arg3);
     }
 
-    public static Object anyOf(Object o1, Object o2, Object o3, Object o4) {
-        return mockInstance.argumentManager.anyOf(o1, o2, o3, o4);
+    public static Object anyOf(Object arg1, Object arg2, Object arg3, Object arg4) {
+        return mockInstance.argumentManager.anyOf(arg1, arg2, arg3, arg4);
     }
 
-    public static Object anyOf(Object o1, Object o2, Object o3, Object o4, Object o5) {
-        return mockInstance.argumentManager.anyOf(o1, o2, o3, o4, o5);
+    public static Object anyOf(Object arg1, Object arg2, Object arg3, Object arg4, Object arg5) {
+        return mockInstance.argumentManager.anyOf(arg1, arg2, arg3, arg4, arg5);
     }
 
-    public static Object anyOf(List<Object> os) {
-        return mockInstance.argumentManager.anyOf(os);
+    public static Object anyOf(List<Object> args) {
+        return mockInstance.argumentManager.anyOf(args);
     }
 
-    public static Object isNot(Object o1) {
-        return mockInstance.argumentManager.isNot(o1);
+    public static Object isNot(Object arg1) {
+        return mockInstance.argumentManager.isNot(arg1);
     }
 
-    public static Object noneOf(Object o1, Object o2) {
-        return mockInstance.argumentManager.noneOf(o1, o2);
+    public static Object noneOf(Object arg1, Object arg2) {
+        return mockInstance.argumentManager.noneOf(arg1, arg2);
     }
 
-    public static Object noneOf(Object o1, Object o2, Object o3) {
-        return mockInstance.argumentManager.noneOf(o1, o2, o3);
+    public static Object noneOf(Object arg1, Object arg2, Object arg3) {
+        return mockInstance.argumentManager.noneOf(arg1, arg2, arg3);
     }
 
-    public static Object noneOf(Object o1, Object o2, Object o3, Object o4) {
-        return mockInstance.argumentManager.noneOf(o1, o2, o3, o4);
+    public static Object noneOf(Object arg1, Object arg2, Object arg3, Object arg4) {
+        return mockInstance.argumentManager.noneOf(arg1, arg2, arg3, arg4);
     }
 
-    public static Object noneOf(Object o1, Object o2, Object o3, Object o4, Object o5) {
-        return mockInstance.argumentManager.noneOf(o1, o2, o3, o4, o5);
+    public static Object noneOf(Object arg1, Object arg2, Object arg3, Object arg4, Object arg5) {
+        return mockInstance.argumentManager.noneOf(arg1, arg2, arg3, arg4, arg5);
     }
 
-    public static Object noneOf(List<Object> os) {
-        return mockInstance.argumentManager.noneOf(os);
+    public static Object noneOf(List<Object> args) {
+        return mockInstance.argumentManager.noneOf(args);
     }
 
     public interface Matcher {
@@ -499,14 +503,15 @@ public with sharing class ATK {
         Datetime eqDatetime(Datetime value);
         Id eqId(Id value);
         String eqString(String value);
+
         Boolean eqBoolean(Boolean value);
-        ComparableArgumentCaster gt(Object value);
-        ComparableArgumentCaster gte(Object value);
-        ComparableArgumentCaster lt(Object value);
-        ComparableArgumentCaster lte(Object value);
-        ComparableArgumentCaster between(Object minValue, Object maxValue);
-        ComparableArgumentCaster between(Object minValue, Object maxValue, Boolean inclusive);
-        ComparableArgumentCaster between(Object minValue, Boolean minInclusive, Object maxValue, Boolean maxInclusive);
+        ArgumentCaster gt(Object value);
+        ArgumentCaster gte(Object value);
+        ArgumentCaster lt(Object value);
+        ArgumentCaster lte(Object value);
+        ArgumentCaster between(Object min, Object max);
+        ArgumentCaster between(Object min, Object max, Boolean inclusive);
+        ArgumentCaster between(Object min, Boolean minInclusive, Object max, Boolean maxInclusive);
 
         String isBlank();
         String isNotBlank();
@@ -524,25 +529,25 @@ public with sharing class ATK {
         LIst<SObject> sObjectListWith(List<Map<SObjectField, Object>> value, Boolean inOrder);
 
         // Combo Matchers
-        Object allOf(Object o1, Object o2);
-        Object allOf(Object o1, Object o2, Object o3);
-        Object allOf(Object o1, Object o2, Object o3, Object o4);
-        Object allOf(Object o1, Object o2, Object o3, Object o4, Object o5);
-        Object allOf(List<Object> os);
-        Object anyOf(Object o1, Object o2);
-        Object anyOf(Object o1, Object o2, Object o3);
-        Object anyOf(Object o1, Object o2, Object o3, Object o4);
-        Object anyOf(Object o1, Object o2, Object o3, Object o4, Object o5);
-        Object anyOf(List<Object> os);
-        Object isNot(Object o1);
-        Object noneOf(Object o1, Object o2);
-        Object noneOf(Object o1, Object o2, Object o3);
-        Object noneOf(Object o1, Object o2, Object o3, Object o4);
-        Object noneOf(Object o1, Object o2, Object o3, Object o4, Object o5);
-        Object noneOf(List<Object> os);
+        Object allOf(Object arg1, Object arg2);
+        Object allOf(Object arg1, Object arg2, Object arg3);
+        Object allOf(Object arg1, Object arg2, Object arg3, Object arg4);
+        Object allOf(Object arg1, Object arg2, Object arg3, Object arg4, Object arg5);
+        Object allOf(List<Object> args);
+        Object anyOf(Object arg1, Object arg2);
+        Object anyOf(Object arg1, Object arg2, Object arg3);
+        Object anyOf(Object arg1, Object arg2, Object arg3, Object arg4);
+        Object anyOf(Object arg1, Object arg2, Object arg3, Object arg4, Object arg5);
+        Object anyOf(List<Object> args);
+        Object isNot(Object arg1);
+        Object noneOf(Object arg1, Object arg2);
+        Object noneOf(Object arg1, Object arg2, Object arg3);
+        Object noneOf(Object arg1, Object arg2, Object arg3, Object arg4);
+        Object noneOf(Object arg1, Object arg2, Object arg3, Object arg4, Object arg5);
+        Object noneOf(List<Object> args);
     }
 
-    public interface ComparableArgumentCaster {
+    public interface ArgumentCaster {
         Integer asInteger();
         Long asLong();
         Double asDouble();
