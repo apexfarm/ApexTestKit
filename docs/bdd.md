@@ -16,7 +16,7 @@ ATK.given(mock.doWithInteger(1)).willReturn('return 1');
 ATK.stopStubbing();
 
 // When
-String returnValue = mock.doWithInteteger(1);
+String returnValue = mock.doWithInteger(1);
 
 // Then
 System.assertEquals('return 1', returnValue);

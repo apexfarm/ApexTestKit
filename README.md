@@ -1,27 +1,23 @@
 # Apex Test Kit
 
-![](https://img.shields.io/badge/version-3.5.3-brightgreen.svg) ![](https://img.shields.io/badge/build-passing-brightgreen.svg) ![](https://img.shields.io/badge/coverage-97%25-brightgreen.svg)
+![](https://img.shields.io/badge/version-4.0.0%20preview-orange.svg) ![](https://img.shields.io/badge/build-passing-brightgreen.svg) ![](https://img.shields.io/badge/coverage-93%25-brightgreen.svg)
 
 Apex Test Kit can help generate massive records for Apex test classes, including mock sObjects with read-only fields. It solves two pain points during record creation:
 
 1. Establish arbitrary levels of many-to-one, one-to-many relationships.
 2. Generate field values based on simple rules automatically.
 
-| Environment           | Installation Link                                            | Version   |
-| --------------------- | ------------------------------------------------------------ | --------- |
-| Production, Developer | <a target="_blank" href="https://login.salesforce.com/packaging/installPackage.apexp?p0=04t2v000007GTZOAA4"><img src="docs/images/deploy-button.png"></a> | ver 3.5.3 |
-| Sandbox               | <a target="_blank" href="https://test.salesforce.com/packaging/installPackage.apexp?p0=04t2v000007GTZOAA4"><img src="docs/images/deploy-button.png"></a> | ver 3.5.3 |
+And it also ported the [Mockito](https://site.mockito.org/) BDD APIs with some twists.
+
+| Environment           | Installation Link                                            | Version           |
+| --------------------- | ------------------------------------------------------------ | ----------------- |
+| Production, Developer | <a target="_blank" href="https://login.salesforce.com/packaging/installPackage.apexp?p0=04t2v000007GUCxAAO"><img src="docs/images/deploy-button.png"></a> | ver 4.0.0 preview |
+| Sandbox               | <a target="_blank" href="https://test.salesforce.com/packaging/installPackage.apexp?p0=04t2v000007GUCxAAO"><img src="docs/images/deploy-button.png"></a> | ver 4.0.0 preview |
 
 ------
-## &#128293; v4.0.0 preview @ branch v4.0.0
+## &#128293; v4.0.0 preview
 
-Wiki Page [Apex Test Kit with BDD ](https://github.com/apexfarm/ApexTestKit/wiki/Apex-Test-Kit-with-BDD)
-
-[Mockito](https://site.mockito.org/) BDD flavor has been brought into Apex Test Kit with some twists. Some developments are still needed before its final release, such as:
-
-1. Implement "in order" verification. (This is the only major feature currently missing.)
-2. Add more exceptions and guards to help developers understand how to use the BDD API correctly.
-3. Add more unit tests to cover wide variety scenarios.
+Check wiki page <a href="https://github.com/apexfarm/ApexTestKit/wiki/Apex-Test-Kit-with-BDD" target="_blank">Apex Test Kit with BDD</a> for detail. Please leave your comments at GitHub issue <a href="https://github.com/apexfarm/ApexTestKit/issues/34" target="_blank">v4.0 with BDD</a>. Any missing features or API suggestions are welcomed. Also please help give a star if you like the BDD feature, it might help accelerate the release &#128522;.
 
 ```java
 ATKMockTest mock = (ATKMockTest) ATK.mock(ATKMockTest.class);
@@ -31,19 +27,12 @@ ATK.given(mock.doWithInteger(1)).willReturn('return 1');
 ATK.stopStubbing();
 
 // When
-String returnValue = mock.doWithInteteger(1);
+String returnValue = mock.doWithInteger(1);
 
 // Then
 System.assertEquals('return 1', returnValue);
 ((ATKMockTest) ATK.then(mock).should().once()).doWithInteger(1);
 ```
-
-| Environment           | Installation Link                                            | Version           |
-| --------------------- | ------------------------------------------------------------ | ----------------- |
-| Production, Developer | <a target="_blank" href="https://login.salesforce.com/packaging/installPackage.apexp?p0=04t2v000007GUCxAAO"><img src="docs/images/deploy-button.png"></a> | ver 4.0.0 preview |
-| Sandbox               | <a target="_blank" href="https://test.salesforce.com/packaging/installPackage.apexp?p0=04t2v000007GUCxAAO"><img src="docs/images/deploy-button.png"></a> | ver 4.0.0 preview |
-
-Please give your feedback in GitHub issue [v4.0 with BDD](https://github.com/apexfarm/ApexTestKit/issues/34), any missing features or API suggestions are welcomed. Also please help give a star if you like the BDD feature, it might help accelerate the release :).
 
 ------
 
