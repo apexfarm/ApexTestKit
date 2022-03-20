@@ -35,27 +35,27 @@ public with sharing class ATK {
     }
 
     public static Given given(Object value) {
-        return mockInstance.setGivenStub();
+        return mockInstance.createGivenStub();
     }
 
     public static Will willReturn(Object value) {
-        return mockInstance.setWillStub().willReturn(value);
+        return mockInstance.createWillStub().willReturn(value);
     }
 
     public static Will willAnswer(Answer answer) {
-        return mockInstance.setWillStub().willAnswer(answer);
+        return mockInstance.createWillStub().willAnswer(answer);
     }
 
     public static Will willThrow(Exception exp) {
-        return mockInstance.setWillStub().willThrow(exp);
+        return mockInstance.createWillStub().willThrow(exp);
     }
 
     public static Will willDoNothing() {
-        return mockInstance.setWillStub().willDoNothing();
+        return mockInstance.createWillStub().willDoNothing();
     }
 
     public static ThenOf then(Object mock) {
-        return mockInstance.then(mock);
+        return mockInstance.createThenStub(mock);
     }
 
     public static InOrder inOrder(Object mock1) {
@@ -100,7 +100,17 @@ public with sharing class ATK {
         Object answer(Invocation invocation);
     }
 
-    public interface Invocation {
+    public virtual class Method {
+        public String name { get; protected set; }
+        public List<Type> paramTypes { get; protected set; }
+        public List<String> paramNames { get; protected set; }
+        public Type returnType { get; protected set; }
+    }
+
+    public virtual class Invocation {
+        public Method method { get; protected set; }
+        public Object mock { get; protected set; }
+        public List<Object> arguments { get; protected set; }
     }
 
     public interface ThenOf {
@@ -150,10 +160,6 @@ public with sharing class ATK {
 
     public static Datetime anyDatetime() {
         return mockInstance.argumentManager.anyDatetime();
-    }
-
-    public static Time anyTime() {
-        return mockInstance.argumentManager.anyTime();
     }
 
     public static Id anyId() {
@@ -241,10 +247,6 @@ public with sharing class ATK {
         return mockInstance.argumentManager.neDatetime(value);
     }
 
-    public static Time neTime(Time value) {
-        return mockInstance.argumentManager.neTime(value);
-    }
-
     public static Id neId(Id value) {
         return mockInstance.argumentManager.neId(value);
     }
@@ -283,10 +285,6 @@ public with sharing class ATK {
 
     public static Datetime eqDatetime(Datetime value) {
         return mockInstance.argumentManager.eqDatetime(value);
-    }
-
-    public static Time eqTime(Time value) {
-        return mockInstance.argumentManager.eqTime(value);
     }
 
     public static Id eqId(Id value) {
@@ -462,7 +460,6 @@ public with sharing class ATK {
         Decimal anyDecimal();
         Date anyDate();
         Datetime anyDatetime();
-        Time anyTime();
         Id anyId();
         String anyString();
         Boolean anyBoolean();
@@ -490,7 +487,6 @@ public with sharing class ATK {
         Decimal neDecimal(Decimal value);
         Date neDate(Date value);
         Datetime neDatetime(Datetime value);
-        Time neTime(Time value);
         Id neId(Id value);
         String neString(String value);
         Boolean neBoolean(Boolean value);
@@ -501,7 +497,6 @@ public with sharing class ATK {
         Decimal eqDecimal(Decimal value);
         Date eqDate(Date value);
         Datetime eqDatetime(Datetime value);
-        Time eqTime(Time value);
         Id eqId(Id value);
         String eqString(String value);
         Boolean eqBoolean(Boolean value);
@@ -554,7 +549,6 @@ public with sharing class ATK {
         Decimal asDecimal();
         Date asDate();
         Datetime asDatetime();
-        Time asTime();
         Id asId();
         String asString();
     }

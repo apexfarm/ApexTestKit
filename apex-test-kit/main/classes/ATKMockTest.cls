@@ -170,8 +170,6 @@ public with sharing class ATKMockTest {
         System.assertEquals('0', mock.doWithDates(Date.newInstance(2022, 1, 1), Date.newInstance(2022, 1, 2), Date.newInstance(2022, 1, 3)));
         System.assertEquals('0', mock.doWithDatetime(Datetime.newInstance(2022, 1, 1)));
         System.assertEquals('0', mock.doWithDatetimes(Datetime.newInstance(2022, 1, 1), Datetime.newInstance(2022, 1, 2), Datetime.newInstance(2022, 1, 3)));
-        // System.assertEquals('0', mock.doWithTime(Time.newInstance(0, 1, 1, 0)));
-        // System.assertEquals('0', mock.doWithTimes(Time.newInstance(0, 1, 1, 0), Time.newInstance(0, 1, 2, 0), Time.newInstance(0, 1, 3, 0)));
         System.assertEquals('0', mock.doWithId(ATK.fakeId(Account.SObjectType)));
         System.assertEquals('0', mock.doWithIds(ATK.fakeId(Account.SObjectType), ATK.fakeId(Account.SObjectType), ATK.fakeId(Account.SObjectType)));
         System.assertEquals('0', mock.doWithString('1'));
@@ -364,35 +362,6 @@ public with sharing class ATKMockTest {
         System.assertEquals('8-10', mock.doWithDatetime(Datetime.newInstance(2022, 1, 10)));
         System.assertEquals('8-11', mock.doWithDatetime(Datetime.newInstance(2022, 1, 11)));
     }
-
-    // @IsTest
-    // static void test_matchers_for_value_of_time() {
-    //     ATKMockTest mock = (ATKMockTest) ATK.mock(ATKMockTest.class);
-    //     ATK.startStubbing();
-    //     ATK.given(mock.doWithTime(ATK.lt(Time.newInstance(0, 1, 3, 0)).asTime())).willReturn('<3');
-    //     ATK.given(mock.doWithTime(ATK.lte(Time.newInstance(0, 1, 1, 0)).asTime())).willReturn('<=1');
-    //     ATK.given(mock.doWithTime(ATK.eqTime(Time.newInstance(0, 1, 3, 0)))).willReturn('=3');
-    //     ATK.given(mock.doWithTime(ATK.gt(Time.newInstance(0, 1, 3, 0)).asTime())).willReturn('>3');
-    //     ATK.given(mock.doWithTime(ATK.gte(Time.newInstance(0, 1, 5, 0)).asTime())).willReturn('>=5');
-    //     ATK.given(mock.doWithTime(ATK.between(Time.newInstance(0, 1, 7, 0), true, Time.newInstance(0, 1, 11, 0), false).asTime())).willReturn('7-10');
-    //     ATK.given(mock.doWithTime(ATK.between(Time.newInstance(0, 1, 7, 0), false, Time.newInstance(0, 1, 11, 0), true).asTime())).willReturn('8-11');
-    //     ATK.given(mock.doWithTime(ATK.between(Time.newInstance(0, 1, 8, 0), Time.newInstance(0, 1, 10, 0), true).asTime())).willReturn('8-10');
-    //     ATK.given(mock.doWithTime(ATK.between(Time.newInstance(0, 1, 8, 0), Time.newInstance(0, 1, 10, 0)).asTime())).willReturn('9');
-    //     ATK.stopStubbing();
-
-    //     System.assertEquals('<=1', mock.doWithTime(Time.newInstance(0, 1, 0, 0)));
-    //     System.assertEquals('<=1', mock.doWithTime(Time.newInstance(0, 1, 1, 0)));
-    //     System.assertEquals('<3', mock.doWithTime(Time.newInstance(0, 1, 2, 0)));
-    //     System.assertEquals('=3', mock.doWithTime(Time.newInstance(0, 1, 3, 0)));
-    //     System.assertEquals('>3', mock.doWithTime(Time.newInstance(0, 1, 4, 0)));
-    //     System.assertEquals('>=5', mock.doWithTime(Time.newInstance(0, 1, 5, 0)));
-    //     System.assertEquals('>=5', mock.doWithTime(Time.newInstance(0, 1, 6, 0)));
-    //     System.assertEquals('7-10', mock.doWithTime(Time.newInstance(0, 1, 7, 0)));
-    //     System.assertEquals('8-10', mock.doWithTime(Time.newInstance(0, 1, 8, 0)));
-    //     System.assertEquals('9', mock.doWithTime(Time.newInstance(0, 1, 9, 0)));
-    //     System.assertEquals('8-10', mock.doWithTime(Time.newInstance(0, 1, 10, 0)));
-    //     System.assertEquals('8-11', mock.doWithTime(Time.newInstance(0, 1, 11, 0)));
-    // }
 
     @IsTest
     static void test_matchers_for_value_of_id() {
@@ -619,7 +588,6 @@ public with sharing class ATKMockTest {
         ATK.given(mock.doWithDecimal(ATK.neDecimal(5.0))).willReturn('5');
         ATK.given(mock.doWithDate(ATK.neDate(Date.newInstance(2022, 1, 6)))).willReturn('6');
         ATK.given(mock.doWithDatetime(ATK.neDatetime(Datetime.newInstance(2022, 1, 7)))).willReturn('7');
-        // ATK.given(mock.doWithTime(ATK.neTime(Time.newInstance(0, 0, 0, 8)))).willReturn('8');
         ATK.given(mock.doWithId(ATK.neId(ATK.fakeId(Account.SObjectType, 9)))).willReturn('9');
         ATK.given(mock.doWithString(ATK.neString('10'))).willReturn('10');
         ATK.given(mock.doWithBoolean(ATK.neBoolean(true))).willReturn('11');
@@ -632,7 +600,6 @@ public with sharing class ATKMockTest {
         System.assertEquals(null, mock.doWithDecimal(5.0));
         System.assertEquals(null, mock.doWithDate(Date.newInstance(2022, 1, 6)));
         System.assertEquals(null, mock.doWithDatetime(Datetime.newInstance(2022, 1, 7)));
-        // System.assertEquals(null, mock.doWithTime(Time.newInstance(0, 0, 0, 8)));
         System.assertEquals(null, mock.doWithId(ATK.fakeId(Account.SObjectType, 9)));
         System.assertEquals(null, mock.doWithString('10'));
         System.assertEquals(null, mock.doWithBoolean(true));
@@ -644,7 +611,6 @@ public with sharing class ATKMockTest {
         System.assertEquals('5', mock.doWithDecimal(6.0));
         System.assertEquals('6', mock.doWithDate(Date.newInstance(2022, 1, 7)));
         System.assertEquals('7', mock.doWithDatetime(Datetime.newInstance(2022, 1, 8)));
-        // System.assertEquals('8', mock.doWithTime(Time.newInstance(0, 0, 0, 9)));
         System.assertEquals('9', mock.doWithId(ATK.fakeId(Account.SObjectType, 10)));
         System.assertEquals('10', mock.doWithString('11'));
         System.assertEquals('11', mock.doWithBoolean(false));
@@ -763,14 +729,6 @@ public with sharing class ATKMockTest {
     public String doWithDatetimes(Datetime i1, Datetime i2, Datetime i3) {
         return null;
     }
-
-    // public String doWithTime(Time i) {
-    //     return null;
-    // }
-
-    // public String doWithTimes(Time i1, Time i2, Time i3) {
-    //     return null;
-    // }
 
     public String doWithId(Id i) {
         return null;
