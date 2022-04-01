@@ -1,61 +1,64 @@
-# Apex Test Kit with BDD
-
 ![](https://img.shields.io/badge/version-4.0.0%20preview-orange.svg) ![](https://img.shields.io/badge/build-passing-brightgreen.svg) ![](https://img.shields.io/badge/coverage-93%25-brightgreen.svg)
 
-[Mockito](https://site.mockito.org/) BDD flavor has been brought into Apex Test Kit with some twists. Some features are still under development during 4.0.0 preview, such as:
+[Mockito](https://site.mockito.org/) BDD flavor has been brought into Apex Test Kit with some twists. Some developments are still needed before its final release, such as:
 
-1. Implement "in order" verification.
+1. Implement "in order" verification. (This is the only major feature currently missing.)
 2. Add more exceptions and guards to help developers understand how to use the BDD API correctly.
 3. Add more unit tests to cover wide variety scenarios.
 
-```java
-ATKMockTest mock = (ATKMockTest) ATK.mock(ATKMockTest.class);
-ATK.startStubbing();
-// Given
-ATK.given(mock.doWithInteger(1)).willReturn('return 1');
-ATK.stopStubbing();
-
-// When
-String returnValue = mock.doWithInteger(1);
-
-// Then
-System.assertEquals('return 1', returnValue);
-((ATKMockTest) ATK.then(mock).should().once()).doWithInteger(1);
-```
 
 | Environment           | Installation Link                                            | Version           |
 | --------------------- | ------------------------------------------------------------ | ----------------- |
-| Production, Developer | <a target="_blank" href="https://login.salesforce.com/packaging/installPackage.apexp?p0=04t2v000007GUCxAAO"><img src="images/deploy-button.png"></a> | ver 4.0.0 preview |
-| Sandbox               | <a target="_blank" href="https://test.salesforce.com/packaging/installPackage.apexp?p0=04t2v000007GUCxAAO"><img src="images/deploy-button.png"></a> | ver 4.0.0 preview |
+| Production, Developer | <a target="_blank" href="https://login.salesforce.com/packaging/installPackage.apexp?p0=04t2v000007GUCxAAO"><img src="https://github.com/apexfarm/ApexTestKit/raw/master/docs/images/deploy-button.png"></a> | ver 4.0.0 preview |
+| Sandbox               | <a target="_blank" href="https://test.salesforce.com/packaging/installPackage.apexp?p0=04t2v000007GUCxAAO"><img src="https://github.com/apexfarm/ApexTestKit/raw/master/docs/images/deploy-button.png"></a> | ver 4.0.0 preview |
+
+Please give your feedback in GitHub issue <a href="https://github.com/apexfarm/ApexTestKit/issues/34" target="_blank">v4.0 with BDD</a>, any missing features or API suggestions are welcomed. Also please help give a star if you like the BDD feature, it might help accelerate the release :).
 
 ## Table of Contents
 
-- [Given Statements](#given-statements)
-  - [Three Rules](#three-rules)
-  - [Answers](#answers)
-- [Then Statements](#then-statements)
-  - [Verification Modes](#verification-modes)
-  - [Assertion Messages](#assertion-messages)
-- [Argument Matchers](#argument-matchers)
-  - [Type Matchers](#type-matchers)
+- [Overview](#overview)
+- [1. Given Statements](#1-given-statements)
+  - [1.1 Three Rules](#11-three-rules)
+  - [1.2 Answers](#12-answers)
+- [2. Then Statements](#2-then-statements)
+  - [2.1 Verification Modes](#21-verification-modes)
+  - [2.2-Assertion Messages](#22-assertion-messages)
+- [3. Argument Matchers](#3-argument-matchers)
+  - [3.1 Type Matchers](#31-type-matchers)
     - [Any Types](#any-types)
     - [Primitives](#primitives)
     - [Collections](#collections)
-  - [Value Matchers](#value-matchers)
+  - [3.2 Value Matchers](#32-value-matchers)
     - [References](#references)
     - [Equals](#equals)
     - [Non Equals](#non-equals)
     - [Comparisons](#comparisons)
     - [Strings](#strings)
     - [sObjects](#sobjects)
-  - [Logical Matchers](#logical-matchers)
+  - [3.3 Logical Matchers](#33-logical-matchers)
     - [AND](#and)
     - [OR](#or)
     - [NOR](#nor) 
 
-## Given Statements
+## Overview
 
-### Three Rules
+```java
+ATKMockTest mock = (ATKMockTest) ATK.mock(ATKMockTest.class);
+// Given
+ATK.startStubbing();
+ATK.given(mock.doWithInteger(1)).willReturn('return 1');
+ATK.stopStubbing();
+
+// When
+System.assertEquals('return 1', mock.doWithInteger(1));
+
+// Then
+((ATKMockTest) ATK.then(mock).should().once()).doWithInteger(1);
+```
+
+## 1. Given Statements
+
+### 1.1 Three Rules
 
 **Rule 1**: Given statements must be wrapped between `ATK.startStubbing()` and `ATK.stopStubbing()` statements.
 
@@ -89,7 +92,7 @@ ATK.given(mock.doWithInteger(ATK.eqInteger(1)).willReturn('return 1');
 ATK.given(mock.doWithInteger(ATK.anyInteger())).willReturn('return any integer');
 ```
 
-### Answers
+### 1.2 Answers
 
 | API Name                        | Description                                                  |
 | ------------------------------- | ------------------------------------------------------------ |
@@ -98,7 +101,7 @@ ATK.given(mock.doWithInteger(ATK.anyInteger())).willReturn('return any integer')
 | `willThrow(Exception exp)`      | Throw the exception when target method is called.            |
 | `willDoNothing()`               | Return `null`.                                               |
 
-## Then Statements
+## 2. Then Statements
 
 This is the only flavor to declare then statements. And same as given statements, argument matchers can be used as well.
 
@@ -107,7 +110,7 @@ This is the only flavor to declare then statements. And same as given statements
 ((ATKMockTest) ATK.then(mock).should().once()).doWithInteger(ATK.anyInteger());
 ```
 
-### Verification Modes
+### 2.1 Verification Modes
 
 | API Name             | Alias To     | Description                                      |
 | -------------------- | ------------ | ------------------------------------------------ |
@@ -119,9 +122,9 @@ This is the only flavor to declare then statements. And same as given statements
 | `atMostOnce()`       | `atMost(1)`  | Allows at-most-once verification.                |
 | `atMost(Integer n)`  |              | Allows at-most-n verification.                   |
 
-### Assertion Messages
+### 2.2 Assertion Messages
 
-Here are sample assertion messages. The generated method signature could be different than the one defined in the test classes, such as all exact values are replaced by `ATK.eq()` matchers.
+Here are sample assertion messages. The generated method signature could be different than the one defined in the test classes, such as all exact values will be replaced by `ATK.eq()` matchers.
 
 ```
 Expected "[ATKMockTest].doWithIntegers(ATK.eq(1))" to be called 1 time(s). But has been called 0 time(s).
@@ -129,7 +132,7 @@ Expected "[ATKMockTest].doWithIntegers(ATK.eq(1))" to be called at least 3 time(
 Expected "[ATKMockTest].doWithIntegers(ATK.eq(1))" to be called at most 3 time(s). But has been called 0 time(s).
 ```
 
-## Argument Matchers
+## 3. Argument Matchers
 
 Please don't mix exact values and matchers in one given statement, either use exact values or matchers for all arguments.
 
@@ -142,11 +145,11 @@ ATK.given(mock.doWithIntegers(ATK.eqInteger(1), ATK.eqInteger(2), ATK.eqInteger(
 ATK.given(mock.doWithIntegers(1, 2, ATK.eqInteger(3)).willReturn('1, 2, 3');
 ```
 
-### Type Matchers
+### 3.1 Type Matchers
 
 #### Any Types
 
-Please supply exactly the same type used by the matched argument, and use neither ancestor nor descendent types.
+Please supply exactly the same type used by the matched argument, neither ancestor nor descendent types are allowed.
 
 | API Name                     | Description                                          | Example                      |
 | ---------------------------- | ---------------------------------------------------- | ---------------------------- |
@@ -159,7 +162,7 @@ Please supply exactly the same type used by the matched argument, and use neithe
 | API Name                 | Alias To                 | Description                                                  |
 | ------------------------ | ------------------------ | ------------------------------------------------------------ |
 | `Integer anyInteger()`   | `ATK.any(Integer.class)` | Only allow valued `Integer`, excluding nulls.                |
-| `Long anyLong()`         | `ATK.any(Long.class)`        | `any(Integer.class)`Only allow valued `Long`, excluding nulls. |
+| `Long anyLong()`         | `ATK.any(Long.class)`        | Only allow valued `Long`, excluding nulls. |
 | `Double anyDouble()`     | `ATK.any(Double.class)`      | Only allow valued `Double`, excluding nulls.                 |
 | `Decimal anyDecimal()`   | `ATK.any(Decimal.class)`     | Only allow valued `Decimal`, excluding nulls.                |
 | `Date anyDate()`         | `ATK.any(Date.class)`        | Only allow valued `Date`, excluding nulls.                   |
@@ -178,7 +181,7 @@ Please supply exactly the same type used by the matched argument, and use neithe
 | `SObject anySObject()`     | Only allow non-null `SObject`. | `ATK.anySObject()` |
 | `List<SObject> anySObjectList()`     | Only allow non-null `List<SObject>`, such as `List<Account>` etc. | `ATK.anySObjectList()` |
 
-### Value Matchers
+### 3.2 Value Matchers
 
 #### References
 | API Name | Description |
@@ -219,7 +222,7 @@ Please supply exactly the same type used by the matched argument, and use neithe
 
 #### Comparisons
 
-Comparable value matchers need to be casted to their targeting argument types with the following syntax:
+Comparison matchers need to be casted to their targeting argument types with the following syntax:
 
 ```java
 // Correct
@@ -231,13 +234,13 @@ ATK.given(mock.doWithInteger((Integer) ATK.gt(10))).willReturn('> 10');
 
 | API Name | Description | Example |
 | ---- | ---- | ---- |
-| `ArgumentCaster gt(Object value)` | Greater than the given value. | `ATK.gt(10L).asLong()` |
-| `ArgumentCaster gte(Object value)` | Greater than or equal to the given value. | `ATK.gte(10.0D).asDouble()` |
-| `ArgumentCaster lt(Object value)` | Less than the given value. | `ATK.lt(10.0).asDecimal()` |
-| `ArgumentCaster lte(Object value)` | Less than or equal to the given value. | `ATK.lte(Date.today()).asDate()` |
-| `ArgumentCaster between(Object min, Object max)` | Between the given values. `min` and `max` values are included, same behavior as the `BETWEEN` keyword used in SQL. | `ATK.between(1, 10).Integer()` |
-| `ArgumentCaster between(Object min, Object max, Boolean inclusive)` | `inclusive = false` to exclude boundary values. | `ATK.between(1, 10, true).Integer()` |
-| `ArgumentCaster between(Object min, Boolean minInclusive, Object max, Boolean maxInclusive)` | Finer control to the `min` and `max` inclusive behaviors. | `ATK.between(1, false, 10, true).Integer()` |
+| `gt(Object value)` | Greater than the given value. | `ATK.gt(10L).asLong()` |
+| `gte(Object value)` | Greater than or equal to the given value. | `ATK.gte(10.0D).asDouble()` |
+| `lt(Object value)` | Less than the given value. | `ATK.lt(10.0).asDecimal()` |
+| `lte(Object value)` | Less than or equal to the given value. | `ATK.lte(Date.today()).asDate()` |
+| `between(Object min, Object max)` | Between the given values. `min` and `max` values are included, same behavior as the `BETWEEN` keyword used in SQL. | `ATK.between(1, 10).Integer()` |
+| `between(Object min, Object max, Boolean inclusive)` | `inclusive = false` to exclude boundary values. | `ATK.between(1, 10, true).Integer()` |
+| `between(Object min, Boolean minInclusive, Object max, Boolean maxInclusive)` | Finer control to the `min` and `max` inclusive behaviors. | `ATK.between(1, false, 10, true).Integer()` |
 
 #### Strings
 
@@ -262,11 +265,12 @@ ATK.given(mock.doWithInteger((Integer) ATK.gt(10))).willReturn('> 10');
 | `LIst<SObject> sObjectListWith(Map<SObjectField, Object> value)` | `ATK.sObjectListWith(new Map<SObjectField, Object> {})` |
 | `LIst<SObject> sObjectListWith(List<Map<SObjectField, Object>> value, Boolean inOrder)` | `ATK.sObjectListWith(new List<Map<SObjectField, Object>>{}` |
 
-### Logical Matchers
+### 3.3 Logical Matchers
 
 Only matchers are allowed to be used as arguments for logical matchers, for example:
 
 ```java
+// Type casting is no longer need for ATK.gt and ATK.lt, since they are wrapped within the logical matcher.
 ATK.given(mock.doWithInteger((Integer) ATK.allOf(ATK.gt(1), ATK.lt(10)))).willReturn('arg > 1 AND arg < 10');
 ```
 

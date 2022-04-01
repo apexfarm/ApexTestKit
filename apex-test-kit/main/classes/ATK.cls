@@ -61,28 +61,28 @@ public with sharing class ATK {
         return mockInstance.createThenStub(mock);
     }
 
+    public static InOrder inOrder(List<Object> mocks) {
+        return mockInstance.createInOrder(mocks);
+    }
+
     public static InOrder inOrder(Object mock1) {
-        return null;
+        return inOrder(new List<Object>{ mock1 });
     }
 
     public static InOrder inOrder(Object mock1, Object mock2) {
-        return null;
+        return inOrder(new List<Object>{ mock1, mock2 });
     }
 
     public static InOrder inOrder(Object mock1, Object mock2, Object mock3) {
-        return null;
+        return inOrder(new List<Object>{ mock1, mock2, mock3 });
     }
 
     public static InOrder inOrder(Object mock1, Object mock2, Object mock3, Object mock4) {
-        return null;
+        return inOrder(new List<Object>{ mock1, mock2, mock3, mock4 });
     }
 
     public static InOrder inOrder(Object mock1, Object mock2, Object mock3, Object mock4, Object mock5) {
-        return null;
-    }
-
-    public static InOrder inOrder(List<Object> mocks) {
-        return null;
+        return inOrder(new List<Object>{ mock1, mock2, mock3, mock4, mock5 });
     }
 
     public interface Given {
@@ -118,8 +118,8 @@ public with sharing class ATK {
     }
 
     public interface ThenOf {
-        Should should();
-        Should should(InOrder inOrder);
+        GreedyShould should();
+        InOrderShould should(InOrder inOrder);
     }
 
     public interface InOrder {
@@ -131,8 +131,18 @@ public with sharing class ATK {
         Object times(Integer n);
         Object atLeast(Integer n);
         Object atLeastOnce();
+        void haveNoInteractions();
+        void haveNoMoreInteractions();
+    }
+
+    public interface GreedyShould extends Should {
         Object atMost(Integer n);
         Object atMostOnce();
+    }
+
+    public interface InOrderShould extends Should {
+        // none-greedy
+        Object calls(Integer n);
     }
 
     // #endregion

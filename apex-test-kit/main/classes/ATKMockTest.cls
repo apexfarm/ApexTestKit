@@ -18,6 +18,14 @@
 @IsTest
 public with sharing class ATKMockTest {
     @IsTest
+    static void test_method_chaining() {
+        ATKMockTest mock = (ATKMockTest) ATK.mock(ATKMockTest.class);
+        ATK.startStubbing();
+        ATK.given(mock.doChaining().doChaining().doWithInteger(ATK.anyInteger())).willReturn(1);
+        ATK.stopStubbing();
+    }
+
+    @IsTest
     static void test_matchers_for_combos() {
         ATKMockTest mock = (ATKMockTest) ATK.mock(ATKMockTest.class);
         ATK.startStubbing();
@@ -617,7 +625,7 @@ public with sharing class ATKMockTest {
     }
 
     @IsTest
-    static void test_will() {
+    static void test_will_for_consecutive_returns() {
         ATKMockTest mock = (ATKMockTest) ATK.mock(ATKMockTest.class);
         ATK.startStubbing();
         ((ATKMockTest) ATK.willReturn('4').willReturn('5').willAnswer(new CustomAnswer('Custom Answer')).given(mock)).doWithInteger(4);
@@ -742,6 +750,18 @@ public with sharing class ATKMockTest {
         exp = null;
     }
 
+    @IsTest
+    static void test_then_for_verification_inorder() {
+        ATKMockTest mock = (ATKMockTest) ATK.mock(ATKMockTest.class);
+
+        mock.doWithInteger(1);
+        mock.doWithInteger(2);
+
+        ATK.InOrder inOrder = ATK.inOrder(mock);
+        ((ATKMockTest) ATK.then(mock).should(inOrder).once()).doWithInteger(1);
+        ((ATKMockTest) ATK.then(mock).should(inOrder).once()).doWithInteger(2);
+    }
+
     // ******************
     // #region Test Impls
 
@@ -761,6 +781,10 @@ public with sharing class ATKMockTest {
     }
 
     public void doVoidReturn() {
+    }
+
+    public ATKMockTest doChaining() {
+        return null;
     }
 
     public String doWithInteger(Integer i) {
