@@ -23,46 +23,54 @@ public with sharing class ATK {
     // #region Mock Interfaces
     // ***********************
 
-    private static final ATKMock mockInstance = new ATKMock();
+    public static final Answer RETURNS_DEFAULTS = ATKMock.DEFAULT_ANSWERS;
+    public static final Answer RETURNS_NULLS = ATKMock.NULL_ANSWERS;
+    public static final Answer RETURNS_MOCKS = ATKMock.MOCK_ANSWERS;
+    public static final Answer RETURNS_SELF = ATKMock.SELF_ANSWERS;
+    // TODO: add RETURNS_DEEP_STUB
 
     public static Object mock(Type mockType) {
-        return mockInstance.createMock(mockType);
+        return ATKMock.progress.createMock(mockType, RETURNS_DEFAULTS);
+    }
+
+    public static Object mock(Type mockType, Answer defaultAnswer) {
+        return ATKMock.progress.createMock(mockType, defaultAnswer);
     }
 
     public static void startStubbing() {
-        mockInstance.startStubbing();
+        ATKMock.progress.startStubbing();
     }
 
     public static void stopStubbing() {
-        mockInstance.stopStubbing();
+        ATKMock.progress.stopStubbing();
     }
 
     public static Given given(Object value) {
-        return mockInstance.createGivenStub();
+        return ATKMock.progress.createGivenStub();
     }
 
     public static Will willReturn(Object value) {
-        return mockInstance.createWillStub().willReturn(value);
+        return ATKMock.progress.createWillStub().willReturn(value);
     }
 
     public static Will willAnswer(Answer answer) {
-        return mockInstance.createWillStub().willAnswer(answer);
+        return ATKMock.progress.createWillStub().willAnswer(answer);
     }
 
     public static Will willThrow(Exception exp) {
-        return mockInstance.createWillStub().willThrow(exp);
+        return ATKMock.progress.createWillStub().willThrow(exp);
     }
 
     public static Will willDoNothing() {
-        return mockInstance.createWillStub().willDoNothing();
+        return ATKMock.progress.createWillStub().willDoNothing();
     }
 
     public static ThenOf then(Object mock) {
-        return mockInstance.createThenStub(mock);
+        return ATKMock.progress.createThenStub(mock);
     }
 
     public static InOrder inOrder(List<Object> mocks) {
-        return mockInstance.createInOrder(mocks);
+        return ATKMock.progress.createInOrder(mocks);
     }
 
     public static InOrder inOrder(Object mock1) {
@@ -125,7 +133,7 @@ public with sharing class ATK {
     public interface InOrder {
     }
 
-    public interface Should {
+    public interface GreedyShould {
         Object never();
         Object once();
         Object times(Integer n);
@@ -133,14 +141,20 @@ public with sharing class ATK {
         Object atLeastOnce();
         void haveNoInteractions();
         void haveNoMoreInteractions();
-    }
 
-    public interface GreedyShould extends Should {
         Object atMost(Integer n);
         Object atMostOnce();
     }
 
-    public interface InOrderShould extends Should {
+    public interface InOrderShould {
+        Object never();
+        Object once();
+        Object times(Integer n);
+        Object atLeast(Integer n);
+        Object atLeastOnce();
+        void haveNoInteractions();
+        void haveNoMoreInteractions();
+
         // none-greedy
         Object calls(Integer n);
     }
@@ -153,320 +167,320 @@ public with sharing class ATK {
     // *************************
     // Type Matchers
     public static Integer anyInteger() {
-        return mockInstance.argumentManager.anyInteger();
+        return ATKMock.progress.matcherRecorder.anyInteger();
     }
 
     public static Long anyLong() {
-        return mockInstance.argumentManager.anyLong();
+        return ATKMock.progress.matcherRecorder.anyLong();
     }
 
     public static Double anyDouble() {
-        return mockInstance.argumentManager.anyDouble();
+        return ATKMock.progress.matcherRecorder.anyDouble();
     }
 
     public static Decimal anyDecimal() {
-        return mockInstance.argumentManager.anyDecimal();
+        return ATKMock.progress.matcherRecorder.anyDecimal();
     }
 
     public static Date anyDate() {
-        return mockInstance.argumentManager.anyDate();
+        return ATKMock.progress.matcherRecorder.anyDate();
     }
 
     public static Datetime anyDatetime() {
-        return mockInstance.argumentManager.anyDatetime();
+        return ATKMock.progress.matcherRecorder.anyDatetime();
     }
 
     public static Id anyId() {
-        return mockInstance.argumentManager.anyId();
+        return ATKMock.progress.matcherRecorder.anyId();
     }
 
     public static String anyString() {
-        return mockInstance.argumentManager.anyString();
+        return ATKMock.progress.matcherRecorder.anyString();
     }
 
     public static Boolean anyBoolean() {
-        return mockInstance.argumentManager.anyBoolean();
+        return ATKMock.progress.matcherRecorder.anyBoolean();
     }
 
     public static List<Object> anyList() {
-        return mockInstance.argumentManager.anyList();
+        return ATKMock.progress.matcherRecorder.anyList();
     }
 
     public static Object anySet() {
-        return mockInstance.argumentManager.anySet();
+        return ATKMock.progress.matcherRecorder.anySet();
     }
 
     public static Object anyMap() {
-        return mockInstance.argumentManager.anyMap();
+        return ATKMock.progress.matcherRecorder.anyMap();
     }
 
     public static Object any() {
-        return mockInstance.argumentManager.any();
+        return ATKMock.progress.matcherRecorder.any();
     }
 
     public static Object any(Type type) {
-        return mockInstance.argumentManager.any(type);
+        return ATKMock.progress.matcherRecorder.any(type);
     }
 
     public static Object nullable(Type type) {
-        return mockInstance.argumentManager.nullable(type);
+        return ATKMock.progress.matcherRecorder.nullable(type);
     }
 
     public static SObject anySObject() {
-        return mockInstance.argumentManager.anySObject();
+        return ATKMock.progress.matcherRecorder.anySObject();
     }
 
     public static List<SObject> anySObjectList() {
-        return mockInstance.argumentManager.anySObjectList();
+        return ATKMock.progress.matcherRecorder.anySObjectList();
     }
 
     // Value Matchers
     public static Object isNull() {
-        return mockInstance.argumentManager.isNull();
+        return ATKMock.progress.matcherRecorder.isNull();
     }
 
     public static Object isNotNull() {
-        return mockInstance.argumentManager.isNotNull();
+        return ATKMock.progress.matcherRecorder.isNotNull();
     }
 
     public static Object same(Object value) {
-        return mockInstance.argumentManager.same(value);
+        return ATKMock.progress.matcherRecorder.same(value);
     }
 
     public static Object ne(Object value) {
-        return mockInstance.argumentManager.ne(value);
+        return ATKMock.progress.matcherRecorder.ne(value);
     }
 
     public static Integer neInteger(Integer value) {
-        return mockInstance.argumentManager.neInteger(value);
+        return ATKMock.progress.matcherRecorder.neInteger(value);
     }
 
     public static Long neLong(Long value) {
-        return mockInstance.argumentManager.neLong(value);
+        return ATKMock.progress.matcherRecorder.neLong(value);
     }
 
     public static Double neDouble(Double value) {
-        return mockInstance.argumentManager.neDouble(value);
+        return ATKMock.progress.matcherRecorder.neDouble(value);
     }
 
     public static Decimal neDecimal(Decimal value) {
-        return mockInstance.argumentManager.neDecimal(value);
+        return ATKMock.progress.matcherRecorder.neDecimal(value);
     }
 
     public static Date neDate(Date value) {
-        return mockInstance.argumentManager.neDate(value);
+        return ATKMock.progress.matcherRecorder.neDate(value);
     }
 
     public static Datetime neDatetime(Datetime value) {
-        return mockInstance.argumentManager.neDatetime(value);
+        return ATKMock.progress.matcherRecorder.neDatetime(value);
     }
 
     public static Id neId(Id value) {
-        return mockInstance.argumentManager.neId(value);
+        return ATKMock.progress.matcherRecorder.neId(value);
     }
 
     public static String neString(String value) {
-        return mockInstance.argumentManager.neString(value);
+        return ATKMock.progress.matcherRecorder.neString(value);
     }
 
     public static Boolean neBoolean(Boolean value) {
-        return mockInstance.argumentManager.neBoolean(value);
+        return ATKMock.progress.matcherRecorder.neBoolean(value);
     }
 
     public static Object eq(Object value) {
-        return mockInstance.argumentManager.eq(value);
+        return ATKMock.progress.matcherRecorder.eq(value);
     }
 
     public static Integer eqInteger(Integer value) {
-        return mockInstance.argumentManager.eqInteger(value);
+        return ATKMock.progress.matcherRecorder.eqInteger(value);
     }
 
     public static Long eqLong(Long value) {
-        return mockInstance.argumentManager.eqLong(value);
+        return ATKMock.progress.matcherRecorder.eqLong(value);
     }
 
     public static Double eqDouble(Double value) {
-        return mockInstance.argumentManager.eqDouble(value);
+        return ATKMock.progress.matcherRecorder.eqDouble(value);
     }
 
     public static Decimal eqDecimal(Decimal value) {
-        return mockInstance.argumentManager.eqDecimal(value);
+        return ATKMock.progress.matcherRecorder.eqDecimal(value);
     }
 
     public static Date eqDate(Date value) {
-        return mockInstance.argumentManager.eqDate(value);
+        return ATKMock.progress.matcherRecorder.eqDate(value);
     }
 
     public static Datetime eqDatetime(Datetime value) {
-        return mockInstance.argumentManager.eqDatetime(value);
+        return ATKMock.progress.matcherRecorder.eqDatetime(value);
     }
 
     public static Id eqId(Id value) {
-        return mockInstance.argumentManager.eqId(value);
+        return ATKMock.progress.matcherRecorder.eqId(value);
     }
 
     public static String eqString(String value) {
-        return mockInstance.argumentManager.eqString(value);
+        return ATKMock.progress.matcherRecorder.eqString(value);
     }
 
     public static Boolean eqBoolean(Boolean value) {
-        return mockInstance.argumentManager.eqBoolean(value);
+        return ATKMock.progress.matcherRecorder.eqBoolean(value);
     }
 
-    public static ArgumentCaster gt(Object value) {
-        return mockInstance.argumentManager.gt(value);
+    public static MatcherCaster gt(Object value) {
+        return ATKMock.progress.matcherRecorder.gt(value);
     }
 
-    public static ArgumentCaster gte(Object value) {
-        return mockInstance.argumentManager.gte(value);
+    public static MatcherCaster gte(Object value) {
+        return ATKMock.progress.matcherRecorder.gte(value);
     }
 
-    public static ArgumentCaster lt(Object value) {
-        return mockInstance.argumentManager.lt(value);
+    public static MatcherCaster lt(Object value) {
+        return ATKMock.progress.matcherRecorder.lt(value);
     }
 
-    public static ArgumentCaster lte(Object value) {
-        return mockInstance.argumentManager.lte(value);
+    public static MatcherCaster lte(Object value) {
+        return ATKMock.progress.matcherRecorder.lte(value);
     }
 
-    public static ArgumentCaster between(Object min, Object max) {
-        return mockInstance.argumentManager.between(min, max);
+    public static MatcherCaster between(Object min, Object max) {
+        return ATKMock.progress.matcherRecorder.between(min, max);
     }
 
-    public static ArgumentCaster between(Object min, Object max, Boolean inclusive) {
-        return mockInstance.argumentManager.between(min, max, inclusive);
+    public static MatcherCaster between(Object min, Object max, Boolean inclusive) {
+        return ATKMock.progress.matcherRecorder.between(min, max, inclusive);
     }
 
-    public static ArgumentCaster between(Object min, Boolean minInclusive, Object max, Boolean maxInclusive) {
-        return mockInstance.argumentManager.between(min, minInclusive, max, maxInclusive);
+    public static MatcherCaster between(Object min, Boolean minInclusive, Object max, Boolean maxInclusive) {
+        return ATKMock.progress.matcherRecorder.between(min, minInclusive, max, maxInclusive);
     }
 
     public static String isBlank() {
-        return mockInstance.argumentManager.isBlank();
+        return ATKMock.progress.matcherRecorder.isBlank();
     }
 
     public static String isNotBlank() {
-        return mockInstance.argumentManager.isNotBlank();
+        return ATKMock.progress.matcherRecorder.isNotBlank();
     }
 
     public static String contains(String value) {
-        return mockInstance.argumentManager.contains(value);
+        return ATKMock.progress.matcherRecorder.contains(value);
     }
 
     public static String startsWith(String value) {
-        return mockInstance.argumentManager.startsWith(value);
+        return ATKMock.progress.matcherRecorder.startsWith(value);
     }
 
     public static String endsWith(String value) {
-        return mockInstance.argumentManager.endsWith(value);
+        return ATKMock.progress.matcherRecorder.endsWith(value);
     }
 
     public static String matches(String regexp) {
-        return mockInstance.argumentManager.matches(regexp);
+        return ATKMock.progress.matcherRecorder.matches(regexp);
     }
 
     public static SObject sObjectWithId(Id value) {
-        return mockInstance.argumentManager.sObjectWithId(value);
+        return ATKMock.progress.matcherRecorder.sObjectWithId(value);
     }
 
     public static SObject sObjectWithName(String value) {
-        return mockInstance.argumentManager.sObjectWithName(value);
+        return ATKMock.progress.matcherRecorder.sObjectWithName(value);
     }
 
     public static SObject sObjectWith(SObjectField field, Object value) {
-        return mockInstance.argumentManager.sObjectWith(field, value);
+        return ATKMock.progress.matcherRecorder.sObjectWith(field, value);
     }
 
     public static SObject sObjectWith(Map<SObjectField, Object> value) {
-        return mockInstance.argumentManager.sObjectWith(value);
+        return ATKMock.progress.matcherRecorder.sObjectWith(value);
     }
 
     public static LIst<SObject> sObjectListWith(SObjectField field, Object value) {
-        return mockInstance.argumentManager.sObjectListWith(field, value);
+        return ATKMock.progress.matcherRecorder.sObjectListWith(field, value);
     }
 
     public static LIst<SObject> sObjectListWith(Map<SObjectField, Object> value) {
-        return mockInstance.argumentManager.sObjectListWith(value);
+        return ATKMock.progress.matcherRecorder.sObjectListWith(value);
     }
 
     public static LIst<SObject> sObjectListWith(List<Map<SObjectField, Object>> value) {
-        return mockInstance.argumentManager.sObjectListWith(value, false);
+        return ATKMock.progress.matcherRecorder.sObjectListWith(value, false);
     }
 
     public static LIst<SObject> sObjectListWith(List<Map<SObjectField, Object>> value, Boolean inOrder) {
-        return mockInstance.argumentManager.sObjectListWith(value, inOrder);
+        return ATKMock.progress.matcherRecorder.sObjectListWith(value, inOrder);
     }
 
     // Combo Matchers
     public static Object allOf(Object arg1, Object arg2) {
-        return mockInstance.argumentManager.allOf(arg1, arg2);
+        return ATKMock.progress.matcherRecorder.allOf(arg1, arg2);
     }
 
     public static Object allOf(Object arg1, Object arg2, Object arg3) {
-        return mockInstance.argumentManager.allOf(arg1, arg2, arg3);
+        return ATKMock.progress.matcherRecorder.allOf(arg1, arg2, arg3);
     }
 
     public static Object allOf(Object arg1, Object arg2, Object arg3, Object arg4) {
-        return mockInstance.argumentManager.allOf(arg1, arg2, arg3, arg4);
+        return ATKMock.progress.matcherRecorder.allOf(arg1, arg2, arg3, arg4);
     }
 
     public static Object allOf(Object arg1, Object arg2, Object arg3, Object arg4, Object arg5) {
-        return mockInstance.argumentManager.allOf(arg1, arg2, arg3, arg4, arg5);
+        return ATKMock.progress.matcherRecorder.allOf(arg1, arg2, arg3, arg4, arg5);
     }
 
     public static Object allOf(List<Object> args) {
-        return mockInstance.argumentManager.allOf(args);
+        return ATKMock.progress.matcherRecorder.allOf(args);
     }
 
     public static Object anyOf(Object arg1, Object arg2) {
-        return mockInstance.argumentManager.anyOf(arg1, arg2);
+        return ATKMock.progress.matcherRecorder.anyOf(arg1, arg2);
     }
 
     public static Object anyOf(Object arg1, Object arg2, Object arg3) {
-        return mockInstance.argumentManager.anyOf(arg1, arg2, arg3);
+        return ATKMock.progress.matcherRecorder.anyOf(arg1, arg2, arg3);
     }
 
     public static Object anyOf(Object arg1, Object arg2, Object arg3, Object arg4) {
-        return mockInstance.argumentManager.anyOf(arg1, arg2, arg3, arg4);
+        return ATKMock.progress.matcherRecorder.anyOf(arg1, arg2, arg3, arg4);
     }
 
     public static Object anyOf(Object arg1, Object arg2, Object arg3, Object arg4, Object arg5) {
-        return mockInstance.argumentManager.anyOf(arg1, arg2, arg3, arg4, arg5);
+        return ATKMock.progress.matcherRecorder.anyOf(arg1, arg2, arg3, arg4, arg5);
     }
 
     public static Object anyOf(List<Object> args) {
-        return mockInstance.argumentManager.anyOf(args);
+        return ATKMock.progress.matcherRecorder.anyOf(args);
     }
 
     public static Object isNot(Object arg1) {
-        return mockInstance.argumentManager.isNot(arg1);
+        return ATKMock.progress.matcherRecorder.isNot(arg1);
     }
 
     public static Object noneOf(Object arg1, Object arg2) {
-        return mockInstance.argumentManager.noneOf(arg1, arg2);
+        return ATKMock.progress.matcherRecorder.noneOf(arg1, arg2);
     }
 
     public static Object noneOf(Object arg1, Object arg2, Object arg3) {
-        return mockInstance.argumentManager.noneOf(arg1, arg2, arg3);
+        return ATKMock.progress.matcherRecorder.noneOf(arg1, arg2, arg3);
     }
 
     public static Object noneOf(Object arg1, Object arg2, Object arg3, Object arg4) {
-        return mockInstance.argumentManager.noneOf(arg1, arg2, arg3, arg4);
+        return ATKMock.progress.matcherRecorder.noneOf(arg1, arg2, arg3, arg4);
     }
 
     public static Object noneOf(Object arg1, Object arg2, Object arg3, Object arg4, Object arg5) {
-        return mockInstance.argumentManager.noneOf(arg1, arg2, arg3, arg4, arg5);
+        return ATKMock.progress.matcherRecorder.noneOf(arg1, arg2, arg3, arg4, arg5);
     }
 
     public static Object noneOf(List<Object> args) {
-        return mockInstance.argumentManager.noneOf(args);
+        return ATKMock.progress.matcherRecorder.noneOf(args);
     }
 
     public interface Matcher {
         Boolean matches(Type type, Object arg);
     }
 
-    public interface ArgumentManager {
+    public interface MatcherRecorder {
         // Type Matchers
         Integer anyInteger();
         Long anyLong();
@@ -515,13 +529,13 @@ public with sharing class ATK {
         String eqString(String value);
 
         Boolean eqBoolean(Boolean value);
-        ArgumentCaster gt(Object value);
-        ArgumentCaster gte(Object value);
-        ArgumentCaster lt(Object value);
-        ArgumentCaster lte(Object value);
-        ArgumentCaster between(Object min, Object max);
-        ArgumentCaster between(Object min, Object max, Boolean inclusive);
-        ArgumentCaster between(Object min, Boolean minInclusive, Object max, Boolean maxInclusive);
+        MatcherCaster gt(Object value);
+        MatcherCaster gte(Object value);
+        MatcherCaster lt(Object value);
+        MatcherCaster lte(Object value);
+        MatcherCaster between(Object min, Object max);
+        MatcherCaster between(Object min, Object max, Boolean inclusive);
+        MatcherCaster between(Object min, Boolean minInclusive, Object max, Boolean maxInclusive);
 
         String isBlank();
         String isNotBlank();
@@ -557,7 +571,7 @@ public with sharing class ATK {
         Object noneOf(List<Object> args);
     }
 
-    public interface ArgumentCaster {
+    public interface MatcherCaster {
         Integer asInteger();
         Long asLong();
         Double asDouble();

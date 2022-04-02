@@ -18,11 +18,28 @@
 @IsTest
 public with sharing class ATKMockTest {
     @IsTest
-    static void test_method_chaining() {
-        ATKMockTest mock = (ATKMockTest) ATK.mock(ATKMockTest.class);
+    static void test_settings_for_returns_self() {
+        ATKMockTest mock = (ATKMockTest) ATK.mock(ATKMockTest.class, ATK.RETURNS_SELF);
+
         ATK.startStubbing();
-        ATK.given(mock.doChaining().doChaining().doWithInteger(ATK.anyInteger())).willReturn(1);
+        ATK.given(mock.doReturnSelf(ATK.any()).doReturnSelf(1).doWithInteger(ATK.anyInteger())).willReturn('return 1');
         ATK.stopStubbing();
+
+        System.assertEquals('return 1', mock.doReturnSelf('1').doReturnSelf(1).doWithInteger(1));
+    }
+
+    @IsTest
+    static void test_settings_for_returns_mocks() {
+        ATKMockTest mock = (ATKMockTest) ATK.mock(ATKMockTest.class, ATK.RETURNS_MOCKS);
+
+        ATKMockTest caller = new ATKMockTest();
+        ATKMockTest anotherMock = caller.doWithMock(mock);
+
+        ((ATKMockTest) ATK.then(anotherMock).should().once()).doWithInteger(1);
+    }
+
+    @IsTest
+    static void test_settings_for_returns_deep_stubs() {
     }
 
     @IsTest
@@ -601,16 +618,16 @@ public with sharing class ATKMockTest {
         ATK.given(mock.doWithBoolean(ATK.neBoolean(true))).willReturn('11');
         ATK.stopStubbing();
 
-        System.assertEquals(null, mock.doWithObject(1));
-        System.assertEquals(null, mock.doWithInteger(2));
-        System.assertEquals(null, mock.doWithLong(3));
-        System.assertEquals(null, mock.doWithDouble(4.0d));
-        System.assertEquals(null, mock.doWithDecimal(5.0));
-        System.assertEquals(null, mock.doWithDate(Date.newInstance(2022, 1, 6)));
-        System.assertEquals(null, mock.doWithDatetime(Datetime.newInstance(2022, 1, 7)));
-        System.assertEquals(null, mock.doWithId(ATK.fakeId(Account.SObjectType, 9)));
-        System.assertEquals(null, mock.doWithString('10'));
-        System.assertEquals(null, mock.doWithBoolean(true));
+        System.assertEquals('', mock.doWithObject(1));
+        System.assertEquals('', mock.doWithInteger(2));
+        System.assertEquals('', mock.doWithLong(3));
+        System.assertEquals('', mock.doWithDouble(4.0d));
+        System.assertEquals('', mock.doWithDecimal(5.0));
+        System.assertEquals('', mock.doWithDate(Date.newInstance(2022, 1, 6)));
+        System.assertEquals('', mock.doWithDatetime(Datetime.newInstance(2022, 1, 7)));
+        System.assertEquals('', mock.doWithId(ATK.fakeId(Account.SObjectType, 9)));
+        System.assertEquals('', mock.doWithString('10'));
+        System.assertEquals('', mock.doWithBoolean(true));
 
         System.assertEquals('1', mock.doWithObject(2));
         System.assertEquals('2', mock.doWithInteger(3));
@@ -629,7 +646,7 @@ public with sharing class ATKMockTest {
         ATKMockTest mock = (ATKMockTest) ATK.mock(ATKMockTest.class);
         ATK.startStubbing();
         ((ATKMockTest) ATK.willReturn('4').willReturn('5').willAnswer(new CustomAnswer('Custom Answer')).given(mock)).doWithInteger(4);
-        ((ATKMockTest) ATK.willDoNothing().willThrow(new MockException()).given(mock)).doVoidReturn();
+        ((ATKMockTest) ATK.willDoNothing().willThrow(new MockException()).given(mock)).doReturnVoid();
         ATK.stopStubbing();
 
         System.assertEquals('4', mock.doWithInteger(4));
@@ -637,10 +654,10 @@ public with sharing class ATKMockTest {
         System.assertEquals('Custom Answer', mock.doWithInteger(4));
         System.assertEquals(null, mock.doWithInteger(4));
 
-        mock.doVoidReturn();
+        mock.doReturnVoid();
         MockException thrownExp;
         try {
-            mock.doVoidReturn();
+            mock.doReturnVoid();
         } catch (MockException ex) {
             thrownExp = ex;
         }
@@ -780,11 +797,21 @@ public with sharing class ATKMockTest {
         }
     }
 
-    public void doVoidReturn() {
+    public void doReturnVoid() {
     }
 
-    public ATKMockTest doChaining() {
+    public ATKMockTest doReturnSelf(Object param) {
         return null;
+    }
+
+    public ATKMockTest doReturnMock(Object param) {
+        return null;
+    }
+
+    public ATKMockTest doWithMock(ATKMockTest mock) {
+        ATKMockTest anotherMock = mock.doReturnMock(null);
+        anotherMock.doWithInteger(1);
+        return anotherMock;
     }
 
     public String doWithInteger(Integer i) {

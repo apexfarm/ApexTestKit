@@ -118,7 +118,7 @@ public with sharing class ATKCore {
                     continue;
                 }
 
-                // TODO: Fine tune upsert logics.
+                // TODO: fine tune upsert logics
                 List<SObject> updateList = new List<SObject>();
                 List<SObject> insertList = new List<SObject>();
                 for (SObject obj : entityNode.objects) {
@@ -535,6 +535,8 @@ public with sharing class ATKCore {
         void clear() {
             mockObjects.clear();
         }
+
+        // TODO: replace with JSON generator
 
         public override String toString() {
             StringBuilder builder = new StringBuilder();
@@ -1903,7 +1905,7 @@ public with sharing class ATKCore {
             G.addEdge(indexMap.get(a), indexMap.get(b));
         }
 
-        // TODO: Reserve for future uses
+        // TODO: reserve for future uses
         // public Boolean contains(Object s) {
         //     return indexMap.containsKey(s);
         // }
@@ -2025,7 +2027,7 @@ public with sharing class ATKCore {
             post.add(v);
         }
 
-        // TODO: Reserve for future uses
+        // TODO: reserve for future uses
         // public List<Integer> pre() {
         //     return pre;
         // }

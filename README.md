@@ -9,12 +9,13 @@ Apex Test Kit can help generate massive records for Apex test classes, including
 
 And it also ported the [Mockito](https://site.mockito.org/) BDD APIs with some twists.
 
-| Environment           | Installation Link                                            | Version           |
-| --------------------- | ------------------------------------------------------------ | ----------------- |
+| Environment           | Installation Link                                                                                                                                         | Version           |
+| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------- |
 | Production, Developer | <a target="_blank" href="https://login.salesforce.com/packaging/installPackage.apexp?p0=04t2v000007GUCxAAO"><img src="docs/images/deploy-button.png"></a> | ver 4.0.0 preview |
-| Sandbox               | <a target="_blank" href="https://test.salesforce.com/packaging/installPackage.apexp?p0=04t2v000007GUCxAAO"><img src="docs/images/deploy-button.png"></a> | ver 4.0.0 preview |
+| Sandbox               | <a target="_blank" href="https://test.salesforce.com/packaging/installPackage.apexp?p0=04t2v000007GUCxAAO"><img src="docs/images/deploy-button.png"></a>  | ver 4.0.0 preview |
 
-------
+---
+
 ## &#128293; v4.0.0 preview
 
 Check wiki page <a href="https://github.com/apexfarm/ApexTestKit/wiki/Apex-Test-Kit-with-BDD" target="_blank">Apex Test Kit with BDD</a> for detail. Please leave your comments at GitHub issue <a href="https://github.com/apexfarm/ApexTestKit/issues/34" target="_blank">v4.0 with BDD</a>. Any missing features or API suggestions are welcomed. Also please help give a star if you like the BDD feature, it might help accelerate the release &#128522;.
@@ -34,36 +35,35 @@ System.assertEquals('return 1', returnValue);
 ((ATKMockTest) ATK.then(mock).should().once()).doWithInteger(1);
 ```
 
-------
-
+---
 
 ## Table of Contents
 
-- [Introduction](#introduction)
-  - [Performance](#performance)
-  - [Demos](#demos)
-- [Relationship](#relationship)
-  - [One to Many](#one-to-many)
-  - [Many to One](#many-to-one)
-  - [Many to Many](#many-to-many)
-  - [Many to Many with Junction](#many-to-many-with-junction)
-- [&#128229;Save](#save)
-  - [Command API](#command-api)
-  - [Save Result API](#save-result-api)
-- [&#9749;Mock](#-mock)
-  - [Mock with Children](#mock-with-children)
-  - [Mock with Predefined List](#mock-with-predefined-list)
-  - [Fake Id](#fake-id)
-- [Entity Keywords](#entity-keywords)
-  - [Entity Creation Keywords](#entity-creation-keywords)
-  - [Entity Updating Keywords](#entity-updating-keywords)
-  - [Entity Reference Keywords](#entity-reference-keywords)
-- [Field Keywords](#field-keywords)
-  - [Basic Field Keywords](#basic-field-keywords)
-  - [Arithmetic Field Keywords](#arithmetic-field-keywords)
-  - [Lookup Field Keywords](#lookup-field-keywords)
-- [Entity Builder Factory](#entity-builder-factory)
-- [License](#license)
+-   [Introduction](#introduction)
+    -   [Performance](#performance)
+    -   [Demos](#demos)
+-   [Relationship](#relationship)
+    -   [One to Many](#one-to-many)
+    -   [Many to One](#many-to-one)
+    -   [Many to Many](#many-to-many)
+    -   [Many to Many with Junction](#many-to-many-with-junction)
+-   [&#128229;Save](#save)
+    -   [Command API](#command-api)
+    -   [Save Result API](#save-result-api)
+-   [&#9749;Mock](#-mock)
+    -   [Mock with Children](#mock-with-children)
+    -   [Mock with Predefined List](#mock-with-predefined-list)
+    -   [Fake Id](#fake-id)
+-   [Entity Keywords](#entity-keywords)
+    -   [Entity Creation Keywords](#entity-creation-keywords)
+    -   [Entity Updating Keywords](#entity-updating-keywords)
+    -   [Entity Reference Keywords](#entity-reference-keywords)
+-   [Field Keywords](#field-keywords)
+    -   [Basic Field Keywords](#basic-field-keywords)
+    -   [Arithmetic Field Keywords](#arithmetic-field-keywords)
+    -   [Lookup Field Keywords](#lookup-field-keywords)
+-   [Entity Builder Factory](#entity-builder-factory)
+-   [License](#license)
 
 ## Introduction
 
@@ -73,11 +73,11 @@ System.assertEquals('return 1', returnValue);
 
 Imagine the complexity to generate all sObjects and relationships in the above diagram. With ATK we can create them within just one Apex statement. Here, we are generating:
 
-1. *200* accounts with names: `Name-0001, Name-0002, Name-0003...`
-2. Each of the accounts has *2* contacts.
-3. Each of the contacts has *1* opportunity via the OpportunityContactRole.
-4. Also each of the accounts has *2* orders.
-5. Also each of the orders belongs to *1* opportunity from the same account.
+1. _200_ accounts with names: `Name-0001, Name-0002, Name-0003...`
+2. Each of the accounts has _2_ contacts.
+3. Each of the contacts has _1_ opportunity via the OpportunityContactRole.
+4. Also each of the accounts has _2_ orders.
+5. Also each of the orders belongs to _1_ opportunity from the same account.
 
 ```java
 ATK.SaveResult result = ATK.prepare(Account.SObjectType, 200)
@@ -116,23 +116,23 @@ The scripts used to perform benchmark testing are documented under `scripts/apex
 1. No duplicate rules, process builders, and triggers etc.
 2. Debug level is set to DEBUG.
 
-| 1000 * Account | Database.insert | ATK Save | ATK Mock | ATK Mock Perf. |
-| -------------- | --------------- | -------- | -------- | -------------- |
-| CPU Time       | 0               | 0        | 487      | N/A            |
-| Real Time (ms) | 6300            | 6631     | 656      | ~10x faster    |
+| 1000 \* Account | Database.insert | ATK Save | ATK Mock | ATK Mock Perf. |
+| --------------- | --------------- | -------- | -------- | -------------- |
+| CPU Time        | 0               | 0        | 487      | N/A            |
+| Real Time (ms)  | 6300            | 6631     | 656      | ~10x faster    |
 
 ### Demos
 
 Here are demos under the `scripts/apex` folder, they have been successfully run in fresh Salesforce organization with appropriate feature enabled. If not, please try to fix them with FLS, validation rules or duplicate rules etc.
 
-| Subject        | File Path                         | Description                                                  |
-| -------------- | --------------------------------- | ------------------------------------------------------------ |
-| Campaign       | `scripts/apex/demo-campaign.apex` | How to genereate campaigns with hierarchy relationships. `ATK.EntityBuilder` is implemented to reuse the field population logic. |
-| Consumer Goods Cloud | `scripts/apex/demo-consumer.apex` | Create meaningful sObject relationship distributions in one ATK statement. |
-| Sales          | `scripts/apex/demo-sales.apex`    | You've already seen it in the above paragraph.               |
-| Products          | `scripts/apex/demo-products.apex`    | How to generate PriceBook2, PriceBookEntry, Product2, ProductCategory, Catalog.                |
-| Cases          | `scripts/apex/demo-cases.apex`    | How to generate Accounts, Contacts and Cases.                |
-| Users          | `scripts/apex/demo-users.apex`    | How to generate community users in one goal.                 |
+| Subject              | File Path                         | Description                                                                                                                      |
+| -------------------- | --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| Campaign             | `scripts/apex/demo-campaign.apex` | How to genereate campaigns with hierarchy relationships. `ATK.EntityBuilder` is implemented to reuse the field population logic. |
+| Consumer Goods Cloud | `scripts/apex/demo-consumer.apex` | Create meaningful sObject relationship distributions in one ATK statement.                                                       |
+| Sales                | `scripts/apex/demo-sales.apex`    | You've already seen it in the above paragraph.                                                                                   |
+| Products             | `scripts/apex/demo-products.apex` | How to generate PriceBook2, PriceBookEntry, Product2, ProductCategory, Catalog.                                                  |
+| Cases                | `scripts/apex/demo-cases.apex`    | How to generate Accounts, Contacts and Cases.                                                                                    |
+| Users                | `scripts/apex/demo-users.apex`    | How to generate community users in one goal.                                                                                     |
 
 ## Relationship
 
@@ -194,9 +194,9 @@ The above ATK statement will give the following distribution patterns, which see
 
 `junctionOf()` can annotate an sObject as the junction of a many-to-many relationship. Its main purpose is to distribute parents of the junction object from one branch to another in a specific order. Note:
 
-- `junctionOf()` must be used directly after [Entity Keywords](#entity-keywords).
-- All parent relationships of the junction sObject used in the statement must be listed in the `junctionOf()` keyword.
-- Different defining order of the junction relationships will result in different distributions.
+-   `junctionOf()` must be used directly after [Entity Keywords](#entity-keywords).
+-   All parent relationships of the junction sObject used in the statement must be listed in the `junctionOf()` keyword.
+-   Different defining order of the junction relationships will result in different distributions.
 
 ```java
 ATK.prepare(Opportunity.SObjectType, 10)
@@ -217,42 +217,42 @@ ATK.prepare(Opportunity.SObjectType, 10)
 | Opportunity 0002 | Contact 0004 | Decision Maker |
 | ...              | ...          | ....           |
 
-| Junction Keyword API                                         | Description                                                  |
-| :----------------------------------------------------------- | ------------------------------------------------------------ |
-| junctionOf(SObjectField *parentId1*, SObjectField *parentId2*); | Annotate an entity is a junction of the listed parent relationships. |
-| junctionOf(SObjectField *parentId1*, SObjectField *parentId2*, SObjectField *parentId3*); | Annotate an entity is a junction of the listed parent relationships. |
-| junctionOf(SObjectField *parentId1*, SObjectField *parentId2*, SObjectField *parentId3*, SObjectField *parentId4*); | Annotate an entity is a junction of the listed parent relationships. |
-| junctionOf(SObjectField *parentId1*, SObjectField *parentId2*, SObjectField *parentId3*, SObjectField *parentId4*, SObjectField *parentId5*); | Annotate an entity is a junction of the listed parent relationships. |
-| junctionOf(List\<SObjectField\> *parentIds*);                | Annotate an entity is a junction of the listed parent relationships. |
+| Junction Keyword API                                                                                                                          | Description                                                          |
+| :-------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| junctionOf(SObjectField _parentId1_, SObjectField _parentId2_);                                                                               | Annotate an entity is a junction of the listed parent relationships. |
+| junctionOf(SObjectField _parentId1_, SObjectField _parentId2_, SObjectField _parentId3_);                                                     | Annotate an entity is a junction of the listed parent relationships. |
+| junctionOf(SObjectField _parentId1_, SObjectField _parentId2_, SObjectField _parentId3_, SObjectField _parentId4_);                           | Annotate an entity is a junction of the listed parent relationships. |
+| junctionOf(SObjectField _parentId1_, SObjectField _parentId2_, SObjectField _parentId3_, SObjectField _parentId4_, SObjectField _parentId5_); | Annotate an entity is a junction of the listed parent relationships. |
+| junctionOf(List\<SObjectField\> _parentIds_);                                                                                                 | Annotate an entity is a junction of the listed parent relationships. |
 
 ## &#128229;Save
 
 ### Command API
 
-There are three commands to create the sObjects, in database, in memory, or in mock state.
+There are three commands to create the sObjects, in database, in memory, or in mock istate.
 
-| Method API                              | Description                                                  |
-| --------------------------------------- | ------------------------------------------------------------ |
-| ATK.SaveResult save()                   | Actual DMLs will be performed to insert/update sObjects into Salesforce. |
-| ATK.SaveResult save(Boolean *doInsert*) | If `doInsert` is `false`, no actual DMLs will be performed, just in-memory generated SObjects will be returned. Only writable fields can be populated. |
+| Method API                              | Description                                                                                                                                                                             |
+| --------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| ATK.SaveResult save()                   | Actual DMLs will be performed to insert/update sObjects into Salesforce.                                                                                                                |
+| ATK.SaveResult save(Boolean _doInsert_) | If `doInsert` is `false`, no actual DMLs will be performed, just in-memory generated SObjects will be returned. Only writable fields can be populated.                                  |
 | ATK.SaveResult mock()                   | No actual DMLs will be performed, but sObjects will be returned in SaveResult as if they are newly retrieved by SOQL with fake Ids. Both writable and read-only fields can be populated |
 
 ### Save Result API
 
 Use `ATK.SaveResult` to retrieve sObjects generated from the ATK statement.
 
-| Method                                                      | Description                                                  |
-| ----------------------------------------------------------- | ------------------------------------------------------------ |
-| List<SObject> get(SObjectType *objectType*)                 | Get the sObjects generated from the first `SObjectType` defined in ATK statement. |
-| List<SObject> get(SObjectType *objectType*, Integer *nth*); | Get the sObjects generated from the nth `SObjectType` defined in ATK statement, such as in the Account Hierarchy. |
-| List<SObject> getAll(SObjectType *objectType*)              | Get all sObjects generated from `SObjectType` defined in ATK statement. |
+| Method                                                      | Description                                                                                                       |
+| ----------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| List<SObject> get(SObjectType _objectType_)                 | Get the sObjects generated from the first `SObjectType` defined in ATK statement.                                 |
+| List<SObject> get(SObjectType _objectType_, Integer _nth_); | Get the sObjects generated from the nth `SObjectType` defined in ATK statement, such as in the Account Hierarchy. |
+| List<SObject> getAll(SObjectType _objectType_)              | Get all sObjects generated from `SObjectType` defined in ATK statement.                                           |
 
 ## &#9749; Mock
 
 The followings are supported, when generate sObjects with `mock()` command:
 
 1. Assign extremely large fake IDs to the generated sObjects.
-2. Assign values to read-only fields, such as *formula fields*, *rollup summary fields*, and *system fields*.
+2. Assign values to read-only fields, such as _formula fields_, _rollup summary fields_, and _system fields_.
 3. Assign one level children relationship and multiple level parent relationships.
 
 ### Mock with Children
@@ -263,9 +263,6 @@ The followings are supported, when generate sObjects with `mock()` command:
   <b>Note</b>: As the diagram illustrated the direct children D and E of B can not reference back to B. The decision is made to prevent a <a href="https://trailblazer.salesforce.com/issues_view?id=a1p3A000001Gv4KQAS">Known Salesforce Issue</a> reported since winter 19. Here we are trying to avoid forming circular references. But D and E can still have other parent relationships, such as D to C. <br><br>
   All the nodes in green are reachable from node B. The diagram can be interpreted as the following SOQL statement:
 </p>
-
-
-
 
 ```SQL
 SELECT Id, A__r.Id, (SELECT Id FROM E__r), (SELECT Id, C__r.Id FROM D__r) FROM B__c
@@ -321,10 +318,10 @@ ATK.SaveResult result = ATK.prepare(Account.SObjectType, 9)
     .mock()
 ```
 
-| Keyword API                                                 | Description                                                  |
-| ----------------------------------------------------------- | ------------------------------------------------------------ |
-| Id fakeId(Schema.SObjectType *objectType*)                  | Return self incrementing fake IDs. They will start over from each transaction, which means they are unique within each transaction. By default Ids will start from `ATK.fakeId(Account.SObjectType, 1)`. |
-| Id fakeId(Schema.SObjectType *objectType*, Integer *index*) | Return the fake ID specified an index explicitly.            |
+| Keyword API                                                 | Description                                                                                                                                                                                              |
+| ----------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Id fakeId(Schema.SObjectType _objectType_)                  | Return self incrementing fake IDs. They will start over from each transaction, which means they are unique within each transaction. By default Ids will start from `ATK.fakeId(Account.SObjectType, 1)`. |
+| Id fakeId(Schema.SObjectType _objectType_, Integer _index_) | Return the fake ID specified an index explicitly.                                                                                                                                                        |
 
 ## Entity Keywords
 
@@ -353,11 +350,11 @@ ATK.prepare(A__c.SObjectType, 10)
     .save();
 ```
 
-| Keyword API                                                  | Description                                                  |
-| ------------------------------------------------------------ | ------------------------------------------------------------ |
-| prepare(SObjectType *objectType*, Integer *size*)            | Always start chain with `prepare()` keyword. It is the root sObject to start relationship with. |
-| withParents(SObjectType *objectType*, SObjectField *referenceField*, Integer *size*) | Establish many to one relationship between the previous working on sObject and the current sObject. |
-| withChildren(SObjectType *objectType*, SObjectField *referenceField*, Integer *size*) | Establish one to many relationship between the previous working on sObject and the current sObject. |
+| Keyword API                                                                           | Description                                                                                         |
+| ------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| prepare(SObjectType _objectType_, Integer _size_)                                     | Always start chain with `prepare()` keyword. It is the root sObject to start relationship with.     |
+| withParents(SObjectType _objectType_, SObjectField _referenceField_, Integer _size_)  | Establish many to one relationship between the previous working on sObject and the current sObject. |
+| withChildren(SObjectType _objectType_, SObjectField _referenceField_, Integer _size_) | Establish one to many relationship between the previous working on sObject and the current sObject. |
 
 ### Entity Updating Keywords
 
@@ -380,25 +377,22 @@ ATK.prepare(A__c.SObjectType, [SELECT Id FROM A__c]) // Select existing sObjects
     .save();
 ```
 
-| Keyword API                                                  | Description                                                  |
-| ------------------------------------------------------------ | ------------------------------------------------------------ |
-| prepare(SObjectType *objectType*, List\<SObject\> *objects*) | Always start chain with `prepare()` keyword. It is the root sObject to start relationship with. |
-| withParents(SObjectType *objectType*, SObjectField *referenceField*, List\<SObject\> *objects*) | Establish many to one relationship between the previous working on sObject and the current sObject. |
-| withChildren(SObjectType *objectType*, SObjectField *referenceField*, List\<SObject\> *objects*) | Establish one to many relationship between the previous working on sObject and the current sObject. |
+| Keyword API                                                                                      | Description                                                                                         |
+| ------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------- |
+| prepare(SObjectType _objectType_, List\<SObject\> _objects_)                                     | Always start chain with `prepare()` keyword. It is the root sObject to start relationship with.     |
+| withParents(SObjectType _objectType_, SObjectField _referenceField_, List\<SObject\> _objects_)  | Establish many to one relationship between the previous working on sObject and the current sObject. |
+| withChildren(SObjectType _objectType_, SObjectField _referenceField_, List\<SObject\> _objects_) | Establish one to many relationship between the previous working on sObject and the current sObject. |
 
 ### Entity Reference Keywords
 
 All the following APIs don't have a third parameter of size or list at the end, which means the relationship will look back to reference the previously created sObjects.
 
-| Keyword API                                                  | Description                                                  |
-| ------------------------------------------------------------ | ------------------------------------------------------------ |
-| withParents(SObjectType *objectType*, SObjectField *referenceField*) | Establish many to one relationship between the previous working on sObject and the current sObject. |
-| withChildren(SObjectType *objectType*, SObjectField *referenceField*) | Establish one to many relationship between the previous working on sObject and the current sObject. |
-
+| Keyword API                                                           | Description                                                                                         |
+| --------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| withParents(SObjectType _objectType_, SObjectField _referenceField_)  | Establish many to one relationship between the previous working on sObject and the current sObject. |
+| withChildren(SObjectType _objectType_, SObjectField _referenceField_) | Establish one to many relationship between the previous working on sObject and the current sObject. |
 
 **Note**: Once these APIs are used, please make sure there are sObjects with the same type created previously, and only created once.
-
-
 
 ## Field Keywords
 
@@ -417,22 +411,23 @@ ATK.prepare(A__c.SObjectType, 10)
 ```
 
 ### Basic Field Keywords
-| Keyword API                                                  | Description                                                  |
-| ------------------------------------------------------------ | ------------------------------------------------------------ |
-| index(String *format*)                                       | Formatted string with `{0000}`, can recognize left padding. i.e. `Name-{0000}` will generate Name-0001, Name-0002, Name-0003 etc. |
-| **Repeat Family**                                            |                                                              |
-| repeat(Object *value*)                                       | Repeat with a single fixed value.                            |
-| repeat(Object *value1*, Object *value2*)                     | Repeat with the provided values alternatively.               |
-| repeat(Object *value1*, Object *value2*, Object *value3*)    | Repeat with the provided values alternatively.               |
-| repeat(Object *value1*, Object *value2*, Object *value3*, Object *value4*) | Repeat with the provided values alternatively.               |
-| repeat(Object *value1*, Object *value2*, Object *value3*, Object *value4*, Object *value5*) | Repeat with the provided values alternatively.               |
-| repeat(List\<Object\> *values*)                              | Repeat with the provided values alternatively.**             |
-| **RepeatX Family**                                           |                                                              |
-| repeatX(Object *value1*, Integer *size1*, Object *value2*, Integer *size2*) | repeat each value by x, y... times in sequence.              |
-| repeatX(Object *value1*, Integer *size1*, Object *value2*, Integer *size2*, Object *value3*, Integer *size3*) | repeat each value by x, y... times in sequence.              |
-| repeatX(Object *value1*, Integer *size1*, Object *value2*, Integer *size2*, Object *value3*, Integer *size3*, Object *value4*, Integer *size4*) | repeat each value by x, y... times in sequence.              |
-| repeatX(Object *value1*, Integer *size1*, Object *value2*, Integer *size2*, Object *value3*, Integer *size3*, Object *value4*, Integer *size4*, Object *value5*, Integer *size5*) | repeat each value by x, y... times in sequence.              |
-| repeatX(List\<Object\> *values*, List\<Integer\> *sizes*)    | repeat each value by x, y... times in sequence.              |
+
+| Keyword API                                                                                                                                                                       | Description                                                                                                                       |
+| --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| index(String _format_)                                                                                                                                                            | Formatted string with `{0000}`, can recognize left padding. i.e. `Name-{0000}` will generate Name-0001, Name-0002, Name-0003 etc. |
+| **Repeat Family**                                                                                                                                                                 |                                                                                                                                   |
+| repeat(Object _value_)                                                                                                                                                            | Repeat with a single fixed value.                                                                                                 |
+| repeat(Object _value1_, Object _value2_)                                                                                                                                          | Repeat with the provided values alternatively.                                                                                    |
+| repeat(Object _value1_, Object _value2_, Object _value3_)                                                                                                                         | Repeat with the provided values alternatively.                                                                                    |
+| repeat(Object _value1_, Object _value2_, Object _value3_, Object _value4_)                                                                                                        | Repeat with the provided values alternatively.                                                                                    |
+| repeat(Object _value1_, Object _value2_, Object _value3_, Object _value4_, Object _value5_)                                                                                       | Repeat with the provided values alternatively.                                                                                    |
+| repeat(List\<Object\> _values_)                                                                                                                                                   | Repeat with the provided values alternatively.\*\*                                                                                |
+| **RepeatX Family**                                                                                                                                                                |                                                                                                                                   |
+| repeatX(Object _value1_, Integer _size1_, Object _value2_, Integer _size2_)                                                                                                       | repeat each value by x, y... times in sequence.                                                                                   |
+| repeatX(Object _value1_, Integer _size1_, Object _value2_, Integer _size2_, Object _value3_, Integer _size3_)                                                                     | repeat each value by x, y... times in sequence.                                                                                   |
+| repeatX(Object _value1_, Integer _size1_, Object _value2_, Integer _size2_, Object _value3_, Integer _size3_, Object _value4_, Integer _size4_)                                   | repeat each value by x, y... times in sequence.                                                                                   |
+| repeatX(Object _value1_, Integer _size1_, Object _value2_, Integer _size2_, Object _value3_, Integer _size3_, Object _value4_, Integer _size4_, Object _value5_, Integer _size5_) | repeat each value by x, y... times in sequence.                                                                                   |
+| repeatX(List\<Object\> _values_, List\<Integer\> _sizes_)                                                                                                                         | repeat each value by x, y... times in sequence.                                                                                   |
 
 ### Arithmetic Field Keywords
 
@@ -440,23 +435,23 @@ These keywords will increase/decrease the `init` values by the provided steps.
 
 #### Number Arithmetic
 
-| Keyword API                                | Description                                    |
-| ------------------------------------------ | ---------------------------------------------- |
-| add(Decimal *init*, Decimal *step*)        | Must be applied to a number type field.        |
-| substract(Decimal *init*, Decimal *step*)  | Must be applied to a number type field.        |
-| divide(Decimal *init*, Decimal *factor*)   | Must be applied to a number type field.        |
-| multiply(Decimal *init*, Decimal *factor*) | Must be applied to a number type field.        |
+| Keyword API                                | Description                             |
+| ------------------------------------------ | --------------------------------------- |
+| add(Decimal _init_, Decimal _step_)        | Must be applied to a number type field. |
+| substract(Decimal _init_, Decimal _step_)  | Must be applied to a number type field. |
+| divide(Decimal _init_, Decimal _factor_)   | Must be applied to a number type field. |
+| multiply(Decimal _init_, Decimal _factor_) | Must be applied to a number type field. |
 
 #### Date/Time Arithmetic
 
-| Keyword API                                | Description                                    |
-| ------------------------------------------ | ---------------------------------------------- |
-| addYears(Object *init*, Integer *step*)    | Must be applied to a Datetime/Date type field. |
-| addMonths(Object *init*, Integer *step*)   | Must be applied to a Datetime/Date type field. |
-| addDays(Object *init*, Integer *step*)     | Must be applied to a Datetime/Date type field. |
-| addHours(Object *init*, Integer *step*)    | Must be applied to a Datetime/Time type field. |
-| addMinutes(Object *init*, Integer *step*)  | Must be applied to a Datetime/Time type field. |
-| addSeconds(Object *init*, Integer *step*)  | Must be applied to a Datetime/Time type field. |
+| Keyword API                               | Description                                    |
+| ----------------------------------------- | ---------------------------------------------- |
+| addYears(Object _init_, Integer _step_)   | Must be applied to a Datetime/Date type field. |
+| addMonths(Object _init_, Integer _step_)  | Must be applied to a Datetime/Date type field. |
+| addDays(Object _init_, Integer _step_)    | Must be applied to a Datetime/Date type field. |
+| addHours(Object _init_, Integer _step_)   | Must be applied to a Datetime/Time type field. |
+| addMinutes(Object _init_, Integer _step_) | Must be applied to a Datetime/Time type field. |
+| addSeconds(Object _init_, Integer _step_) | Must be applied to a Datetime/Time type field. |
 
 ### Lookup Field Keywords
 
@@ -471,14 +466,14 @@ ATK.prepare(User.SObjectType, 10)
     .permissionSet('Survey_Creator');  // must be applied to User SObject
 ```
 
-| Keyword API                                                  | Description                                                  |
-| ------------------------------------------------------------ | ------------------------------------------------------------ |
-| recordType(String *name*)                                    | Assign record type ID by developer name, the name is case sensitive due the `getRecordTypeInfosByDeveloperName()` API. |
-| profile(String *name*)                                       | Assign profile ID by profile name.                           |
-| permissionSet(String *name*)                                 | Assign the permission set to users by developer name.        |
-| permissionSet(String name1, String *name2*)                  | Assign all the permission sets to users by developer names.  |
-| permissionSet(String *name1*, String *name2*, String *name3*) | Assign all the permission sets to users by developer names.  |
-| permissionSet(List\<String\> *names*)                        | Assign all the permission sets to users by developer names.  |
+| Keyword API                                                   | Description                                                                                                            |
+| ------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| recordType(String _name_)                                     | Assign record type ID by developer name, the name is case sensitive due the `getRecordTypeInfosByDeveloperName()` API. |
+| profile(String _name_)                                        | Assign profile ID by profile name.                                                                                     |
+| permissionSet(String _name_)                                  | Assign the permission set to users by developer name.                                                                  |
+| permissionSet(String name1, String _name2_)                   | Assign all the permission sets to users by developer names.                                                            |
+| permissionSet(String _name1_, String _name2_, String _name3_) | Assign all the permission sets to users by developer names.                                                            |
+| permissionSet(List\<String\> _names_)                         | Assign all the permission sets to users by developer names.                                                            |
 
 ## Entity Builder Factory
 
