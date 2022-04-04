@@ -27,7 +27,6 @@ public with sharing class ATK {
     public static final Answer RETURNS_NULLS = ATKMock.NULL_ANSWERS;
     public static final Answer RETURNS_MOCKS = ATKMock.MOCK_ANSWERS;
     public static final Answer RETURNS_SELF = ATKMock.SELF_ANSWERS;
-    // TODO: add RETURNS_DEEP_STUB
 
     public static Object mock(Type mockType) {
         return ATKMock.progress.createMock(mockType, RETURNS_DEFAULTS);
@@ -126,14 +125,14 @@ public with sharing class ATK {
     }
 
     public interface ThenOf {
-        GreedyShould should();
+        Should should();
         InOrderShould should(InOrder inOrder);
     }
 
     public interface InOrder {
     }
 
-    public interface GreedyShould {
+    public interface Should {
         Object never();
         Object once();
         Object times(Integer n);
