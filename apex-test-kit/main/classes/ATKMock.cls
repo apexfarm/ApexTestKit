@@ -17,10 +17,11 @@
 
 public with sharing class ATKMock {
     public static final MockingProgress progress = new MockingProgress();
+    public static final InvocationFinder INVOCATION_FINDER = new InvocationFinder();
     public static final Answer DEFAULT_ANSWERS = new DefaultAnswer();
     public static final Answer NULL_ANSWERS = new NullAnswer();
-    public static final Answer MOCK_ANSWERS = new MockAnswer();
     public static final Answer SELF_ANSWERS = new SelfAnswer();
+    public static final Answer MOCK_ANSWERS = new MockAnswer(progress);
     private static Map<String, SObjectType> globalDescribe { get; set; }
 
     private static Boolean isSObjectType(Type type) {
@@ -40,8 +41,7 @@ public with sharing class ATKMock {
 
     public class MockHandler implements System.StubProvider {
         public Object handleMethodCall(Object mock, String methodName, Type returnType, List<Type> paramTypes, List<String> paramNames, List<Object> arguments) {
-            Invocation invocation = new Invocation(mock, methodName, returnType, paramTypes, paramNames, arguments);
-            invocation.mockSetting = progress.getMockSetting(invocation.mock);
+            Invocation invocation = new Invocation(progress.getMockSetting(mock), mock, methodName, returnType, paramTypes, paramNames, arguments);
 
             if (progress.isStubbing || progress.isVerifying) {
                 progress.currentInvocation = invocation;
@@ -75,6 +75,7 @@ public with sharing class ATKMock {
                 return progress.container.defaultAnswer(invocation);
             }
 
+            progress.container.addInvocation(invocation);
             return progress.container.answer(invocation);
         }
     }
@@ -88,7 +89,7 @@ public with sharing class ATKMock {
         private MatchableInvocation currentMatchable { get; set; }
         private List<ArgumentMatcher> currentMatchers { get; set; }
         private Invocation currentInvocation { get; set; }
-        private VerificationMode currentVerificationMode { get; set; }
+        private VerificationModeWrapper currentVerificationMode { get; set; }
         private Boolean isStubbing = false;
         private Boolean isVerifying = false;
 
@@ -132,13 +133,26 @@ public with sharing class ATKMock {
             this.stopVerifying();
         }
 
-        private MockSetting getMockSetting(Object mock) {
+        private MockSettings getMockSetting(Object mock) {
             return this.container.mockSettings.get(mock);
         }
 
+        public Object createMock(Type mockType) {
+            return this.createMock(mockType, null, null, null);
+        }
+
         public Object createMock(Type mockType, ATK.Answer defaultAnswer) {
+            return this.createMock(mockType, null, defaultAnswer, null);
+        }
+
+        public Object createMock(Type mockType, ATK.MockSettings settings) {
+            return this.createMock(mockType, ((MockSettings) settings).mockName, ((MockSettings) settings).defaultAnswer, ((MockSettings) settings).isStubOnly);
+        }
+
+        private Object createMock(Type mockType, String name, ATK.Answer defaultAnswer, Boolean isStubOnly) {
             Object mock = Test.createStub(mockType, mockHandler);
-            this.container.addMockSetting(mock, mockType, null, (Answer) defaultAnswer);
+            MockSettings settings = new MockSettings(mock, mockType, name, defaultAnswer, isStubOnly);
+            this.container.addMockSetting(mock, settings);
             return mock;
         }
 
@@ -158,7 +172,7 @@ public with sharing class ATKMock {
 
         public ThenStubbing createThenStub(Object mock) {
             this.startVerifying();
-            ThenStubbing thenStub = new ThenStubbing(mock);
+            ThenStubbing thenStub = new ThenStubbing(mock, this);
             this.currentMatchable = thenStub.invocation;
             this.currentVerificationMode = thenStub.mode;
             return thenStub;
@@ -222,58 +236,61 @@ public with sharing class ATKMock {
     }
 
     public class ThenStubbing implements ATK.ThenOf, ATK.Should, ATK.InOrderShould {
-        MatchableInvocation invocation { get; set; }
-        Object mock { get; set; }
-        VerificationMode mode { get; set; }
+        private MatchableInvocation invocation { get; set; }
+        private Object mock { get; set; }
+        private VerificationModeWrapper mode { get; set; }
+        private MockingProgress progress { get; set; }
 
-        ThenStubbing(Object mock) {
+        ThenStubbing(Object mock, MockingProgress progress) {
             this.mock = mock;
+            this.progress = progress;
             this.invocation = new MatchableInvocation();
-            this.mode = new verificationMode();
         }
 
         public ATK.Should should() {
-            this.mode.addMode(new AnyOrderVerificationMode());
+            this.mode = new NoOrderVerificationMode();
+            this.progress.currentVerificationMode = this.mode;
             return this;
         }
 
         public ATK.InOrderShould should(ATK.InOrder inOrder) {
-            this.mode.addMode(new InOrderVerificationMode((InOrder) inOrder));
+            this.mode = new InOrderVerificationMode((InOrder) inOrder);
+            this.progress.currentVerificationMode = this.mode;
             return this;
         }
 
         public Object never() {
-            this.mode.addMode(new TimesVerificationMode(0));
+            this.mode.wrap(new TimesVerificationMode(0));
             return this.mock;
         }
 
         public Object once() {
-            this.mode.addMode(new TimesVerificationMode(1));
+            this.mode.wrap(new TimesVerificationMode(1));
             return this.mock;
         }
 
         public Object times(Integer times) {
-            this.mode.addMode(new TimesVerificationMode(times));
+            this.mode.wrap(new TimesVerificationMode(times));
             return this.mock;
         }
 
         public Object atLeast(Integer times) {
-            this.mode.addMode(new AtLeastVerificationMode(times));
+            this.mode.wrap(new AtLeastVerificationMode(times));
             return this.mock;
         }
 
         public Object atLeastOnce() {
-            this.mode.addMode(new AtLeastVerificationMode(1));
+            this.mode.wrap(new AtLeastVerificationMode(1));
             return this.mock;
         }
 
         public Object atMost(Integer times) {
-            this.mode.addMode(new AtMostVerificationMode(times));
+            this.mode.wrap(new AtMostVerificationMode(times));
             return this.mock;
         }
 
         public Object atMostOnce() {
-            this.mode.addMode(new AtMostVerificationMode(1));
+            this.mode.wrap(new AtMostVerificationMode(1));
             return this.mock;
         }
 
@@ -285,6 +302,7 @@ public with sharing class ATKMock {
 
         // none-greedy
         public Object calls(Integer n) {
+            this.mode.wrap(new CallsVerificationMode(n));
             return this.mock;
         }
     }
@@ -293,45 +311,68 @@ public with sharing class ATKMock {
     // #region Invocations
     // ===================
 
-    private class MockSetting {
+    public class MockSettings implements ATK.MockSettings {
         private Object mock { get; set; }
         private Type mockType { get; set; }
         private String mockName { get; set; }
         private ATK.Answer defaultAnswer { get; set; }
+        private Boolean isStubOnly { get; set; }
 
-        private MockSetting(Object mock, Type mockType, String mockName, ATK.Answer defaultAnswer) {
+        public MockSettings() {
+            this.defaultAnswer = DEFAULT_ANSWERS;
+            this.isStubOnly = false;
+        }
+
+        private MockSettings(Object mock, Type mockType, string mockName, ATK.Answer defaultAnswer, Boolean isStubOnly) {
             this.mock = mock;
             this.mockType = mockType;
             this.mockName = String.isBlank(mockName) ? mockType.getName() : mockName;
-            this.defaultAnswer = defaultAnswer;
+            this.defaultAnswer = defaultAnswer == null ? DEFAULT_ANSWERS : defaultAnswer;
+            this.isStubOnly = isStubOnly == null ? false : isStubOnly;
+        }
+
+        public MockSettings name(String name) {
+            this.mockName = name;
+            return this;
+        }
+
+        public MockSettings defaultAnswer(ATK.Answer answer) {
+            this.defaultAnswer = answer;
+            return this;
+        }
+
+        public MockSettings stubOnly() {
+            this.isStubOnly = true;
+            return this;
         }
     }
 
     private class InvocationContainer implements Answer {
         private List<Invocation> invocations { get; set; }
         private List<StubbedInvocation> stubbedInvocations { get; set; }
-        private Map<Object, MockSetting> mockSettings { get; set; }
+        private Map<Object, MockSettings> mockSettings { get; set; }
 
         private InvocationContainer() {
             this.invocations = new List<Invocation>();
             this.stubbedInvocations = new List<StubbedInvocation>();
-            this.mockSettings = new Map<Object, MockSetting>();
+            this.mockSettings = new Map<Object, MockSettings>();
         }
-        private void addMockSetting(Object mock, Type mockType, String mockName, ATK.Answer defaultAnswer) {
-            this.mockSettings.put(mock, new MockSetting(mock, mockType, mockName, defaultAnswer));
+
+        private void addMockSetting(Object mock, MockSettings settings) {
+            this.mockSettings.put(mock, settings);
         }
 
         private void addInvocation(Invocation invocation) {
             if (invocation instanceof StubbedInvocation) {
                 this.stubbedInvocations.add((StubbedInvocation) invocation);
             } else {
-                this.invocations.add(invocation);
+                if (!this.isStubOnly(invocation)) {
+                    this.invocations.add(invocation);
+                }
             }
         }
 
         public Object answer(ATK.Invocation candidate) {
-            this.addInvocation((Invocation) candidate);
-
             for (Integer i = this.stubbedInvocations.size(); i > 0; i--) {
                 StubbedInvocation stub = this.stubbedInvocations[i - 1];
                 if (stub.matches((Invocation) candidate)) {
@@ -344,6 +385,10 @@ public with sharing class ATKMock {
 
         public Object defaultAnswer(Invocation candidate) {
             return this.mockSettings.get(candidate.mock).defaultAnswer.answer(candidate);
+        }
+
+        private Boolean isStubOnly(Invocation invocation) {
+            return this.mockSettings.get(invocation.mock).isStubOnly;
         }
     }
 
@@ -375,14 +420,14 @@ public with sharing class ATKMock {
             return true;
         }
 
-        public override String toString() {
+        public override virtual String toString() {
             List<String> matcherNames = new List<String>();
 
             for (ArgumentMatcher matcher : matchers) {
                 matcherNames.add(String.valueOf(matcher));
             }
 
-            return this.method.name + '(' + String.join(matcherNames, ', ') + ')';
+            return this.mockName + '.' + this.method.name + '(' + String.join(matcherNames, ', ') + ')';
         }
     }
 
@@ -398,10 +443,10 @@ public with sharing class ATKMock {
 
         public Object answer(ATK.Invocation invocation) {
             if (this.hasNextAnswer()) {
-                if (!this.isConsecutive) {
-                    return this.answers[0].answer(invocation);
-                } else {
+                if (this.isConsecutive) {
                     return this.answers[this.answeredIndex++].answer(invocation);
+                } else {
+                    return this.answers[this.answeredIndex].answer(invocation);
                 }
             }
             return null;
@@ -417,7 +462,7 @@ public with sharing class ATKMock {
     }
 
     private virtual class Invocation extends ATK.Invocation {
-        private MockSetting mockSetting { get; set; }
+        private MockSettings mockSetting { get; set; }
 
         private String mockName {
             get {
@@ -440,30 +485,21 @@ public with sharing class ATKMock {
         private Invocation() {
         }
 
-        private Invocation(Object mock, String methodName, Type returnType, List<Type> paramTypes, List<String> paramNames, List<Object> arguments) {
+        private Invocation(MockSettings mockSetting, Object mock, String methodName, Type returnType, List<Type> paramTypes, List<String> paramNames, List<Object> arguments) {
+            this.mockSetting = mockSetting;
             this.mock = mock;
             this.method = new Method(methodName, returnType, paramTypes, paramNames);
             this.arguments = arguments;
         }
 
-        private void debug() {
-            // The following debug statements show an example of logging
-            // the invocation of a mocked method.
+        public override virtual String toString() {
+            List<String> args = new List<String>();
 
-            // You can use the method name and return type to determine which method was called.
-            System.debug('Name of stubbed method: ' + this.method.name);
-            System.debug('Return type of stubbed method: ' + this.method.returnType.getName());
-
-            // You can also use the parameter names and types to determine which method
-            // was called.
-            for (integer i = 0; i < this.method.paramNames.size(); i++) {
-                System.debug('parameter name: ' + this.method.paramNames.get(i));
-                System.debug('  parameter type: ' + this.method.paramTypes.get(i).getName());
+            for (Object arg : this.arguments) {
+                args.add(String.valueOf(arg));
             }
 
-            // This shows the actual parameter values passed into the stubbed method at runtime.
-            System.debug('number of parameters passed into the mocked call: ' + this.arguments.size());
-            System.debug('parameter(s) sent into the mocked call: ' + this.arguments);
+            return this.mockName + '.' + this.method.name + '(' + String.join(args, ', ') + ')';
         }
     }
 
@@ -585,6 +621,12 @@ public with sharing class ATKMock {
     }
 
     private class MockAnswer implements Answer {
+        private MockingProgress progress { get; set; }
+
+        private MockAnswer(MockingProgress progress) {
+            this.progress = progress;
+        }
+
         public Object answer(ATK.Invocation invocation) {
             Object defaultAnswer = DEFAULT_ANSWERS.answer(invocation);
             if (defaultAnswer != null) {
@@ -592,17 +634,17 @@ public with sharing class ATKMock {
             }
 
             try {
-                if (progress.isStubbing || progress.isVerifying) {
+                if (this.progress.isStubbing || this.progress.isVerifying) {
                     return null;
                 }
-                return progress.createMock(invocation.method.returnType, this);
+                return this.progress.createMock(invocation.method.returnType, this);
             } catch (Exception ex) {
             }
             return null;
         }
     }
 
-    // TODO: add RETURNS_DEEP_STUBS
+    // TODO: support RETURNS_DEEP_STUBS
 
     // #endregion
     // ===============
@@ -611,7 +653,158 @@ public with sharing class ATKMock {
     // #region Verificatoin
     //=====================
 
-    private interface InOrderContext {
+    public interface VerificationMode {
+        void verify(List<Invocation> occurrences, MatchableInvocation invocation, InOrderContext context);
+    }
+
+    public class CallsVerificationMode implements VerificationMode {
+        Integer times { get; set; }
+
+        CallsVerificationMode(Integer times) {
+            this.times = (Integer) validateNotNull(times);
+        }
+
+        public void verify(List<Invocation> occurrences, MatchableInvocation invocation, InOrderContext context) {
+            if (occurrences.size() < this.times) {
+                throw new ATK.VerificationException(
+                    String.format('Expected "{0}" to be called {1} time(s). But has been called {2} time(s).', new List<Object>{ invocation, this.times, occurrences })
+                );
+            } else {
+                for (Integer i = 0; i < this.times; i++) {
+                    context.markVerified(occurrences[i]);
+                }
+            }
+        }
+    }
+
+    public class TimesVerificationMode implements VerificationMode {
+        Integer times { get; set; }
+
+        TimesVerificationMode(Integer times) {
+            this.times = (Integer) validateNotNull(times);
+        }
+
+        public void verify(List<Invocation> occurrences, MatchableInvocation invocation, InOrderContext context) {
+            if (occurrences.size() != this.times) {
+                throw new ATK.VerificationException(
+                    String.format('Expected "{0}" to be called {1} time(s). But has been called {2} time(s).', new List<Object>{ invocation, this.times, occurrences.size() })
+                );
+            } else {
+                for (Invocation occurrence : occurrences) {
+                    context.markVerified(occurrence);
+                }
+            }
+        }
+    }
+
+    public class AtLeastVerificationMode implements VerificationMode {
+        Integer times { get; set; }
+
+        AtLeastVerificationMode(Integer times) {
+            this.times = (Integer) validateNotNull(times);
+        }
+
+        public void verify(List<Invocation> occurrences, MatchableInvocation invocation, InOrderContext context) {
+            if (occurrences.size() < this.times) {
+                throw new ATK.VerificationException(
+                    String.format('Expected "{0}" to be called at least {1} time(s). But has been called {2} time(s).', new List<Object>{ invocation, this.times, occurrences.size() })
+                );
+            }
+        }
+    }
+
+    public class AtMostVerificationMode implements VerificationMode {
+        Integer times { get; set; }
+
+        AtMostVerificationMode(Integer times) {
+            this.times = (Integer) validateNotNull(times);
+        }
+
+        public void verify(List<Invocation> occurrences, MatchableInvocation invocation, InOrderContext context) {
+            if (occurrences.size() > this.times) {
+                throw new ATK.VerificationException(
+                    String.format('Expected "{0}" to be called at most {1} time(s). But has been called {2} time(s).', new List<Object>{ invocation, this.times, occurrences.size() })
+                );
+            }
+        }
+    }
+
+    public abstract class VerificationModeWrapper implements VerificationMode {
+        VerificationMode wrappedMode { get; set; }
+
+        public void wrap(verificationMode mode) {
+            this.wrappedMode = mode;
+        }
+
+        public virtual void verify(List<Invocation> occurrences, MatchableInvocation invocation, InOrderContext context) {
+            if (this.wrappedMode != null) {
+                this.wrappedMode.verify(occurrences, invocation, context);
+            }
+        }
+
+        protected abstract void verify(InvocationContainer container, MatchableInvocation invocation);
+    }
+
+    public class NoOrderVerificationMode extends VerificationModeWrapper {
+        public override void verify(InvocationContainer container, MatchableInvocation invocation) {
+            List<Invocation> occurrences = INVOCATION_FINDER.findMatchingChuck(container.invocations, invocation);
+            this.verify(occurrences, invocation, new NoOrder());
+        }
+    }
+
+    public class InOrderVerificationMode extends VerificationModeWrapper {
+        InOrder inOrder { get; set; }
+
+        InOrderVerificationMode(InOrder inOrder) {
+            this.inOrder = inOrder;
+        }
+
+        public override void verify(InvocationContainer container, MatchableInvocation invocation) {
+            List<Invocation> invocations = INVOCATION_FINDER.findUnverified(container.invocations, this.inOrder);
+            List<Invocation> occurrences = INVOCATION_FINDER.findFirstMatchingChuck(invocations, invocation);
+            this.verify(occurrences, invocation, inOrder);
+        }
+    }
+
+    public class InvocationFinder {
+        private List<Invocation> findMatchingChuck(List<Invocation> candidates, MatchableInvocation invocation) {
+            List<Invocation> occurrences = new List<Invocation>();
+            for (Invocation candidate : candidates) {
+                if (invocation.matches(candidate)) {
+                    occurrences.add(invocation);
+                }
+            }
+            return occurrences;
+        }
+
+        private List<Invocation> findFirstMatchingChuck(List<Invocation> candidates, MatchableInvocation invocation) {
+            List<Invocation> occurrences = new List<Invocation>();
+            for (Invocation candidate : candidates) {
+                if (invocation.matches(candidate)) {
+                    occurrences.add(candidate);
+                } else {
+                    break;
+                }
+            }
+            return occurrences;
+        }
+
+        private List<Invocation> findUnverified(List<Invocation> candidates, InOrder inOrder) {
+            List<Invocation> occurrences = new List<Invocation>();
+            for (Invocation candidate : candidates) {
+                if (inOrder.contains(candidate.mock)) {
+                    if (inOrder.isVerified(candidate)) {
+                        occurrences.clear();
+                    } else {
+                        occurrences.add(candidate);
+                    }
+                }
+            }
+            return occurrences;
+        }
+    }
+
+    public interface InOrderContext {
         Boolean isVerified(Invocation invocation);
         void markVerified(Invocation invocation);
     }
@@ -633,118 +826,15 @@ public with sharing class ATKMock {
     }
 
     public class InOrder extends NoOrder implements ATK.InOrder, InOrderContext {
-        List<Object> mocks { get; set; }
+        Set<Object> mocks { get; set; }
 
         InOrder(List<Object> mocks) {
             super();
-            this.mocks = mocks;
-        }
-    }
-
-    public virtual class VerificationMode {
-        VerificationMode innerMode { get; set; }
-
-        public void addMode(verificationMode mode) {
-            if (this.innerMode == null) {
-                this.innerMode = mode;
-            } else {
-                this.innerMode.addMode(mode);
-            }
+            this.mocks = new Set<Object>(mocks);
         }
 
-        public virtual void verify(InvocationContainer container, MatchableInvocation invocation) {
-            List<Invocation> occurrences = this.findMatchingChuck(container, invocation);
-            this.verify(occurrences.size(), invocation);
-        }
-
-        public virtual void verify(Integer occurrences, MatchableInvocation invocation) {
-            if (this.innerMode != null) {
-                this.innerMode.verify(occurrences, invocation);
-            }
-        }
-
-        protected virtual List<Invocation> findMatchingChuck(InvocationContainer container, MatchableInvocation invocation) {
-            if (this.innerMode != null) {
-                return this.innerMode.findMatchingChuck(container, invocation);
-            }
-            return new List<Invocation>();
-        }
-    }
-
-    public class AnyOrderVerificationMode extends VerificationMode {
-        protected override List<Invocation> findMatchingChuck(InvocationContainer container, MatchableInvocation invocation) {
-            List<Invocation> occurrences = new List<Invocation>();
-            for (Invocation candidate : container.invocations) {
-                if (invocation.matches(candidate)) {
-                    occurrences.add(invocation);
-                }
-            }
-            return occurrences;
-        }
-    }
-
-    public class InOrderVerificationMode extends VerificationMode {
-        InOrder inOrder { get; set; }
-
-        InOrderVerificationMode(InOrder inOrder) {
-            this.inOrder = inOrder;
-        }
-
-        public override void verify(InvocationContainer container, MatchableInvocation invocation) {
-            // List<Invocation> unverifiedInvocations = this.removeVerified(container.invocations, this.inOrder);
-            // List<List<Invocation>> invocations = this.findMatchingChuck(unverifiedInvocations, invocation);
-            // this.verifyInOrder();
-        }
-    }
-
-    public class TimesVerificationMode extends VerificationMode {
-        Integer times { get; set; }
-
-        TimesVerificationMode(Integer times) {
-            this.times = (Integer) validateNotNull(times);
-        }
-
-        public override void verify(Integer occurrences, MatchableInvocation invocation) {
-            if (occurrences != this.times) {
-                throw new ATK.VerificationException(
-                    String.format('Expected "{0}.{1}" to be called {2} time(s). But has been called {3} time(s).', new List<Object>{ invocation.mockName, invocation, this.times, occurrences })
-                );
-            }
-        }
-    }
-
-    public class AtLeastVerificationMode extends VerificationMode {
-        Integer times { get; set; }
-
-        AtLeastVerificationMode(Integer times) {
-            this.times = (Integer) validateNotNull(times);
-        }
-
-        public override void verify(Integer occurrences, MatchableInvocation invocation) {
-            if (occurrences < this.times) {
-                throw new ATK.VerificationException(
-                    String.format(
-                        'Expected "{0}.{1}" to be called at least {2} time(s). But has been called {3} time(s).',
-                        new List<Object>{ invocation.mockName, invocation, this.times, occurrences }
-                    )
-                );
-            }
-        }
-    }
-
-    public class AtMostVerificationMode extends VerificationMode {
-        Integer times { get; set; }
-
-        AtMostVerificationMode(Integer times) {
-            this.times = (Integer) validateNotNull(times);
-        }
-
-        public override void verify(Integer occurrences, MatchableInvocation invocation) {
-            if (occurrences > this.times) {
-                throw new ATK.VerificationException(
-                    String.format('Expected "{0}.{1}" to be called at most {2} time(s). But has been called {3} time(s).', new List<Object>{ invocation.mockName, invocation, this.times, occurrences })
-                );
-            }
+        public Boolean contains(Object mock) {
+            return this.mocks.contains(mock);
         }
     }
 

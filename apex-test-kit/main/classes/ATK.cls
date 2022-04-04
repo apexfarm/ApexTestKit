@@ -25,15 +25,23 @@ public with sharing class ATK {
 
     public static final Answer RETURNS_DEFAULTS = ATKMock.DEFAULT_ANSWERS;
     public static final Answer RETURNS_NULLS = ATKMock.NULL_ANSWERS;
-    public static final Answer RETURNS_MOCKS = ATKMock.MOCK_ANSWERS;
     public static final Answer RETURNS_SELF = ATKMock.SELF_ANSWERS;
+    public static final Answer RETURNS_MOCKS = ATKMock.MOCK_ANSWERS;
 
     public static Object mock(Type mockType) {
-        return ATKMock.progress.createMock(mockType, RETURNS_DEFAULTS);
+        return ATKMock.progress.createMock(mockType);
     }
 
     public static Object mock(Type mockType, Answer defaultAnswer) {
         return ATKMock.progress.createMock(mockType, defaultAnswer);
+    }
+
+    public static Object mock(Type mockType, MockSettings settings) {
+        return ATKMock.progress.createMock(mockType, settings);
+    }
+
+    public static MockSettings withSettings() {
+        return new ATKMock.MockSettings();
     }
 
     public static void startStubbing() {
@@ -92,6 +100,12 @@ public with sharing class ATK {
         return inOrder(new List<Object>{ mock1, mock2, mock3, mock4, mock5 });
     }
 
+    public interface MockSettings {
+        MockSettings name(String name);
+        MockSettings defaultAnswer(Answer answer);
+        MockSettings stubOnly();
+    }
+
     public interface Given {
         Given willReturn(Object value);
         Given willAnswer(Answer answer);
@@ -133,26 +147,26 @@ public with sharing class ATK {
     }
 
     public interface Should {
-        Object never();
-        Object once();
-        Object times(Integer n);
-        Object atLeast(Integer n);
-        Object atLeastOnce();
         void haveNoInteractions();
         void haveNoMoreInteractions();
 
+        Object never();
+        Object once();
+        Object times(Integer n);
+
+        Object atLeast(Integer n);
+        Object atLeastOnce();
         Object atMost(Integer n);
         Object atMostOnce();
     }
 
     public interface InOrderShould {
+        void haveNoInteractions();
+        void haveNoMoreInteractions();
+
         Object never();
         Object once();
         Object times(Integer n);
-        Object atLeast(Integer n);
-        Object atLeastOnce();
-        void haveNoInteractions();
-        void haveNoMoreInteractions();
 
         // none-greedy
         Object calls(Integer n);

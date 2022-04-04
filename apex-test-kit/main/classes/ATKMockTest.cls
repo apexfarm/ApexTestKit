@@ -44,40 +44,45 @@ public with sharing class ATKMockTest {
     @IsTest
     static void test_answers_for_will() {
         ATKMockTest mock = (ATKMockTest) ATK.mock(ATKMockTest.class);
-        ATK.startStubbing();
-        ((ATKMockTest) ATK.willReturn('1').willReturn('2').willAnswer(new CustomAnswer('Three')).willThrow(new MockException()).given(mock)).doWithInteger(ATK.anyInteger());
-        ATK.stopStubbing();
 
-        System.assertEquals('1', mock.doWithInteger(1));
-        System.assertEquals('2', mock.doWithInteger(2));
-        System.assertEquals('Three', mock.doWithInteger(3));
-        MockException thrownExp;
-        try {
-            mock.doWithInteger(4);
-        } catch (MockException ex) {
-            thrownExp = ex;
+        {
+            ATK.startStubbing();
+            ((ATKMockTest) ATK.willReturn('1').willReturn('2').willAnswer(new CustomAnswer('Three')).willThrow(new MockException()).given(mock)).doWithInteger(ATK.anyInteger());
+            ATK.stopStubbing();
+
+            System.assertEquals('1', mock.doWithInteger(1));
+            System.assertEquals('2', mock.doWithInteger(2));
+            System.assertEquals('Three', mock.doWithInteger(3));
+            MockException thrownExp;
+            try {
+                mock.doWithInteger(4);
+            } catch (MockException ex) {
+                thrownExp = ex;
+            }
+            System.assertNotEquals(null, thrownExp);
+            System.assertEquals(null, mock.doWithInteger(5));
+            ((ATKMockTest) ATK.then(mock).should().times(5)).doWithInteger(ATK.anyInteger());
         }
-        System.assertNotEquals(null, thrownExp);
-        System.assertEquals(null, mock.doWithInteger(5));
-        ((ATKMockTest) ATK.then(mock).should().times(5)).doWithInteger(ATK.anyInteger());
 
-        ATK.startStubbing();
-        ((ATKMockTest) ATK.willDoNothing().willReturn('2').willAnswer(new CustomAnswer('Three')).willThrow(new MockException()).given(mock)).doReturnVoid();
-        ATK.stopStubbing();
+        {
+            ATK.startStubbing();
+            ((ATKMockTest) ATK.willDoNothing().willReturn('2').willAnswer(new CustomAnswer('Three')).willThrow(new MockException()).given(mock)).doReturnVoid();
+            ATK.stopStubbing();
 
-        mock.doReturnVoid();
-        mock.doReturnVoid();
-        mock.doReturnVoid();
-        thrownExp = null;
-        try {
             mock.doReturnVoid();
-        } catch (MockException ex) {
-            thrownExp = ex;
-        }
-        System.assertNotEquals(null, thrownExp);
-        mock.doReturnVoid();
+            mock.doReturnVoid();
+            mock.doReturnVoid();
+            MockException thrownExp;
+            try {
+                mock.doReturnVoid();
+            } catch (MockException ex) {
+                thrownExp = ex;
+            }
+            System.assertNotEquals(null, thrownExp);
+            mock.doReturnVoid();
 
-        ((ATKMockTest) ATK.then(mock).should().times(5)).doReturnVoid();
+            ((ATKMockTest) ATK.then(mock).should().times(5)).doReturnVoid();
+        }
     }
 
     @IsTest
@@ -859,11 +864,14 @@ public with sharing class ATKMockTest {
         ATKMockTest mock = (ATKMockTest) ATK.mock(ATKMockTest.class);
 
         mock.doWithInteger(1);
+        mock.doWithInteger(1);
         mock.doWithInteger(2);
+        mock.doWithInteger(1);
 
         ATK.InOrder inOrder = ATK.inOrder(mock);
-        ((ATKMockTest) ATK.then(mock).should(inOrder).once()).doWithInteger(1);
+        ((ATKMockTest) ATK.then(mock).should(inOrder).times(2)).doWithInteger(1);
         ((ATKMockTest) ATK.then(mock).should(inOrder).once()).doWithInteger(2);
+        ((ATKMockTest) ATK.then(mock).should(inOrder).once()).doWithInteger(1);
     }
 
     // ====================
