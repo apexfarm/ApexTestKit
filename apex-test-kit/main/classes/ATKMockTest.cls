@@ -857,21 +857,79 @@ public with sharing class ATKMockTest {
         System.assert(exp != null);
         System.debug(exp.getMessage());
         exp = null;
+
+        try {
+            ATK.then(mock).should().haveNoInteractions();
+        } catch (ATK.VerificationException ex) {
+            exp = ex;
+        }
+        System.assert(exp != null);
+        System.debug(exp.getMessage());
+        exp = null;
+
+        try {
+            ATK.then(mock).should().haveNoMoreInteractions();
+        } catch (ATK.VerificationException ex) {
+            exp = ex;
+        }
+        System.assert(exp != null);
+        System.debug(exp.getMessage());
+        exp = null;
+    }
+
+    @IsTest
+    static void test_then_for_verification_noorder() {
+        ATKMockTest mock = (ATKMockTest) ATK.mock(ATKMockTest.class);
+        ATK.then(mock).should().haveNoInteractions();
+
+        mock.doWithInteger(1);
+        mock.doWithInteger(1);
+
+        ((ATKMockTest) ATK.then(mock).should().times(2)).doWithInteger(1);
+        ATK.then(mock).should().haveNoMoreInteractions();
     }
 
     @IsTest
     static void test_then_for_verification_inorder() {
         ATKMockTest mock = (ATKMockTest) ATK.mock(ATKMockTest.class);
+        ATK.InOrder inOrder = ATK.inOrder(mock);
+        ATK.then(mock).should(inOrder).haveNoInteractions();
+
+        mock.doWithInteger(1);
+
+        {
+            ATK.VerificationException exp;
+            try {
+                ATK.then(mock).should(inOrder).haveNoInteractions();
+            } catch (ATK.VerificationException ex) {
+                exp = ex;
+            }
+            System.assertNotEquals(null, exp);
+            System.debug(exp.getMessage());
+        }
 
         mock.doWithInteger(1);
         mock.doWithInteger(1);
         mock.doWithInteger(2);
         mock.doWithInteger(1);
 
-        ATK.InOrder inOrder = ATK.inOrder(mock);
+        ((ATKMockTest) ATK.then(mock).should(inOrder).calls(1)).doWithInteger(1);
         ((ATKMockTest) ATK.then(mock).should(inOrder).times(2)).doWithInteger(1);
         ((ATKMockTest) ATK.then(mock).should(inOrder).once()).doWithInteger(2);
+
+        {
+            ATK.VerificationException exp;
+            try {
+                ATK.then(mock).should(inOrder).haveNoMoreInteractions();
+            } catch (ATK.VerificationException ex) {
+                exp = ex;
+            }
+            System.assertNotEquals(null, exp);
+            System.debug(exp.getMessage());
+        }
+
         ((ATKMockTest) ATK.then(mock).should(inOrder).once()).doWithInteger(1);
+        ATK.then(mock).should(inOrder).haveNoMoreInteractions();
     }
 
     // ====================

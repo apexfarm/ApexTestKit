@@ -104,6 +104,7 @@ public with sharing class ATK {
         MockSettings name(String name);
         MockSettings defaultAnswer(Answer answer);
         MockSettings stubOnly();
+        MockSettings lenient();
     }
 
     public interface Given {
@@ -134,7 +135,7 @@ public with sharing class ATK {
 
     public virtual class Invocation {
         public Method method { get; protected set; }
-        public Object mock { get; protected set; }
+        public Object mock { get; set; }
         public List<Object> arguments { get; protected set; }
     }
 
