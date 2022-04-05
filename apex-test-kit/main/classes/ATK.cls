@@ -341,31 +341,255 @@ public with sharing class ATK {
         return ATKMock.progress.matcherRecorder.eqBoolean(value);
     }
 
-    public static MatcherCaster gt(Object value) {
+    public static Integer gt(Integer value) {
         return ATKMock.progress.matcherRecorder.gt(value);
     }
 
-    public static MatcherCaster gte(Object value) {
+    public static Long gt(Long value) {
+        return ATKMock.progress.matcherRecorder.gt(value);
+    }
+
+    public static Double gt(Double value) {
+        return ATKMock.progress.matcherRecorder.gt(value);
+    }
+
+    public static Decimal gt(Decimal value) {
+        return ATKMock.progress.matcherRecorder.gt(value);
+    }
+
+    public static Date gt(Date value) {
+        return ATKMock.progress.matcherRecorder.gt(value);
+    }
+
+    public static Datetime gt(Datetime value) {
+        return ATKMock.progress.matcherRecorder.gt(value);
+    }
+
+    public static Time gt(Time value) {
+        return ATKMock.progress.matcherRecorder.gt(value);
+    }
+
+    public static Id gt(Id value) {
+        return ATKMock.progress.matcherRecorder.gt(value);
+    }
+
+    public static String gt(String value) {
+        return ATKMock.progress.matcherRecorder.gt(value);
+    }
+
+    public static Integer gte(Integer value) {
         return ATKMock.progress.matcherRecorder.gte(value);
     }
 
-    public static MatcherCaster lt(Object value) {
+    public static Long gte(Long value) {
+        return ATKMock.progress.matcherRecorder.gte(value);
+    }
+
+    public static Double gte(Double value) {
+        return ATKMock.progress.matcherRecorder.gte(value);
+    }
+
+    public static Decimal gte(Decimal value) {
+        return ATKMock.progress.matcherRecorder.gte(value);
+    }
+
+    public static Date gte(Date value) {
+        return ATKMock.progress.matcherRecorder.gte(value);
+    }
+
+    public static Datetime gte(Datetime value) {
+        return ATKMock.progress.matcherRecorder.gte(value);
+    }
+
+    public static Time gte(Time value) {
+        return ATKMock.progress.matcherRecorder.gte(value);
+    }
+
+    public static Id gte(Id value) {
+        return ATKMock.progress.matcherRecorder.gte(value);
+    }
+
+    public static String gte(String value) {
+        return ATKMock.progress.matcherRecorder.gte(value);
+    }
+
+    public static Integer lt(Integer value) {
         return ATKMock.progress.matcherRecorder.lt(value);
     }
 
-    public static MatcherCaster lte(Object value) {
+    public static Long lt(Long value) {
+        return ATKMock.progress.matcherRecorder.lt(value);
+    }
+
+    public static Double lt(Double value) {
+        return ATKMock.progress.matcherRecorder.lt(value);
+    }
+
+    public static Decimal lt(Decimal value) {
+        return ATKMock.progress.matcherRecorder.lt(value);
+    }
+
+    public static Date lt(Date value) {
+        return ATKMock.progress.matcherRecorder.lt(value);
+    }
+
+    public static Datetime lt(Datetime value) {
+        return ATKMock.progress.matcherRecorder.lt(value);
+    }
+
+    public static Time lt(Time value) {
+        return ATKMock.progress.matcherRecorder.lt(value);
+    }
+
+    public static Id lt(Id value) {
+        return ATKMock.progress.matcherRecorder.lt(value);
+    }
+
+    public static String lt(String value) {
+        return ATKMock.progress.matcherRecorder.lt(value);
+    }
+
+    public static Integer lte(Integer value) {
         return ATKMock.progress.matcherRecorder.lte(value);
     }
 
-    public static MatcherCaster between(Object min, Object max) {
-        return ATKMock.progress.matcherRecorder.between(min, max);
+    public static Long lte(Long value) {
+        return ATKMock.progress.matcherRecorder.lte(value);
     }
 
-    public static MatcherCaster between(Object min, Object max, Boolean inclusive) {
-        return ATKMock.progress.matcherRecorder.between(min, max, inclusive);
+    public static Double lte(Double value) {
+        return ATKMock.progress.matcherRecorder.lte(value);
     }
 
-    public static MatcherCaster between(Object min, Boolean minInclusive, Object max, Boolean maxInclusive) {
+    public static Decimal lte(Decimal value) {
+        return ATKMock.progress.matcherRecorder.lte(value);
+    }
+
+    public static Date lte(Date value) {
+        return ATKMock.progress.matcherRecorder.lte(value);
+    }
+
+    public static Datetime lte(Datetime value) {
+        return ATKMock.progress.matcherRecorder.lte(value);
+    }
+
+    public static Time lte(Time value) {
+        return ATKMock.progress.matcherRecorder.lte(value);
+    }
+
+    public static Id lte(Id value) {
+        return ATKMock.progress.matcherRecorder.lte(value);
+    }
+
+    public static String lte(String value) {
+        return ATKMock.progress.matcherRecorder.lte(value);
+    }
+
+    public static Integer between(Integer min, Integer max) {
+        return ATKMock.progress.matcherRecorder.between(min, true, max, true);
+    }
+
+    public static Integer between(Integer min, Integer max, Boolean inclusive) {
+        return ATKMock.progress.matcherRecorder.between(min, inclusive, max, inclusive);
+    }
+
+    public static Integer between(Integer min, Boolean minInclusive, Integer max, Boolean maxInclusive) {
+        return ATKMock.progress.matcherRecorder.between(min, minInclusive, max, maxInclusive);
+    }
+
+    public static Long between(Long min, Long max) {
+        return ATKMock.progress.matcherRecorder.between(min, true, max, true);
+    }
+
+    public static Long between(Long min, Long max, Boolean inclusive) {
+        return ATKMock.progress.matcherRecorder.between(min, inclusive, max, inclusive);
+    }
+
+    public static Long between(Long min, Boolean minInclusive, Long max, Boolean maxInclusive) {
+        return ATKMock.progress.matcherRecorder.between(min, minInclusive, max, maxInclusive);
+    }
+
+    public static Double between(Double min, Double max) {
+        return ATKMock.progress.matcherRecorder.between(min, true, max, true);
+    }
+
+    public static Double between(Double min, Double max, Boolean inclusive) {
+        return ATKMock.progress.matcherRecorder.between(min, inclusive, max, inclusive);
+    }
+
+    public static Double between(Double min, Boolean minInclusive, Double max, Boolean maxInclusive) {
+        return ATKMock.progress.matcherRecorder.between(min, minInclusive, max, maxInclusive);
+    }
+
+    public static Decimal between(Decimal min, Decimal max) {
+        return ATKMock.progress.matcherRecorder.between(min, true, max, true);
+    }
+
+    public static Decimal between(Decimal min, Decimal max, Boolean inclusive) {
+        return ATKMock.progress.matcherRecorder.between(min, inclusive, max, inclusive);
+    }
+
+    public static Decimal between(Decimal min, Boolean minInclusive, Decimal max, Boolean maxInclusive) {
+        return ATKMock.progress.matcherRecorder.between(min, minInclusive, max, maxInclusive);
+    }
+
+    public static Date between(Date min, Date max) {
+        return ATKMock.progress.matcherRecorder.between(min, true, max, true);
+    }
+
+    public static Date between(Date min, Date max, Boolean inclusive) {
+        return ATKMock.progress.matcherRecorder.between(min, inclusive, max, inclusive);
+    }
+
+    public static Date between(Date min, Boolean minInclusive, Date max, Boolean maxInclusive) {
+        return ATKMock.progress.matcherRecorder.between(min, minInclusive, max, maxInclusive);
+    }
+
+    public static Datetime between(Datetime min, Datetime max) {
+        return ATKMock.progress.matcherRecorder.between(min, true, max, true);
+    }
+
+    public static Datetime between(Datetime min, Datetime max, Boolean inclusive) {
+        return ATKMock.progress.matcherRecorder.between(min, inclusive, max, inclusive);
+    }
+
+    public static Datetime between(Datetime min, Boolean minInclusive, Datetime max, Boolean maxInclusive) {
+        return ATKMock.progress.matcherRecorder.between(min, minInclusive, max, maxInclusive);
+    }
+
+    public static Time between(Time min, Time max) {
+        return ATKMock.progress.matcherRecorder.between(min, true, max, true);
+    }
+
+    public static Time between(Time min, Time max, Boolean inclusive) {
+        return ATKMock.progress.matcherRecorder.between(min, inclusive, max, inclusive);
+    }
+
+    public static Time between(Time min, Boolean minInclusive, Time max, Boolean maxInclusive) {
+        return ATKMock.progress.matcherRecorder.between(min, minInclusive, max, maxInclusive);
+    }
+
+    public static Id between(Id min, Id max) {
+        return ATKMock.progress.matcherRecorder.between(min, true, max, true);
+    }
+
+    public static Id between(Id min, Id max, Boolean inclusive) {
+        return ATKMock.progress.matcherRecorder.between(min, inclusive, max, inclusive);
+    }
+
+    public static Id between(Id min, Boolean minInclusive, Id max, Boolean maxInclusive) {
+        return ATKMock.progress.matcherRecorder.between(min, minInclusive, max, maxInclusive);
+    }
+
+    public static String between(String min, String max) {
+        return ATKMock.progress.matcherRecorder.between(min, true, max, true);
+    }
+
+    public static String between(String min, String max, Boolean inclusive) {
+        return ATKMock.progress.matcherRecorder.between(min, inclusive, max, inclusive);
+    }
+
+    public static String between(String min, Boolean minInclusive, String max, Boolean maxInclusive) {
         return ATKMock.progress.matcherRecorder.between(min, minInclusive, max, maxInclusive);
     }
 
@@ -532,6 +756,7 @@ public with sharing class ATK {
         Id neId(Id value);
         String neString(String value);
         Boolean neBoolean(Boolean value);
+
         Object eq(Object value);
         Integer eqInteger(Integer value);
         Long eqLong(Long value);
@@ -541,15 +766,57 @@ public with sharing class ATK {
         Datetime eqDatetime(Datetime value);
         Id eqId(Id value);
         String eqString(String value);
-
         Boolean eqBoolean(Boolean value);
-        MatcherCaster gt(Object value);
-        MatcherCaster gte(Object value);
-        MatcherCaster lt(Object value);
-        MatcherCaster lte(Object value);
-        MatcherCaster between(Object min, Object max);
-        MatcherCaster between(Object min, Object max, Boolean inclusive);
-        MatcherCaster between(Object min, Boolean minInclusive, Object max, Boolean maxInclusive);
+
+        Integer gt(Integer value);
+        Long gt(Long value);
+        Double gt(Double value);
+        Decimal gt(Decimal value);
+        Date gt(Date value);
+        Datetime gt(Datetime value);
+        Time gt(Time value);
+        Id gt(Id value);
+        String gt(String value);
+
+        Integer gte(Integer value);
+        Long gte(Long value);
+        Double gte(Double value);
+        Decimal gte(Decimal value);
+        Date gte(Date value);
+        Datetime gte(Datetime value);
+        Time gte(Time value);
+        Id gte(Id value);
+        String gte(String value);
+
+        Integer lt(Integer value);
+        Long lt(Long value);
+        Double lt(Double value);
+        Decimal lt(Decimal value);
+        Date lt(Date value);
+        Datetime lt(Datetime value);
+        Time lt(Time value);
+        Id lt(Id value);
+        String lt(String value);
+
+        Integer lte(Integer value);
+        Long lte(Long value);
+        Double lte(Double value);
+        Decimal lte(Decimal value);
+        Date lte(Date value);
+        Datetime lte(Datetime value);
+        Time lte(Time value);
+        Id lte(Id value);
+        String lte(String value);
+
+        Integer between(Integer min, Boolean minInclusive, Integer max, Boolean maxInclusive);
+        Long between(Long min, Boolean minInclusive, Long max, Boolean maxInclusive);
+        Double between(Double min, Boolean minInclusive, Double max, Boolean maxInclusive);
+        Decimal between(Decimal min, Boolean minInclusive, Decimal max, Boolean maxInclusive);
+        Date between(Date min, Boolean minInclusive, Date max, Boolean maxInclusive);
+        Datetime between(Datetime min, Boolean minInclusive, Datetime max, Boolean maxInclusive);
+        Time between(Time min, Boolean minInclusive, Time max, Boolean maxInclusive);
+        Id between(Id min, Boolean minInclusive, Id max, Boolean maxInclusive);
+        String between(String min, Boolean minInclusive, String max, Boolean maxInclusive);
 
         String isBlank();
         String isNotBlank();
@@ -583,17 +850,6 @@ public with sharing class ATK {
         Object noneOf(Object arg1, Object arg2, Object arg3, Object arg4);
         Object noneOf(Object arg1, Object arg2, Object arg3, Object arg4, Object arg5);
         Object noneOf(List<Object> args);
-    }
-
-    public interface MatcherCaster {
-        Integer asInteger();
-        Long asLong();
-        Double asDouble();
-        Decimal asDecimal();
-        Date asDate();
-        Datetime asDatetime();
-        Id asId();
-        String asString();
     }
 
     // #endregion

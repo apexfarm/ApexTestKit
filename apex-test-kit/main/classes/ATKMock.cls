@@ -76,7 +76,7 @@ public with sharing class ATKMock {
             }
 
             progress.container.addInvocation(invocation);
-            return progress.container.answer(invocation);
+            return progress.container.answer(invocation, progress.context);
         }
     }
 
@@ -397,7 +397,7 @@ public with sharing class ATKMock {
         }
     }
 
-    private class InvocationContainer implements Answer {
+    private class InvocationContainer {
         private List<Invocation> invocations { get; set; }
         private List<StubbedInvocation> stubbedInvocations { get; set; }
         private Map<Object, MockSettings> mockSettings { get; set; }
@@ -418,13 +418,20 @@ public with sharing class ATKMock {
             }
         }
 
-        public Object answer(ATK.Invocation candidate) {
+        public Object answer(Invocation candidate, VerificationContext context) {
             for (Integer i = this.stubbedInvocations.size(); i > 0; i--) {
                 StubbedInvocation stub = this.stubbedInvocations[i - 1];
-                if (stub.matches((Invocation) candidate)) {
+                if (stub.matches(candidate)) {
                     // TODO: track used stubs
+                    if (!candidate.lenient) {
+                        context.markVerified(candidate);
+                    }
                     return stub.answer(candidate);
                 }
+            }
+
+            if (!candidate.lenient) {
+                throw new ATK.VerificationException(String.format('"{0}" has not been stubbed', new List<Object>{ (Invocation) candidate }));
             }
             return this.defaultAnswer((Invocation) candidate);
         }
@@ -525,6 +532,15 @@ public with sharing class ATKMock {
                     return this.mockSetting.mockType;
                 }
                 return null;
+            }
+        }
+
+        private Boolean lenient {
+            get {
+                if (this.mockSetting != null) {
+                    return this.mockSetting.lenient;
+                }
+                return false;
             }
         }
 
@@ -683,7 +699,7 @@ public with sharing class ATKMock {
                 if (this.progress.isStubbing || this.progress.isVerifying) {
                     return null;
                 }
-                return this.progress.createMock(invocation.method.returnType, this);
+                return this.progress.createMock(invocation.method.returnType, this.progress.getMockSettings(invocation.mock));
             } catch (Exception ex) {
             }
             return null;
@@ -1024,7 +1040,7 @@ public with sharing class ATKMock {
     // #region Value Matchers
     // ======================
 
-    public class NullMatcher extends MatcherCaster implements ArgumentMatcher {
+    public class NullMatcher implements ArgumentMatcher {
         Boolean isNull { get; set; }
 
         NullMatcher(Boolean isNull) {
@@ -1059,7 +1075,7 @@ public with sharing class ATKMock {
         }
     }
 
-    public class NeMatcher extends MatcherCaster implements ArgumentMatcher {
+    public class NeMatcher implements ArgumentMatcher {
         Object value { get; set; }
 
         NeMatcher(Object value) {
@@ -1075,7 +1091,7 @@ public with sharing class ATKMock {
         }
     }
 
-    public class EqMatcher extends MatcherCaster implements ArgumentMatcher {
+    public class EqMatcher implements ArgumentMatcher {
         Object value { get; set; }
 
         EqMatcher(Object value) {
@@ -1091,7 +1107,7 @@ public with sharing class ATKMock {
         }
     }
 
-    public class GtMatcher extends MatcherCaster implements ArgumentMatcher {
+    public class GtMatcher implements ArgumentMatcher {
         Object value { get; set; }
 
         GtMatcher(Object value) {
@@ -1130,7 +1146,7 @@ public with sharing class ATKMock {
         }
     }
 
-    public class GteMatcher extends MatcherCaster implements ArgumentMatcher {
+    public class GteMatcher implements ArgumentMatcher {
         Object value { get; set; }
 
         GteMatcher(Object value) {
@@ -1169,7 +1185,7 @@ public with sharing class ATKMock {
         }
     }
 
-    public class LtMatcher extends MatcherCaster implements ArgumentMatcher {
+    public class LtMatcher implements ArgumentMatcher {
         Object value { get; set; }
 
         LtMatcher(Object value) {
@@ -1208,7 +1224,7 @@ public with sharing class ATKMock {
         }
     }
 
-    public class LteMatcher extends MatcherCaster implements ArgumentMatcher {
+    public class LteMatcher implements ArgumentMatcher {
         Object value { get; set; }
 
         LteMatcher(Object value) {
@@ -1247,27 +1263,15 @@ public with sharing class ATKMock {
         }
     }
 
-    public class BetweenMatcher extends MatcherCaster implements ArgumentMatcher {
+    public class BetweenMatcher implements ArgumentMatcher {
         Object minValue { get; set; }
         Object maxValue { get; set; }
-        Boolean inclusive { get; set; }
         Boolean minInclusive { get; set; }
         Boolean maxInclusive { get; set; }
 
-        BetweenMatcher(Object minValue, Object maxValue) {
-            this(minValue, maxValue, true);
-        }
-
-        BetweenMatcher(Object minValue, Object maxValue, Boolean inclusive) {
-            this.minValue = validateNotNull(minValue);
-            this.maxValue = validateNotNull(maxValue);
-            this.inclusive = inclusive;
-            this.minInclusive = false;
-            this.maxInclusive = false;
-        }
-
         BetweenMatcher(Object minValue, Boolean minInclusive, Object maxValue, Boolean maxInclusive) {
-            this(minValue, maxValue, minInclusive || maxInclusive);
+            this.minValue = minValue;
+            this.maxValue = maxValue;
             this.minInclusive = minInclusive;
             this.maxInclusive = maxInclusive;
         }
@@ -1277,7 +1281,7 @@ public with sharing class ATKMock {
                 return false;
             }
 
-            if (!this.inclusive) {
+            if (!this.minInclusive && !this.maxInclusive) {
                 if (type == Integer.class) {
                     return (Integer) arg > (Integer) this.minValue && (Integer) arg < (Integer) this.maxValue;
                 } else if (type == Long.class) {
@@ -1299,7 +1303,7 @@ public with sharing class ATKMock {
                 }
             }
 
-            if (this.minInclusive) {
+            if (this.minInclusive && !this.maxInclusive) {
                 if (type == Integer.class) {
                     return (Integer) arg >= (Integer) this.minValue && (Integer) arg < (Integer) this.maxValue;
                 } else if (type == Long.class) {
@@ -1321,7 +1325,7 @@ public with sharing class ATKMock {
                 }
             }
 
-            if (this.maxInclusive) {
+            if (!this.minInclusive && this.maxInclusive) {
                 if (type == Integer.class) {
                     return (Integer) arg > (Integer) this.minValue && (Integer) arg <= (Integer) this.maxValue;
                 } else if (type == Long.class) {
@@ -1343,7 +1347,7 @@ public with sharing class ATKMock {
                 }
             }
 
-            if (this.inclusive) {
+            if (this.minInclusive && this.maxInclusive) {
                 if (type == Integer.class) {
                     return (Integer) arg >= (Integer) this.minValue && (Integer) arg <= (Integer) this.maxValue;
                 } else if (type == Long.class) {
@@ -1922,57 +1926,48 @@ public with sharing class ATKMock {
         }
 
         public Integer neInteger(Integer value) {
-            MatcherCaster caster = new NeMatcher(value);
-            this.addMatcher((ArgumentMatcher) caster);
-            return caster.asInteger();
+            this.addMatcher(new NeMatcher(value));
+            return null;
         }
 
         public Long neLong(Long value) {
-            MatcherCaster caster = new NeMatcher(value);
-            this.addMatcher((ArgumentMatcher) caster);
-            return caster.asLong();
+            this.addMatcher(new NeMatcher(value));
+            return null;
         }
 
         public Double neDouble(Double value) {
-            MatcherCaster caster = new NeMatcher(value);
-            this.addMatcher((ArgumentMatcher) caster);
-            return caster.asDouble();
+            this.addMatcher(new NeMatcher(value));
+            return null;
         }
 
         public Decimal neDecimal(Decimal value) {
-            MatcherCaster caster = new NeMatcher(value);
-            this.addMatcher((ArgumentMatcher) caster);
-            return caster.asDecimal();
+            this.addMatcher(new NeMatcher(value));
+            return null;
         }
 
         public Date neDate(Date value) {
-            MatcherCaster caster = new NeMatcher(value);
-            this.addMatcher((ArgumentMatcher) caster);
-            return caster.asDate();
+            this.addMatcher(new NeMatcher(value));
+            return null;
         }
 
         public Datetime neDatetime(Datetime value) {
-            MatcherCaster caster = new NeMatcher(value);
-            this.addMatcher((ArgumentMatcher) caster);
-            return caster.asDatetime();
+            this.addMatcher(new NeMatcher(value));
+            return null;
         }
 
         public Id neId(Id value) {
-            MatcherCaster caster = new NeMatcher(value);
-            this.addMatcher((ArgumentMatcher) caster);
-            return caster.asId();
+            this.addMatcher(new NeMatcher(value));
+            return null;
         }
 
         public String neString(String value) {
-            MatcherCaster caster = new NeMatcher(value);
-            this.addMatcher((ArgumentMatcher) caster);
-            return caster.asString();
+            this.addMatcher(new NeMatcher(value));
+            return null;
         }
 
         public Boolean neBoolean(Boolean value) {
-            MatcherCaster caster = new NeMatcher(value);
-            this.addMatcher((ArgumentMatcher) caster);
-            return caster.asBoolean();
+            this.addMatcher(new NeMatcher(value));
+            return null;
         }
 
         public Object eq(Object value) {
@@ -1981,99 +1976,273 @@ public with sharing class ATKMock {
         }
 
         public Integer eqInteger(Integer value) {
-            MatcherCaster caster = new EqMatcher(value);
-            this.addMatcher((ArgumentMatcher) caster);
-            return caster.asInteger();
+            this.addMatcher(new EqMatcher(value));
+            return null;
         }
 
         public Long eqLong(Long value) {
-            MatcherCaster caster = new EqMatcher(value);
-            this.addMatcher((ArgumentMatcher) caster);
-            return caster.asLong();
+            this.addMatcher(new EqMatcher(value));
+            return null;
         }
 
         public Double eqDouble(Double value) {
-            MatcherCaster caster = new EqMatcher(value);
-            this.addMatcher((ArgumentMatcher) caster);
-            return caster.asDouble();
+            this.addMatcher(new EqMatcher(value));
+            return null;
         }
 
         public Decimal eqDecimal(Decimal value) {
-            MatcherCaster caster = new EqMatcher(value);
-            this.addMatcher((ArgumentMatcher) caster);
-            return caster.asDecimal();
+            this.addMatcher(new EqMatcher(value));
+            return null;
         }
 
         public Date eqDate(Date value) {
-            MatcherCaster caster = new EqMatcher(value);
-            this.addMatcher((ArgumentMatcher) caster);
-            return caster.asDate();
+            this.addMatcher(new EqMatcher(value));
+            return null;
         }
 
         public Datetime eqDatetime(Datetime value) {
-            MatcherCaster caster = new EqMatcher(value);
-            this.addMatcher((ArgumentMatcher) caster);
-            return caster.asDatetime();
+            this.addMatcher(new EqMatcher(value));
+            return null;
         }
 
         public Id eqId(Id value) {
-            MatcherCaster caster = new EqMatcher(value);
-            this.addMatcher((ArgumentMatcher) caster);
-            return caster.asId();
+            this.addMatcher(new EqMatcher(value));
+            return null;
         }
 
         public String eqString(String value) {
-            MatcherCaster caster = new EqMatcher(value);
-            this.addMatcher((ArgumentMatcher) caster);
-            return caster.asString();
+            this.addMatcher(new EqMatcher(value));
+            return null;
         }
 
         public Boolean eqBoolean(Boolean value) {
-            MatcherCaster caster = new EqMatcher(value);
-            this.addMatcher((ArgumentMatcher) caster);
-            return caster.asBoolean();
+            this.addMatcher(new EqMatcher(value));
+            return null;
         }
 
-        public MatcherCaster gt(Object value) {
-            MatcherCaster caster = new GtMatcher(value);
-            this.addMatcher((ArgumentMatcher) caster);
-            return caster;
+        public Integer gt(Integer value) {
+            this.addMatcher(new GtMatcher(value));
+            return null;
         }
 
-        public MatcherCaster gte(Object value) {
-            MatcherCaster caster = new GteMatcher(value);
-            this.addMatcher((ArgumentMatcher) caster);
-            return caster;
+        public Long gt(Long value) {
+            this.addMatcher(new GtMatcher(value));
+            return null;
         }
 
-        public MatcherCaster lt(Object value) {
-            MatcherCaster caster = new LtMatcher(value);
-            this.addMatcher((ArgumentMatcher) caster);
-            return caster;
+        public Double gt(Double value) {
+            this.addMatcher(new GtMatcher(value));
+            return null;
         }
 
-        public MatcherCaster lte(Object value) {
-            MatcherCaster caster = new LteMatcher(value);
-            this.addMatcher((ArgumentMatcher) caster);
-            return caster;
+        public Decimal gt(Decimal value) {
+            this.addMatcher(new GtMatcher(value));
+            return null;
         }
 
-        public MatcherCaster between(Object minValue, Object maxValue) {
-            MatcherCaster caster = new BetweenMatcher(minValue, maxValue);
-            this.addMatcher((ArgumentMatcher) caster);
-            return caster;
+        public Date gt(Date value) {
+            this.addMatcher(new GtMatcher(value));
+            return null;
         }
 
-        public MatcherCaster between(Object minValue, Object maxValue, Boolean inclusive) {
-            MatcherCaster caster = new BetweenMatcher(minValue, maxValue, inclusive);
-            this.addMatcher((ArgumentMatcher) caster);
-            return caster;
+        public Datetime gt(Datetime value) {
+            this.addMatcher(new GtMatcher(value));
+            return null;
         }
 
-        public MatcherCaster between(Object minValue, Boolean minInclusive, Object maxValue, Boolean maxInclusive) {
-            MatcherCaster caster = new BetweenMatcher(minValue, minInclusive, maxValue, maxInclusive);
-            this.addMatcher((ArgumentMatcher) caster);
-            return caster;
+        public Time gt(Time value) {
+            this.addMatcher(new GtMatcher(value));
+            return null;
+        }
+
+        public Id gt(Id value) {
+            this.addMatcher(new GtMatcher(value));
+            return null;
+        }
+
+        public String gt(String value) {
+            this.addMatcher(new GtMatcher(value));
+            return null;
+        }
+
+        public Integer gte(Integer value) {
+            this.addMatcher(new GteMatcher(value));
+            return null;
+        }
+
+        public Long gte(Long value) {
+            this.addMatcher(new GteMatcher(value));
+            return null;
+        }
+
+        public Double gte(Double value) {
+            this.addMatcher(new GteMatcher(value));
+            return null;
+        }
+
+        public Decimal gte(Decimal value) {
+            this.addMatcher(new GteMatcher(value));
+            return null;
+        }
+
+        public Date gte(Date value) {
+            this.addMatcher(new GteMatcher(value));
+            return null;
+        }
+
+        public Datetime gte(Datetime value) {
+            this.addMatcher(new GteMatcher(value));
+            return null;
+        }
+
+        public Time gte(Time value) {
+            this.addMatcher(new GteMatcher(value));
+            return null;
+        }
+
+        public Id gte(Id value) {
+            this.addMatcher(new GteMatcher(value));
+            return null;
+        }
+
+        public String gte(String value) {
+            this.addMatcher(new GteMatcher(value));
+            return null;
+        }
+
+        public Integer lt(Integer value) {
+            this.addMatcher(new LtMatcher(value));
+            return null;
+        }
+
+        public Long lt(Long value) {
+            this.addMatcher(new LtMatcher(value));
+            return null;
+        }
+
+        public Double lt(Double value) {
+            this.addMatcher(new LtMatcher(value));
+            return null;
+        }
+
+        public Decimal lt(Decimal value) {
+            this.addMatcher(new LtMatcher(value));
+            return null;
+        }
+
+        public Date lt(Date value) {
+            this.addMatcher(new LtMatcher(value));
+            return null;
+        }
+
+        public Datetime lt(Datetime value) {
+            this.addMatcher(new LtMatcher(value));
+            return null;
+        }
+
+        public Time lt(Time value) {
+            this.addMatcher(new LtMatcher(value));
+            return null;
+        }
+
+        public Id lt(Id value) {
+            this.addMatcher(new LtMatcher(value));
+            return null;
+        }
+
+        public String lt(String value) {
+            this.addMatcher(new LtMatcher(value));
+            return null;
+        }
+
+        public Integer lte(Integer value) {
+            this.addMatcher(new LteMatcher(value));
+            return null;
+        }
+
+        public Long lte(Long value) {
+            this.addMatcher(new LteMatcher(value));
+            return null;
+        }
+
+        public Double lte(Double value) {
+            this.addMatcher(new LteMatcher(value));
+            return null;
+        }
+
+        public Decimal lte(Decimal value) {
+            this.addMatcher(new LteMatcher(value));
+            return null;
+        }
+
+        public Date lte(Date value) {
+            this.addMatcher(new LteMatcher(value));
+            return null;
+        }
+
+        public Datetime lte(Datetime value) {
+            this.addMatcher(new LteMatcher(value));
+            return null;
+        }
+
+        public Time lte(Time value) {
+            this.addMatcher(new LteMatcher(value));
+            return null;
+        }
+
+        public Id lte(Id value) {
+            this.addMatcher(new LteMatcher(value));
+            return null;
+        }
+
+        public String lte(String value) {
+            this.addMatcher(new LteMatcher(value));
+            return null;
+        }
+
+        public Integer between(Integer minValue, Boolean minInclusive, Integer maxValue, Boolean maxInclusive) {
+            this.addMatcher(new BetweenMatcher(minValue, minInclusive, maxValue, maxInclusive));
+            return null;
+        }
+
+        public Long between(Long minValue, Boolean minInclusive, Long maxValue, Boolean maxInclusive) {
+            this.addMatcher(new BetweenMatcher(minValue, minInclusive, maxValue, maxInclusive));
+            return null;
+        }
+
+        public Double between(Double minValue, Boolean minInclusive, Double maxValue, Boolean maxInclusive) {
+            this.addMatcher(new BetweenMatcher(minValue, minInclusive, maxValue, maxInclusive));
+            return null;
+        }
+
+        public Decimal between(Decimal minValue, Boolean minInclusive, Decimal maxValue, Boolean maxInclusive) {
+            this.addMatcher(new BetweenMatcher(minValue, minInclusive, maxValue, maxInclusive));
+            return null;
+        }
+
+        public Date between(Date minValue, Boolean minInclusive, Date maxValue, Boolean maxInclusive) {
+            this.addMatcher(new BetweenMatcher(minValue, minInclusive, maxValue, maxInclusive));
+            return null;
+        }
+
+        public Datetime between(Datetime minValue, Boolean minInclusive, Datetime maxValue, Boolean maxInclusive) {
+            this.addMatcher(new BetweenMatcher(minValue, minInclusive, maxValue, maxInclusive));
+            return null;
+        }
+
+        public Time between(Time minValue, Boolean minInclusive, Time maxValue, Boolean maxInclusive) {
+            this.addMatcher(new BetweenMatcher(minValue, minInclusive, maxValue, maxInclusive));
+            return null;
+        }
+
+        public Id between(Id minValue, Boolean minInclusive, Id maxValue, Boolean maxInclusive) {
+            this.addMatcher(new BetweenMatcher(minValue, minInclusive, maxValue, maxInclusive));
+            return null;
+        }
+
+        public String between(String minValue, Boolean minInclusive, String maxValue, Boolean maxInclusive) {
+            this.addMatcher(new BetweenMatcher(minValue, minInclusive, maxValue, maxInclusive));
+            return null;
         }
 
         public String isBlank() {
@@ -2144,48 +2313,6 @@ public with sharing class ATKMock {
     }
 
     public interface ArgumentMatcher extends ATK.Matcher {
-    }
-
-    public virtual class MatcherCaster implements ATK.MatcherCaster {
-        public Integer asInteger() {
-            return null;
-        }
-
-        public Long asLong() {
-            return null;
-        }
-
-        public Double asDouble() {
-            return null;
-        }
-
-        public Decimal asDecimal() {
-            return null;
-        }
-
-        public Date asDate() {
-            return null;
-        }
-
-        public Datetime asDatetime() {
-            return null;
-        }
-
-        public Boolean asBoolean() {
-            return null;
-        }
-
-        public Id asId() {
-            return null;
-        }
-
-        public String asString() {
-            return null;
-        }
-
-        public Object asObject() {
-            return null;
-        }
     }
 
     // ======================
