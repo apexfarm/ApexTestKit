@@ -19,14 +19,24 @@ public with sharing class ATK {
     public class VerificationException extends Exception {
     }
 
-    // ***********************
+    // =======================
     // #region Mock Interfaces
-    // ***********************
 
     public static final Answer RETURNS_DEFAULTS = ATKMock.DEFAULT_ANSWERS;
-    public static final Answer RETURNS_NULLS = ATKMock.NULL_ANSWERS;
     public static final Answer RETURNS_SELF = ATKMock.SELF_ANSWERS;
     public static final Answer RETURNS_MOCKS = ATKMock.MOCK_ANSWERS;
+
+    public static void startStubbing() {
+        ATKMock.progress.startStubbing();
+    }
+
+    public static void stopStubbing() {
+        ATKMock.progress.stopStubbing();
+    }
+
+    public static GlobalSettings mock() {
+        return ATKMock.progress.settings;
+    }
 
     public static Object mock(Type mockType) {
         return ATKMock.progress.createMock(mockType);
@@ -44,12 +54,8 @@ public with sharing class ATK {
         return new ATKMock.MockSettings();
     }
 
-    public static void startStubbing() {
-        ATKMock.progress.startStubbing();
-    }
-
-    public static void stopStubbing() {
-        ATKMock.progress.stopStubbing();
+    public static Lenient lenient() {
+        return ATKMock.progress.createLenientStub();
     }
 
     public static Given given(Object value) {
@@ -105,6 +111,19 @@ public with sharing class ATK {
         MockSettings defaultAnswer(Answer answer);
         MockSettings stubOnly();
         MockSettings lenient();
+        MockSettings verbose();
+    }
+
+    public interface GlobalSettings {
+        MockSettings withSettings();
+    }
+
+    public interface Lenient {
+        Given given(Object mock);
+        Will willReturn(Object value);
+        Will willAnswer(Answer answer);
+        Will willThrow(Exception exp);
+        Will willDoNothing();
     }
 
     public interface Given {
@@ -174,12 +193,12 @@ public with sharing class ATK {
     }
 
     // #endregion
-    // *************************
+    // =======================
 
-    // *************************
+    // =========================
     // #region Argument Matchers
-    // *************************
-    // Type Matchers
+
+    // #region - Type Matchers
     public static Integer anyInteger() {
         return ATKMock.progress.matcherRecorder.anyInteger();
     }
@@ -247,8 +266,9 @@ public with sharing class ATK {
     public static List<SObject> anySObjectList() {
         return ATKMock.progress.matcherRecorder.anySObjectList();
     }
+    // #endregion
 
-    // Value Matchers
+    // #region - Value Matchers
     public static Object isNull() {
         return ATKMock.progress.matcherRecorder.isNull();
     }
@@ -648,8 +668,9 @@ public with sharing class ATK {
     public static LIst<SObject> sObjectListWith(List<Map<SObjectField, Object>> value, Boolean inOrder) {
         return ATKMock.progress.matcherRecorder.sObjectListWith(value, inOrder);
     }
+    // #endregion
 
-    // Combo Matchers
+    // #region - Combo Matchers
     public static Object allOf(Object arg1, Object arg2) {
         return ATKMock.progress.matcherRecorder.allOf(arg1, arg2);
     }
@@ -713,6 +734,7 @@ public with sharing class ATK {
     public static Object noneOf(List<Object> args) {
         return ATKMock.progress.matcherRecorder.noneOf(args);
     }
+    // #endregion
 
     public interface Matcher {
         Boolean matches(Type type, Object arg);
@@ -853,11 +875,10 @@ public with sharing class ATK {
     }
 
     // #endregion
-    // *************************
+    // =========================
 
-    // *************************
+    // =========================
     // #region Entity Interfaces
-    // *************************
 
     public static JunctionEntity prepare(Schema.SObjectType objectType, Integer size) {
         ATKCore.EntityCommand sharedCommand = new ATKCore.EntityCommand();
@@ -970,5 +991,5 @@ public with sharing class ATK {
     }
 
     // #endregion
-    // *************************
+    // =========================
 }

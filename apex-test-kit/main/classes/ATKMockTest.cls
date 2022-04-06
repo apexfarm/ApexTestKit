@@ -19,7 +19,13 @@
 public with sharing class ATKMockTest {
     // ===============
     // #region Answers
-    // ===============
+
+    @IsTest
+    static void test_answers_for_strictness() {
+        ATK.mock().withSettings().defaultAnswer(ATK.RETURNS_DEFAULTS).name('module 2');
+
+        ATKMockTest mock = (ATKMockTest) ATK.mock(ATKMockTest.class, ATK.withSettings().lenient());
+    }
 
     @IsTest
     static void test_answers_for_given() {
@@ -105,12 +111,18 @@ public with sharing class ATKMockTest {
 
     @IsTest
     static void test_answers_for_returns_self() {
-        ATKMockTest mock = (ATKMockTest) ATK.mock(ATKMockTest.class, ATK.withSettings().lenient().defaultAnswer(ATK.RETURNS_SELF));
+        ATKMockTest mock = (ATKMockTest) ATK.mock(ATKMockTest.class, ATK.withSettings().lenient().defaultAnswer(ATK.RETURNS_SELF).verbose());
 
         ATK.startStubbing();
-        ATK.given(mock.doReturnSelf(ATK.any()).doReturnSelf(1).doWithInteger(ATK.anyInteger())).willReturn('return 1');
+        // prettier-ignore
+        ATK.given(mock
+            .doReturnSelf(ATK.any())
+            .doReturnSelf(1)
+            .doWithInteger(ATK.anyInteger()))
+                .willReturn('return 1');
         ATK.stopStubbing();
 
+        System.debug(ATKMock.progress);
         System.assertEquals('return 1', mock.doReturnSelf('1').doReturnSelf(1).doWithInteger(1));
     }
 
@@ -141,13 +153,11 @@ public with sharing class ATKMockTest {
         }
     }
 
-    // ===============
     // #endregion
     // ===============
 
     // ================
     // #region Matchers
-    // ================
 
     @IsTest
     static void test_matchers_for_types() {
@@ -748,13 +758,11 @@ public with sharing class ATKMockTest {
         System.assertEquals('noneOf 6', mock.doWithSObject(new Account(Name = 'Company 7')));
     }
 
-    // ================
     // #endregion
     // ================
 
     // ====================
     // #region Verification
-    // ====================
 
     @IsTest
     static void test_then_for_verification_positive() {
@@ -932,13 +940,11 @@ public with sharing class ATKMockTest {
         ATK.then(mock).should(inOrder).haveNoMoreInteractions();
     }
 
-    // ====================
     // #endregion
     // ====================
 
     // ******************
     // #region Test Impls
-    // ******************
 
     public class MockException extends Exception {
     }
@@ -1121,7 +1127,6 @@ public with sharing class ATKMockTest {
         return null;
     }
 
-    // ******************
     // #endregion
     // ******************
 }

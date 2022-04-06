@@ -16,12 +16,13 @@
  */
 
 public with sharing class ATKMock {
-    public static final MockingProgress progress = new MockingProgress();
-    public static final InvocationFinder INVOCATION_FINDER = new InvocationFinder();
     public static final Answer DEFAULT_ANSWERS = new DefaultAnswer();
     public static final Answer NULL_ANSWERS = new NullAnswer();
     public static final Answer SELF_ANSWERS = new SelfAnswer();
-    public static final Answer MOCK_ANSWERS = new MockAnswer(progress);
+    public static final Answer MOCK_ANSWERS = new MockAnswer();
+
+    public static final MockingProgress progress = new MockingProgress();
+    public static final InvocationFinder INVOCATION_FINDER = new InvocationFinder();
     private static Map<String, SObjectType> globalDescribe { get; set; }
 
     private static Boolean isSObjectType(Type type) {
@@ -43,33 +44,25 @@ public with sharing class ATKMock {
         public Object handleMethodCall(Object mock, String methodName, Type returnType, List<Type> paramTypes, List<String> paramNames, List<Object> arguments) {
             Invocation invocation = new Invocation(progress.getMockSettings(mock), mock, methodName, returnType, paramTypes, paramNames, arguments);
 
-            if (progress.isStubbing || progress.isVerifying) {
-                progress.currentInvocation = invocation;
-                if (!progress.matcherRecorder.hasMatchers()) {
-                    for (Object arg : arguments) {
-                        progress.matcherRecorder.eq(arg);
-                    }
-                }
+            if (progress.isStubbing) {
+                progress.setMatchableInvocation(invocation, arguments);
 
-                progress.currentMatchers = progress.matcherRecorder.matchers;
-                progress.matcherRecorder.reset();
-
-                // WillStub ends here
-                if (progress.isStubbing && progress.currentMatchable != null) {
-                    progress.attach();
+                if (progress.isWillStubbing) {
+                    progress.container.addInvocation(progress.currentMatchable);
                     progress.reset();
                 }
+                return progress.container.defaultAnswer(invocation);
+            }
 
-                // ThenStub ends here
-                if (progress.isVerifying && progress.currentMatchable != null) {
-                    try {
-                        progress.attach();
-                        progress.currentVerificationMode.verify(progress.container, progress.currentMatchable);
-                    } catch (ATK.VerificationException exp) {
-                        throw exp;
-                    } finally {
-                        progress.reset();
-                    }
+            if (progress.isVerifying) {
+                progress.setMatchableInvocation(invocation, arguments);
+
+                try {
+                    progress.currentMode.verify(progress.container, progress.currentMatchable);
+                } catch (ATK.VerificationException exp) {
+                    throw new ATK.VerificationException(exp.getMessage());
+                } finally {
+                    progress.reset();
                 }
 
                 return progress.container.defaultAnswer(invocation);
@@ -80,7 +73,11 @@ public with sharing class ATKMock {
         }
     }
 
+    // =================
+    // #region Stubbings
+
     public class MockingProgress {
+        public final GlobalSettings settings { get; set; }
         private final MockHandler mockHandler { get; set; }
         private final InvocationContainer container { get; set; }
         private final VerificationContext context { get; set; }
@@ -88,13 +85,12 @@ public with sharing class ATKMock {
         // temporary states
         public final MatcherRecorder matcherRecorder { get; set; }
         private MatchableInvocation currentMatchable { get; set; }
-        private List<ArgumentMatcher> currentMatchers { get; set; }
-        private Invocation currentInvocation { get; set; }
-        private VerificationModeWrapper currentVerificationMode { get; set; }
+        private VerificationModeWrapper currentMode { get; set; }
         private Boolean isStubbing = false;
-        private Boolean isVerifying = false;
+        private Boolean isWillStubbing = false;
 
         public MockingProgress() {
+            this.settings = new GlobalSettings();
             this.mockHandler = new MockHandler();
             this.container = new InvocationContainer();
             this.context = new VerificationContext(new Set<Object>());
@@ -112,28 +108,32 @@ public with sharing class ATKMock {
             this.isStubbing = false;
         }
 
-        private void startVerifying() {
-            this.isVerifying = true;
-        }
-
-        private void stopVerifying() {
-            this.isVerifying = false;
-        }
-
-        private void attach() {
-            this.currentMatchable.populate(this.currentInvocation, this.currentMatchers);
-            if (this.isStubbing) {
-                this.container.addInvocation(this.currentMatchable);
+        public Boolean isVerifying {
+            get {
+                return this.currentMode != null;
             }
         }
 
         private void reset() {
-            this.matcherRecorder.reset();
-            this.currentMatchers = null;
-            this.currentInvocation = null;
             this.currentMatchable = null;
-            this.currentVerificationMode = null;
-            this.stopVerifying();
+            this.currentMode = null;
+            this.isWillStubbing = false;
+        }
+
+        public void setMatchableInvocation(Invocation invocation, List<Object> arguments) {
+            // GivenStubbing starts here
+            if (this.currentMatchable == null) {
+                this.currentMatchable = new StubbedInvocation();
+            }
+
+            if (!this.matcherRecorder.hasMatchers()) {
+                for (Object arg : arguments) {
+                    this.matcherRecorder.eq(arg);
+                }
+            }
+
+            this.currentMatchable.populate(invocation, this.matcherRecorder.matchers);
+            this.matcherRecorder.reset();
         }
 
         private MockSettings getMockSettings(Object mock) {
@@ -145,40 +145,55 @@ public with sharing class ATKMock {
         }
 
         public Object createMock(Type mockType) {
-            return this.createMock(mockType, mockType.getName(), DEFAULT_ANSWERS, false, false);
+            return this.createMock(mockType, null, null, null, null, null);
         }
 
         public Object createMock(Type mockType, ATK.Answer defaultAnswer) {
-            return this.createMock(mockType, mockType.getName(), defaultAnswer, false, false);
+            return this.createMock(mockType, null, defaultAnswer, null, null, null);
         }
 
         public Object createMock(Type mockType, ATK.MockSettings settings) {
-            return this.createMock(mockType, ((MockSettings) settings).mockName, ((MockSettings) settings).defaultAnswer, ((MockSettings) settings).lenient, ((MockSettings) settings).isStubOnly);
+            MockSettings mockSettings = (MockSettings) settings;
+            return this.createMock(mockType, mockSettings.mockName, mockSettings.defaultAnswer, mockSettings.lenient, mockSettings.stubOnly, mockSettings.verbose);
         }
 
-        private Object createMock(Type mockType, String name, ATK.Answer defaultAnswer, Boolean lenient, Boolean isStubOnly) {
+        private Object createMock(Type mockType, String mockName, ATK.Answer defaultAnswer, Boolean lenient, Boolean stubOnly, Boolean verbose) {
             Object mock = Test.createStub(mockType, mockHandler);
-            MockSettings settings = new MockSettings(mock, mockType, name, defaultAnswer, lenient, isStubOnly);
-            this.putMockSettings(mock, settings);
+            this.putMockSettings(mock, this.createMockSettings(mock, mockType, mockName, defaultAnswer, lenient, stubOnly, verbose));
             return mock;
         }
 
+        private MockSettings createMockSettings(Object mock, Type mockType, String mockName, ATK.Answer defaultAnswer, Boolean lenient, Boolean stubOnly, Boolean verbose) {
+            MockSettings settings = new MockSettings();
+            settings.mock = mock;
+            settings.mockType = mockType;
+            settings.mockName = String.isBlank(mockName) ? '[' + mockType.getName() + ']' : mockName;
+            settings.defaultAnswer = defaultAnswer == null ? this.settings.defaultAnswer : defaultAnswer;
+            settings.lenient = lenient == null ? this.settings.lenient : lenient;
+            settings.stubOnly = stubOnly == null ? this.settings.stubOnly : stubOnly;
+            settings.verbose = verbose == null ? this.settings.verbose : verbose;
+            return settings;
+        }
+
+        public LenientStubbing createLenientStub() {
+            return new LenientStubbing(this);
+        }
+
         public GivenStubbing createGivenStub() {
-            GivenStubbing givenStub = new GivenStubbing();
-            this.currentMatchable = givenStub.matchable;
-            this.attach();
+            GivenStubbing givenStub = new GivenStubbing((StubbedInvocation) this.currentMatchable);
+            this.container.addInvocation(progress.currentMatchable);
             this.reset();
             return givenStub;
         }
 
         public WillStubbing createWillStub() {
-            WillStubbing willStub = new WillStubbing();
-            this.currentMatchable = willStub.matchable;
+            this.isWillStubbing = true;
+            this.currentMatchable = new StubbedInvocation();
+            WillStubbing willStub = new WillStubbing((StubbedInvocation) this.currentMatchable);
             return willStub;
         }
 
         public ThenStubbing createThenStub(Object mock) {
-            this.startVerifying();
             ThenStubbing thenStub = new ThenStubbing(mock, this);
             this.currentMatchable = thenStub.matchable;
             return thenStub;
@@ -192,11 +207,7 @@ public with sharing class ATKMock {
             try {
                 this.currentMatchable.mock = mock;
                 this.currentMatchable.mockSetting = this.getMockSettings(mock);
-                this.currentVerificationMode.verify(
-                    INVOCATION_FINDER.findMatchingChuckByMock(this.container.invocations, this.currentVerificationMode.context, mock),
-                    this.currentMatchable,
-                    this.currentVerificationMode.context
-                );
+                this.currentMode.verify(INVOCATION_FINDER.findMatchingChuckByMock(this.container.invocations, this.currentMode.context, mock), this.currentMatchable, this.currentMode.context);
             } catch (ATK.VerificationException exp) {
                 throw exp;
             } finally {
@@ -208,11 +219,7 @@ public with sharing class ATKMock {
             try {
                 this.currentMatchable.mock = mock;
                 this.currentMatchable.mockSetting = this.getMockSettings(mock);
-                this.currentVerificationMode.verify(
-                    INVOCATION_FINDER.findUnverifiedByMock(this.container.invocations, this.currentVerificationMode.context, mock),
-                    this.currentMatchable,
-                    this.currentVerificationMode.context
-                );
+                this.currentMode.verify(INVOCATION_FINDER.findUnverifiedByMock(this.container.invocations, this.currentMode.context, mock), this.currentMatchable, this.currentMode.context);
             } catch (ATK.VerificationException exp) {
                 throw exp;
             } finally {
@@ -221,55 +228,31 @@ public with sharing class ATKMock {
         }
     }
 
-    public class GivenStubbing implements ATK.Given {
-        StubbedInvocation matchable = new StubbedInvocation();
+    public class LenientStubbing implements ATK.Lenient {
+        private MockingProgress progress { get; set; }
 
-        public ATK.Given willReturn(Object value) {
-            this.matchable.addAnswer(new ValueAnswer(value));
-            return this;
+        LenientStubbing(MockingProgress progress) {
+            this.progress = progress;
         }
 
-        public ATK.Given willAnswer(ATK.Answer answer) {
-            this.matchable.addAnswer(answer);
-            return this;
+        public ATK.Given given(Object mock) {
+            return this.progress.createGivenStub().lenient();
         }
-
-        public ATK.Given willThrow(Exception exp) {
-            this.matchable.addAnswer(new ExceptionAnswer(exp));
-            return this;
-        }
-
-        public ATK.Given willDoNothing() {
-            this.matchable.addAnswer(NULL_ANSWERS);
-            return this;
-        }
-    }
-
-    public class WillStubbing implements ATK.Will {
-        StubbedInvocation matchable = new StubbedInvocation();
 
         public ATK.Will willReturn(Object value) {
-            this.matchable.addAnswer(new ValueAnswer(value));
-            return this;
+            return this.progress.createWillStub().lenient().willReturn(value);
         }
 
         public ATK.Will willAnswer(ATK.Answer answer) {
-            this.matchable.addAnswer(answer);
-            return this;
+            return this.progress.createWillStub().lenient().willAnswer(answer);
         }
 
         public ATK.Will willThrow(Exception exp) {
-            this.matchable.addAnswer(new ExceptionAnswer(exp));
-            return this;
+            return this.progress.createWillStub().lenient().willThrow(exp);
         }
 
         public ATK.Will willDoNothing() {
-            this.matchable.addAnswer(NULL_ANSWERS);
-            return this;
-        }
-
-        public Object given(Object mock) {
-            return mock;
+            return this.progress.createWillStub().lenient().willDoNothing();
         }
     }
 
@@ -287,13 +270,13 @@ public with sharing class ATKMock {
 
         public ATK.Should should() {
             this.mode = new NoOrderVerificationMode(this.progress.context);
-            this.progress.currentVerificationMode = this.mode;
+            this.progress.currentMode = this.mode;
             return this;
         }
 
         public ATK.InOrderShould should(ATK.InOrder inOrder) {
             this.mode = new InOrderVerificationMode((VerificationContext) inOrder);
-            this.progress.currentVerificationMode = this.mode;
+            this.progress.currentMode = this.mode;
             return this;
         }
 
@@ -349,32 +332,109 @@ public with sharing class ATKMock {
         }
     }
 
+    public class GivenStubbing implements ATK.Given {
+        StubbedInvocation stubbedInvocation { get; set; }
+
+        GivenStubbing(StubbedInvocation stubbedInvocation) {
+            this.stubbedInvocation = stubbedInvocation;
+        }
+
+        public ATK.Given lenient() {
+            this.stubbedInvocation.lenient = true;
+            return this;
+        }
+
+        public ATK.Given willReturn(Object value) {
+            this.stubbedInvocation.addAnswer(new ValueAnswer(value));
+            return this;
+        }
+
+        public ATK.Given willAnswer(ATK.Answer answer) {
+            this.stubbedInvocation.addAnswer(answer);
+            return this;
+        }
+
+        public ATK.Given willThrow(Exception exp) {
+            this.stubbedInvocation.addAnswer(new ExceptionAnswer(exp));
+            return this;
+        }
+
+        public ATK.Given willDoNothing() {
+            this.stubbedInvocation.addAnswer(NULL_ANSWERS);
+            return this;
+        }
+    }
+
+    public class WillStubbing implements ATK.Will {
+        StubbedInvocation stubbedInvocation { get; set; }
+
+        WillStubbing(StubbedInvocation stubbedInvocation) {
+            this.stubbedInvocation = stubbedInvocation;
+        }
+
+        public ATK.Will lenient() {
+            this.stubbedInvocation.lenient = true;
+            return this;
+        }
+
+        public ATK.Will willReturn(Object value) {
+            this.stubbedInvocation.addAnswer(new ValueAnswer(value));
+            return this;
+        }
+
+        public ATK.Will willAnswer(ATK.Answer answer) {
+            this.stubbedInvocation.addAnswer(answer);
+            return this;
+        }
+
+        public ATK.Will willThrow(Exception exp) {
+            this.stubbedInvocation.addAnswer(new ExceptionAnswer(exp));
+            return this;
+        }
+
+        public ATK.Will willDoNothing() {
+            this.stubbedInvocation.addAnswer(NULL_ANSWERS);
+            return this;
+        }
+
+        public Object given(Object mock) {
+            return mock;
+        }
+    }
+
+    // #endregion
+    // =================
+
     // ===================
     // #region Invocations
-    // ===================
 
-    public class MockSettings implements ATK.MockSettings {
+    // Strict Mode: https://github.com/mockito/mockito/issues/1097
+    // - unstubbed, non-void method fails immediately with "I am unstubbed!" exception
+    // - such method is implicitly marked as verified for the verifyNoMoreInteractions() calls
+    // - unused stubs are detected at the end of test and trigger failure
+    // - requires to use doReturn API for stubbing mocks (limitation of the syntax, already known gotcha when using test "spy" or strict stubs)
+
+    public class GlobalSettings extends MockSettings implements ATK.GlobalSettings {
+        private GlobalSettings() {
+            this.defaultAnswer = DEFAULT_ANSWERS;
+            this.lenient = false;
+            this.stubOnly = false;
+            this.verbose = false;
+        }
+
+        public MockSettings withSettings() {
+            return this;
+        }
+    }
+
+    public virtual class MockSettings implements ATK.MockSettings {
         private Object mock { get; set; }
         private Type mockType { get; set; }
         private String mockName { get; set; }
         private ATK.Answer defaultAnswer { get; set; }
         private Boolean lenient { get; set; }
-        private Boolean isStubOnly { get; set; }
-
-        public MockSettings() {
-            this.defaultAnswer = DEFAULT_ANSWERS;
-            this.lenient = false;
-            this.isStubOnly = false;
-        }
-
-        private MockSettings(Object mock, Type mockType, string mockName, ATK.Answer defaultAnswer, Boolean lenient, Boolean isStubOnly) {
-            this.mock = mock;
-            this.mockType = mockType;
-            this.mockName = String.isBlank(mockName) ? mockType.getName() : mockName;
-            this.defaultAnswer = defaultAnswer == null ? DEFAULT_ANSWERS : defaultAnswer;
-            this.lenient = lenient == null ? false : lenient;
-            this.isStubOnly = isStubOnly == null ? false : isStubOnly;
-        }
+        private Boolean stubOnly { get; set; }
+        private Boolean verbose { get; set; }
 
         public MockSettings name(String name) {
             this.mockName = name;
@@ -387,12 +447,17 @@ public with sharing class ATKMock {
         }
 
         public MockSettings stubOnly() {
-            this.isStubOnly = true;
+            this.stubOnly = true;
             return this;
         }
 
         public MockSettings lenient() {
             this.lenient = true;
+            return this;
+        }
+
+        public MockSettings verbose() {
+            this.verbose = true;
             return this;
         }
     }
@@ -412,25 +477,27 @@ public with sharing class ATKMock {
             if (invocation instanceof StubbedInvocation) {
                 this.stubbedInvocations.add((StubbedInvocation) invocation);
             } else {
-                if (!this.isStubOnly(invocation)) {
+                if (!this.stubOnly(invocation)) {
                     this.invocations.add(invocation);
                 }
             }
         }
 
         public Object answer(Invocation candidate, VerificationContext context) {
+            System.debug(this.stubbedInvocations.size());
             for (Integer i = this.stubbedInvocations.size(); i > 0; i--) {
                 StubbedInvocation stub = this.stubbedInvocations[i - 1];
+                System.debug(stub);
                 if (stub.matches(candidate)) {
-                    // TODO: track used stubs
-                    if (!candidate.lenient) {
+                    context.markStubUsed(stub);
+                    if (!stub.lenient()) {
                         context.markVerified(candidate);
                     }
                     return stub.answer(candidate);
                 }
             }
 
-            if (!candidate.lenient) {
+            if (!candidate.lenient()) {
                 throw new ATK.VerificationException(String.format('"{0}" has not been stubbed', new List<Object>{ (Invocation) candidate }));
             }
             return this.defaultAnswer((Invocation) candidate);
@@ -440,8 +507,79 @@ public with sharing class ATKMock {
             return this.mockSettings.get(candidate.mock).defaultAnswer.answer(candidate);
         }
 
-        private Boolean isStubOnly(Invocation invocation) {
-            return this.mockSettings.get(invocation.mock).isStubOnly;
+        private Boolean stubOnly(Invocation invocation) {
+            return this.mockSettings.get(invocation.mock).stubOnly;
+        }
+    }
+
+    public class Method extends ATK.Method {
+        Method(String methodName, Type returnType, List<Type> paramTypes, List<String> paramNames) {
+            this.name = methodName;
+            this.returnType = returnType;
+            this.paramTypes = paramTypes;
+            this.paramNames = paramNames;
+        }
+
+        public Boolean equals(Object obj) {
+            if (this === obj) {
+                return true;
+            }
+
+            Method method = (Method) obj;
+            return method != null && this.name == method.name && this.paramTypes == method.paramTypes;
+        }
+
+        public override Integer hashCode() {
+            return (31 * this.name.hashCode()) ^ this.paramTypes.hashCode();
+        }
+    }
+
+    private virtual class Invocation extends ATK.Invocation {
+        private MockSettings mockSetting { get; set; }
+
+        private String mockName {
+            get {
+                if (this.mockSetting != null) {
+                    return this.mockSetting.mockName;
+                }
+                return '';
+            }
+        }
+
+        private Type mockType {
+            get {
+                if (this.mockSetting != null) {
+                    return this.mockSetting.mockType;
+                }
+                return null;
+            }
+        }
+
+        protected virtual Boolean lenient() {
+            if (this.mockSetting != null) {
+                return this.mockSetting.lenient;
+            }
+            return false;
+        }
+
+        private Invocation() {
+        }
+
+        private Invocation(MockSettings mockSetting, Object mock, String methodName, Type returnType, List<Type> paramTypes, List<String> paramNames, List<Object> arguments) {
+            this.mockSetting = mockSetting;
+            this.mock = mock;
+            this.method = new Method(methodName, returnType, paramTypes, paramNames);
+            this.arguments = arguments;
+        }
+
+        public override virtual String toString() {
+            List<String> args = new List<String>();
+
+            for (Object arg : this.arguments) {
+                args.add(String.valueOf(arg));
+            }
+
+            return this.mockName + '.' + this.method.name + '(' + String.join(args, ', ') + ')';
         }
     }
 
@@ -485,105 +623,51 @@ public with sharing class ATKMock {
     }
 
     private class StubbedInvocation extends MatchableInvocation implements Answer {
-        protected List<ATK.Answer> answers = new List<ATK.Answer>();
-        protected Integer answeredIndex = 0;
-
-        private Boolean isConsecutive {
+        private Boolean lenient { get; set; }
+        protected List<ATK.Answer> answers { get; set; }
+        private Boolean isConsecutive { get; set; }
+        private Boolean hasNextAnswer {
             get {
-                return answers.size() > 1;
+                return this.answers.size() > 0;
             }
         }
 
+        private StubbedInvocation() {
+            this.lenient = false;
+            this.answers = new List<ATK.Answer>();
+            this.isConsecutive = false;
+        }
+
+        protected override Boolean lenient() {
+            return this.lenient || super.lenient();
+        }
+
+        private ATK.Answer poll() {
+            return this.answers.remove(this.answers.size() - 1);
+        }
+
+        private ATK.Answer peek() {
+            return this.answers.get(this.answers.size() - 1);
+        }
+
         public Object answer(ATK.Invocation invocation) {
-            if (this.hasNextAnswer()) {
+            if (this.hasNextAnswer) {
                 if (this.isConsecutive) {
-                    return this.answers[this.answeredIndex++].answer(invocation);
+                    return this.poll().answer(invocation);
                 } else {
-                    return this.answers[this.answeredIndex].answer(invocation);
+                    return this.peek().answer(invocation);
                 }
             }
             return null;
         }
 
-        private Boolean hasNextAnswer() {
-            return this.answers.size() > this.answeredIndex;
-        }
-
         private void addAnswer(ATK.Answer answer) {
-            this.answers.add(answer);
-        }
-    }
-
-    private virtual class Invocation extends ATK.Invocation {
-        private MockSettings mockSetting { get; set; }
-
-        private String mockName {
-            get {
-                if (this.mockSetting != null) {
-                    return this.mockSetting.mockName;
-                }
-                return '';
+            if (this.answers.size() == 0) {
+                this.answers.add(answer);
+            } else {
+                this.isConsecutive = true;
+                this.answers.add(0, answer);
             }
-        }
-
-        private Type mockType {
-            get {
-                if (this.mockSetting != null) {
-                    return this.mockSetting.mockType;
-                }
-                return null;
-            }
-        }
-
-        private Boolean lenient {
-            get {
-                if (this.mockSetting != null) {
-                    return this.mockSetting.lenient;
-                }
-                return false;
-            }
-        }
-
-        private Invocation() {
-        }
-
-        private Invocation(MockSettings mockSetting, Object mock, String methodName, Type returnType, List<Type> paramTypes, List<String> paramNames, List<Object> arguments) {
-            this.mockSetting = mockSetting;
-            this.mock = mock;
-            this.method = new Method(methodName, returnType, paramTypes, paramNames);
-            this.arguments = arguments;
-        }
-
-        public override virtual String toString() {
-            List<String> args = new List<String>();
-
-            for (Object arg : this.arguments) {
-                args.add(String.valueOf(arg));
-            }
-
-            return this.mockName + '.' + this.method.name + '(' + String.join(args, ', ') + ')';
-        }
-    }
-
-    public class Method extends ATK.Method {
-        Method(String methodName, Type returnType, List<Type> paramTypes, List<String> paramNames) {
-            this.name = methodName;
-            this.returnType = returnType;
-            this.paramTypes = paramTypes;
-            this.paramNames = paramNames;
-        }
-
-        public Boolean equals(Object obj) {
-            if (this === obj) {
-                return true;
-            }
-
-            Method method = (Method) obj;
-            return method != null && this.name == method.name && this.paramTypes == method.paramTypes;
-        }
-
-        public override Integer hashCode() {
-            return (31 * this.name.hashCode()) ^ this.paramTypes.hashCode();
         }
     }
 
@@ -592,7 +676,6 @@ public with sharing class ATKMock {
 
     // ===============
     // #region Answers
-    // ===============
 
     public interface Answer extends ATK.Answer {
     }
@@ -683,12 +766,6 @@ public with sharing class ATKMock {
     }
 
     private class MockAnswer implements Answer {
-        private MockingProgress progress { get; set; }
-
-        private MockAnswer(MockingProgress progress) {
-            this.progress = progress;
-        }
-
         public Object answer(ATK.Invocation invocation) {
             Object defaultAnswer = DEFAULT_ANSWERS.answer(invocation);
             if (defaultAnswer != null) {
@@ -696,10 +773,10 @@ public with sharing class ATKMock {
             }
 
             try {
-                if (this.progress.isStubbing || this.progress.isVerifying) {
+                if (progress.isStubbing || progress.isVerifying) {
                     return null;
                 }
-                return this.progress.createMock(invocation.method.returnType, this.progress.getMockSettings(invocation.mock));
+                return progress.createMock(invocation.method.returnType, progress.getMockSettings(invocation.mock));
             } catch (Exception ex) {
             }
             return null;
@@ -919,24 +996,38 @@ public with sharing class ATKMock {
     }
 
     public class VerificationContext implements ATK.InOrder {
-        Set<Invocation> invocations { get; set; }
         Set<Object> mocks { get; set; }
+        Set<Invocation> invocations { get; set; }
+        Set<StubbedInvocation> stubbedInvocations { get; set; }
 
         VerificationContext(Set<Object> mocks) {
-            this.invocations = new Set<Invocation>();
             this.mocks = mocks;
+            this.invocations = new Set<Invocation>();
+            this.stubbedInvocations = new Set<StubbedInvocation>();
+        }
+
+        public Boolean containsMock(Object mock) {
+            return this.mocks.contains(mock);
+        }
+
+        public void markVerified(Invocation invocation) {
+            if (invocation instanceof MatchableInvocation || invocation instanceof StubbedInvocation) {
+                throw new ATK.VerificationException(String.format('"{0}" should not be marked verified', new List<Object>{ invocation }));
+            }
+
+            this.invocations.add(invocation);
         }
 
         public Boolean isVerified(Invocation invocation) {
             return this.invocations.contains(invocation);
         }
 
-        public void markVerified(Invocation invocation) {
-            this.invocations.add(invocation);
+        public void markStubUsed(StubbedInvocation invocation) {
+            this.stubbedInvocations.add(invocation);
         }
 
-        public Boolean containsMock(Object mock) {
-            return this.mocks.contains(mock);
+        public Boolean isStubUsed(StubbedInvocation invocation) {
+            return this.stubbedInvocations.contains(invocation);
         }
     }
 
@@ -945,7 +1036,6 @@ public with sharing class ATKMock {
 
     // =====================
     // #region Type Matchers
-    // =====================
 
     public class AnyMatcher implements ArgumentMatcher {
         public Boolean matches(Type type, Object arg) {
@@ -1038,7 +1128,6 @@ public with sharing class ATKMock {
 
     // ======================
     // #region Value Matchers
-    // ======================
 
     public class NullMatcher implements ArgumentMatcher {
         Boolean isNull { get; set; }
@@ -1087,6 +1176,9 @@ public with sharing class ATKMock {
         }
 
         public override String toString() {
+            if (value instanceof String) {
+                return 'ATK.ne(\'' + this.value + '\')';
+            }
             return 'ATK.ne(' + String.valueOf(this.value) + ')';
         }
     }
@@ -1103,6 +1195,9 @@ public with sharing class ATKMock {
         }
 
         public override String toString() {
+            if (value instanceof String) {
+                return 'ATK.eq(\'' + this.value + '\')';
+            }
             return 'ATK.eq(' + String.valueOf(this.value) + ')';
         }
     }
@@ -1142,6 +1237,9 @@ public with sharing class ATKMock {
         }
 
         public override String toString() {
+            if (value instanceof String) {
+                return 'ATK.gt(\'' + this.value + '\')';
+            }
             return 'ATK.gt(' + String.valueOf(this.value) + ')';
         }
     }
@@ -1181,6 +1279,9 @@ public with sharing class ATKMock {
         }
 
         public override String toString() {
+            if (value instanceof String) {
+                return 'ATK.gte(\'' + this.value + '\')';
+            }
             return 'ATK.gte(' + String.valueOf(this.value) + ')';
         }
     }
@@ -1220,6 +1321,9 @@ public with sharing class ATKMock {
         }
 
         public override String toString() {
+            if (value instanceof String) {
+                return 'ATK.lt(\'' + this.value + '\')';
+            }
             return 'ATK.lt(' + String.valueOf(this.value) + ')';
         }
     }
@@ -1259,6 +1363,9 @@ public with sharing class ATKMock {
         }
 
         public override String toString() {
+            if (value instanceof String) {
+                return 'ATK.lte(\'' + this.value + '\')';
+            }
             return 'ATK.lte(' + String.valueOf(this.value) + ')';
         }
     }
@@ -1373,6 +1480,9 @@ public with sharing class ATKMock {
         }
 
         public override String toString() {
+            if (minValue instanceof String && maxValue instanceof String) {
+                return 'ATK.between(\'' + this.minValue + '\', \'' + this.maxValue + '\')';
+            }
             return 'ATK.between(' + String.valueOf(this.minValue) + ', ' + String.valueOf(this.maxValue) + ')';
         }
     }
@@ -1408,7 +1518,7 @@ public with sharing class ATKMock {
         }
 
         public override String toString() {
-            return 'ATK.contains(\'' + String.valueOf(this.value) + '\')';
+            return 'ATK.contains(\'' + this.value + '\')';
         }
     }
 
@@ -1424,7 +1534,7 @@ public with sharing class ATKMock {
         }
 
         public override String toString() {
-            return 'ATK.startsWith(\'' + String.valueOf(this.value) + '\')';
+            return 'ATK.startsWith(\'' + this.value + '\')';
         }
     }
 
@@ -1440,7 +1550,7 @@ public with sharing class ATKMock {
         }
 
         public override String toString() {
-            return 'ATK.endsWith(\'' + String.valueOf(this.value) + '\')';
+            return 'ATK.endsWith(\'' + this.value + '\')';
         }
     }
 
@@ -1624,7 +1734,6 @@ public with sharing class ATKMock {
 
     // =======================
     // #region Comobo Matchers
-    // ======================
 
     public abstract class ComboMatcher {
         protected List<ArgumentMatcher> matchers { get; set; }
@@ -1702,6 +1811,9 @@ public with sharing class ATKMock {
 
     // #endregion
     // ======================
+
+    public interface ArgumentMatcher extends ATK.Matcher {
+    }
 
     public class MatcherRecorder implements ATK.MatcherRecorder {
         List<ArgumentMatcher> matchers { get; set; }
@@ -2312,12 +2424,8 @@ public with sharing class ATKMock {
         // #endregion
     }
 
-    public interface ArgumentMatcher extends ATK.Matcher {
-    }
-
     // ======================
     // #region Error Handling
-    // ======================
 
     public class NonArgumentException extends Exception {
         String msg = 'Argument cannot be null.';
