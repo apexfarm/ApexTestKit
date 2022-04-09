@@ -16,7 +16,7 @@
  */
 
 public with sharing class ATK {
-    public class VerificationException extends Exception {
+    public virtual class MockException extends Exception {
     }
 
     // =======================
@@ -111,6 +111,7 @@ public with sharing class ATK {
         MockSettings defaultAnswer(Answer answer);
         MockSettings stubOnly();
         MockSettings lenient();
+        MockSettings lenientVoid();
         MockSettings verbose();
     }
 
@@ -130,7 +131,6 @@ public with sharing class ATK {
         Given willReturn(Object value);
         Given willAnswer(Answer answer);
         Given willThrow(Exception exp);
-        Given willDoNothing();
     }
 
     public interface Will {
@@ -169,11 +169,11 @@ public with sharing class ATK {
     public interface Should {
         void haveNoInteractions();
         void haveNoMoreInteractions();
+        void haveNoUnusedStubs();
 
         Object never();
         Object once();
         Object times(Integer n);
-
         Object atLeast(Integer n);
         Object atLeastOnce();
         Object atMost(Integer n);
@@ -181,15 +181,36 @@ public with sharing class ATK {
     }
 
     public interface InOrderShould {
-        void haveNoInteractions();
         void haveNoMoreInteractions();
 
         Object never();
         Object once();
         Object times(Integer n);
-
-        // none-greedy
         Object calls(Integer n);
+    }
+
+    public interface GlobalShould {
+        void haveNoInteractions();
+        void haveNoInteractions(Object mock1);
+        void haveNoInteractions(Object mock1, Object mock2);
+        void haveNoInteractions(Object mock1, Object mock2, Object mock3);
+        void haveNoInteractions(Object mock1, Object mock2, Object mock3, Object mock4);
+        void haveNoInteractions(Object mock1, Object mock2, Object mock3, Object mock4, Object mock5);
+        void haveNoInteractions(List<Object> mocks);
+        void haveNoMoreInteractions();
+        void haveNoMoreInteractions(Object mock1);
+        void haveNoMoreInteractions(Object mock1, Object mock2);
+        void haveNoMoreInteractions(Object mock1, Object mock2, Object mock3);
+        void haveNoMoreInteractions(Object mock1, Object mock2, Object mock3, Object mock4);
+        void haveNoMoreInteractions(Object mock1, Object mock2, Object mock3, Object mock4, Object mock5);
+        void haveNoMoreInteractions(List<Object> mocks);
+        void haveNoUnusedStubs();
+        void haveNoUnusedStubs(Object mock1);
+        void haveNoUnusedStubs(Object mock1, Object mock2);
+        void haveNoUnusedStubs(Object mock1, Object mock2, Object mock3);
+        void haveNoUnusedStubs(Object mock1, Object mock2, Object mock3, Object mock4);
+        void haveNoUnusedStubs(Object mock1, Object mock2, Object mock3, Object mock4, Object mock5);
+        void haveNoUnusedStubs(List<Object> mocks);
     }
 
     // #endregion
@@ -221,6 +242,10 @@ public with sharing class ATK {
 
     public static Datetime anyDatetime() {
         return ATKMock.progress.matcherRecorder.anyDatetime();
+    }
+
+    public static Time anyTime() {
+        return ATKMock.progress.matcherRecorder.anyTime();
     }
 
     public static Id anyId() {
@@ -309,6 +334,10 @@ public with sharing class ATK {
         return ATKMock.progress.matcherRecorder.neDatetime(value);
     }
 
+    public static Time neTime(Time value) {
+        return ATKMock.progress.matcherRecorder.neTime(value);
+    }
+
     public static Id neId(Id value) {
         return ATKMock.progress.matcherRecorder.neId(value);
     }
@@ -347,6 +376,10 @@ public with sharing class ATK {
 
     public static Datetime eqDatetime(Datetime value) {
         return ATKMock.progress.matcherRecorder.eqDatetime(value);
+    }
+
+    public static Time eqTime(Time value) {
+        return ATKMock.progress.matcherRecorder.eqTime(value);
     }
 
     public static Id eqId(Id value) {
@@ -748,6 +781,7 @@ public with sharing class ATK {
         Decimal anyDecimal();
         Date anyDate();
         Datetime anyDatetime();
+        Time anyTime();
         Id anyId();
         String anyString();
         Boolean anyBoolean();
@@ -775,6 +809,7 @@ public with sharing class ATK {
         Decimal neDecimal(Decimal value);
         Date neDate(Date value);
         Datetime neDatetime(Datetime value);
+        Time neTime(Time value);
         Id neId(Id value);
         String neString(String value);
         Boolean neBoolean(Boolean value);
@@ -786,6 +821,7 @@ public with sharing class ATK {
         Decimal eqDecimal(Decimal value);
         Date eqDate(Date value);
         Datetime eqDatetime(Datetime value);
+        Time eqTime(Time value);
         Id eqId(Id value);
         String eqString(String value);
         Boolean eqBoolean(Boolean value);
@@ -842,15 +878,20 @@ public with sharing class ATK {
 
         String isBlank();
         String isNotBlank();
-        String contains(String value);
         String startsWith(String value);
         String endsWith(String value);
         String matches(String regexp);
+        String contains(String value);
+
+        // TODO: implement list matchers
+        // Object listContains(Object value);
+        // Object listIsEmpty();
 
         SObject sObjectWithId(Id value);
         SObject sObjectWithName(String value);
         SObject sObjectWith(SObjectField field, Object value);
         SObject sObjectWith(Map<SObjectField, Object> value);
+        SObject sObjectWith(Map<SObjectField, Matcher> value);
         LIst<SObject> sObjectListWith(SObjectField field, Object value);
         LIst<SObject> sObjectListWith(Map<SObjectField, Object> value);
         LIst<SObject> sObjectListWith(List<Map<SObjectField, Object>> value, Boolean inOrder);
