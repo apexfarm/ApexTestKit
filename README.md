@@ -19,6 +19,20 @@ It can also help generate method stubs with the help of Apex `StubProvider` inte
 
 ---
 
+### **v4.0 Release Notes**
+
+#### Major Changes
+
+1. Ported Mockito BDD Features
+
+#### Next Steps
+
+1. Performance tuning for the BDD features.
+2. Enhance the BDD features.
+3. Support `HttpCalloutMock` in BDD style.
+
+---
+
 ## &#128293; Apex Test Kit with BDD
 
 Please check the developer guide at this [wiki page](https://github.com/apexfarm/ApexTestKit/wiki/Apex-Test-Kit-with-BDD).
@@ -37,8 +51,6 @@ String returnValue = mock.doSomething();
 System.assertEquals('Sth.', returnValue);
 ((ATKMockTest) ATK.then(mock).should().once()).doSomething();
 ```
-
----
 
 ## Table of Contents
 
