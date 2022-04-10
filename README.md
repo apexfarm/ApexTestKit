@@ -1,6 +1,6 @@
 # Apex Test Kit
 
-![](https://img.shields.io/badge/version-4.0.0%20preview-orange.svg) ![](https://img.shields.io/badge/build-passing-brightgreen.svg) ![](https://img.shields.io/badge/coverage-93%25-brightgreen.svg)
+![](https://img.shields.io/badge/version-4.0.0-brightgreen.svg) ![](https://img.shields.io/badge/build-passing-brightgreen.svg) ![](https://img.shields.io/badge/coverage-95%25-brightgreen.svg)
 
 Apex Test Kit can help generate massive records for Apex test classes, including mock sObjects with read-only fields. It solves two pain points during record creation:
 
@@ -9,10 +9,10 @@ Apex Test Kit can help generate massive records for Apex test classes, including
 
 And it also ported the [Mockito](https://site.mockito.org/) BDD APIs with some twists.
 
-| Environment           | Installation Link                                                                                                                                         | Version           |
-| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------- |
-| Production, Developer | <a target="_blank" href="https://login.salesforce.com/packaging/installPackage.apexp?p0=04t2v000007GUCxAAO"><img src="docs/images/deploy-button.png"></a> | ver 4.0.0 preview |
-| Sandbox               | <a target="_blank" href="https://test.salesforce.com/packaging/installPackage.apexp?p0=04t2v000007GUCxAAO"><img src="docs/images/deploy-button.png"></a>  | ver 4.0.0 preview |
+| Environment           | Installation Link                                            | Version   |
+| --------------------- | ------------------------------------------------------------ | --------- |
+| Production, Developer | <a target="_blank" href="https://login.salesforce.com/packaging/installPackage.apexp?p0=04t2v000007GUCxAAO"><img src="docs/images/deploy-button.png"></a> | ver 4.0.0 |
+| Sandbox               | <a target="_blank" href="https://test.salesforce.com/packaging/installPackage.apexp?p0=04t2v000007GUCxAAO"><img src="docs/images/deploy-button.png"></a> | ver 4.0.0 |
 
 ---
 

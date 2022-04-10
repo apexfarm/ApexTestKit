@@ -74,7 +74,7 @@ public with sharing class ATKMock {
     }
 
     // =================
-    // #region Stubbings
+    // #region Stubber
 
     public class MockingProgress {
         public final GlobalSettings settings { get; set; }
@@ -126,7 +126,7 @@ public with sharing class ATKMock {
         }
 
         public void setMatchableInvocation(Invocation invocation, List<Object> arguments) {
-            // GivenStubbing starts here
+            // GivenStubber starts here
             if (this.currentMatchable == null) {
                 this.currentMatchable = new StubbedInvocation();
             }
@@ -181,36 +181,36 @@ public with sharing class ATKMock {
             return mock;
         }
 
-        public LenientStubbing createLenientStub() {
+        public LenientStubber createLenientStubber() {
             if (!this.isStubbing) {
                 REPORTER.reportMisuse_StubbingNotStarted();
             }
-            return new LenientStubbing(this);
+            return new LenientStubber(this);
         }
 
-        public GivenStubbing createGivenStub() {
+        public GivenStubber createGivenStubber() {
             if (!this.isStubbing) {
                 this.currentMatchable = null;
                 REPORTER.reportMisuse_StubbingNotStarted();
             }
-            GivenStubbing givenStub = new GivenStubbing((StubbedInvocation) this.currentMatchable);
+            GivenStubber givenStub = new GivenStubber((StubbedInvocation) this.currentMatchable);
             this.finishStubbing();
             return givenStub;
         }
 
-        public WillStubbing createWillStub() {
+        public WillStubber createWillStubber() {
             if (!this.isStubbing) {
                 REPORTER.reportMisuse_StubbingNotStarted();
             }
             this.currentMatchable = new StubbedInvocation();
-            WillStubbing willStub = new WillStubbing((StubbedInvocation) this.currentMatchable);
+            WillStubber willStub = new WillStubber((StubbedInvocation) this.currentMatchable);
             this.isWillStubbing = true;
             return willStub;
         }
 
-        public ThenStubbing createThenStub(Object mock) {
+        public ThenStubber createThenStubber(Object mock) {
             this.currentMatchable = new VerifiableInvocation();
-            ThenStubbing thenStub = new ThenStubbing(mock, this);
+            ThenStubber thenStub = new ThenStubber(mock, this);
             return thenStub;
         }
 
@@ -267,40 +267,40 @@ public with sharing class ATKMock {
         }
     }
 
-    public class LenientStubbing implements ATK.Lenient {
+    public class LenientStubber implements ATK.Lenient {
         private MockingProgress progress { get; set; }
 
-        LenientStubbing(MockingProgress progress) {
+        LenientStubber(MockingProgress progress) {
             this.progress = progress;
         }
 
         public ATK.Given given(Object mock) {
-            return this.progress.createGivenStub().lenient();
+            return this.progress.createGivenStubber().lenient();
         }
 
         public ATK.Will willReturn(Object value) {
-            return this.progress.createWillStub().lenient().willReturn(value);
+            return this.progress.createWillStubber().lenient().willReturn(value);
         }
 
         public ATK.Will willAnswer(ATK.Answer answer) {
-            return this.progress.createWillStub().lenient().willAnswer(answer);
+            return this.progress.createWillStubber().lenient().willAnswer(answer);
         }
 
         public ATK.Will willThrow(Exception exp) {
-            return this.progress.createWillStub().lenient().willThrow(exp);
+            return this.progress.createWillStubber().lenient().willThrow(exp);
         }
 
         public ATK.Will willDoNothing() {
-            return this.progress.createWillStub().lenient().willDoNothing();
+            return this.progress.createWillStubber().lenient().willDoNothing();
         }
     }
 
-    public class ThenStubbing implements ATK.ThenOf, ATK.Should, ATK.InOrderShould {
+    public class ThenStubber implements ATK.ThenOf, ATK.Should, ATK.InOrderShould {
         private Object mock { get; set; }
         private MockingProgress progress { get; set; }
         private VerificationModeWrapper mode { get; set; }
 
-        ThenStubbing(Object mock, MockingProgress progress) {
+        ThenStubber(Object mock, MockingProgress progress) {
             this.mock = mock;
             this.progress = progress;
         }
@@ -374,10 +374,10 @@ public with sharing class ATKMock {
         }
     }
 
-    public class GivenStubbing implements ATK.Given {
+    public class GivenStubber implements ATK.Given {
         StubbedInvocation stubbedInvocation { get; set; }
 
-        GivenStubbing(StubbedInvocation stubbedInvocation) {
+        GivenStubber(StubbedInvocation stubbedInvocation) {
             this.stubbedInvocation = stubbedInvocation;
         }
 
@@ -402,10 +402,10 @@ public with sharing class ATKMock {
         }
     }
 
-    public class WillStubbing implements ATK.Will {
+    public class WillStubber implements ATK.Will {
         StubbedInvocation stubbedInvocation { get; set; }
 
-        WillStubbing(StubbedInvocation stubbedInvocation) {
+        WillStubber(StubbedInvocation stubbedInvocation) {
             this.stubbedInvocation = stubbedInvocation;
         }
 

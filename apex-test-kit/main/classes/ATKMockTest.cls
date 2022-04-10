@@ -335,6 +335,21 @@ public with sharing class ATKMockTest {
         System.assertEquals('one', mock2.doReturnSelf('1').doReturnSelf(1).doWithInteger(1));
     }
 
+    @IsTest
+    static void test_answers_for_custom_answers() {
+        ATK.mock().withSettings().lenient();
+        ATKMockTest mock1 = (ATKMockTest) ATK.mock(ATKMockTest.class, new CustomAnswer('Custom Answer 1'));
+        System.assertEquals('Custom Answer 1', mock1.doWithInteger(1));
+
+        ATK.mock().withSettings().defaultAnswer(new CustomAnswer('Custom Answer 2'));
+
+        ATKMockTest mock2 = (ATKMockTest) ATK.mock(ATKMockTest.class);
+        System.assertEquals('Custom Answer 2', mock2.doWithInteger(2));
+
+        ATKMockTest mock3 = (ATKMockTest) ATK.mock(ATKMockTest.class, new CustomAnswer('Custom Answer 3'));
+        System.assertEquals('Custom Answer 3', mock3.doWithInteger(3));
+    }
+
     // #endregion
     // ===============
 

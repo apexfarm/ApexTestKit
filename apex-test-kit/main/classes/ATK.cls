@@ -55,31 +55,31 @@ public with sharing class ATK {
     }
 
     public static Lenient lenient() {
-        return ATKMock.progress.createLenientStub();
+        return ATKMock.progress.createLenientStubber();
     }
 
     public static Given given(Object value) {
-        return ATKMock.progress.createGivenStub();
+        return ATKMock.progress.createGivenStubber();
     }
 
     public static Will willReturn(Object value) {
-        return ATKMock.progress.createWillStub().willReturn(value);
+        return ATKMock.progress.createWillStubber().willReturn(value);
     }
 
     public static Will willAnswer(Answer answer) {
-        return ATKMock.progress.createWillStub().willAnswer(answer);
+        return ATKMock.progress.createWillStubber().willAnswer(answer);
     }
 
     public static Will willThrow(Exception exp) {
-        return ATKMock.progress.createWillStub().willThrow(exp);
+        return ATKMock.progress.createWillStubber().willThrow(exp);
     }
 
     public static Will willDoNothing() {
-        return ATKMock.progress.createWillStub().willDoNothing();
+        return ATKMock.progress.createWillStubber().willDoNothing();
     }
 
     public static ThenOf then(Object mock) {
-        return ATKMock.progress.createThenStub(mock);
+        return ATKMock.progress.createThenStubber(mock);
     }
 
     public static InOrder inOrder(List<Object> mocks) {

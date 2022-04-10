@@ -1,107 +1,172 @@
-![](https://img.shields.io/badge/version-4.0.0%20preview-orange.svg) ![](https://img.shields.io/badge/build-passing-brightgreen.svg) ![](https://img.shields.io/badge/coverage-93%25-brightgreen.svg)
-
-[Mockito](https://site.mockito.org/) BDD flavor has been brought into Apex Test Kit with some twists. Some developments are still needed before its final release, such as:
-
-1. Implement "in order" verification. (This is the only major feature currently missing.)
-2. Add more exceptions and guards to help developers understand how to use the BDD API correctly.
-3. Add more unit tests to cover wide variety scenarios.
-
-
-| Environment           | Installation Link                                            | Version           |
-| --------------------- | ------------------------------------------------------------ | ----------------- |
-| Production, Developer | <a target="_blank" href="https://login.salesforce.com/packaging/installPackage.apexp?p0=04t2v000007GUCxAAO"><img src="https://github.com/apexfarm/ApexTestKit/raw/master/docs/images/deploy-button.png"></a> | ver 4.0.0 preview |
-| Sandbox               | <a target="_blank" href="https://test.salesforce.com/packaging/installPackage.apexp?p0=04t2v000007GUCxAAO"><img src="https://github.com/apexfarm/ApexTestKit/raw/master/docs/images/deploy-button.png"></a> | ver 4.0.0 preview |
-
-Please give your feedback in GitHub issue <a href="https://github.com/apexfarm/ApexTestKit/issues/34" target="_blank">v4.0 with BDD</a>, any missing features or API suggestions are welcomed. Also please help give a star if you like the BDD feature, it might help accelerate the release :).
-
-## Table of Contents
-
-- [Overview](#overview)
-- [1. Given Statements](#1-given-statements)
-  - [1.1 Three Rules](#11-three-rules)
-  - [1.2 Answers](#12-answers)
-- [2. Then Statements](#2-then-statements)
-  - [2.1 Verification Modes](#21-verification-modes)
-  - [2.2-Assertion Messages](#22-assertion-messages)
-- [3. Argument Matchers](#3-argument-matchers)
-  - [3.1 Type Matchers](#31-type-matchers)
-    - [Any Types](#any-types)
-    - [Primitives](#primitives)
-    - [Collections](#collections)
-  - [3.2 Value Matchers](#32-value-matchers)
-    - [References](#references)
-    - [Equals](#equals)
-    - [Non Equals](#non-equals)
-    - [Comparisons](#comparisons)
-    - [Strings](#strings)
-    - [sObjects](#sobjects)
-  - [3.3 Logical Matchers](#33-logical-matchers)
-    - [AND](#and)
-    - [OR](#or)
-    - [NOR](#nor) 
-
-## Overview
+[Mockito](https://site.mockito.org/) BDD flavor has been brought into Apex Test Kit with some twists.
 
 ```java
-ATKMockTest mock = (ATKMockTest) ATK.mock(ATKMockTest.class);
+YourClass mock = (YourClass) ATK.mock(YourClass.class);
 // Given
 ATK.startStubbing();
-ATK.given(mock.doWithInteger(1)).willReturn('return 1');
+ATK.given(mock.doSomething()).willReturn('Sth.');
 ATK.stopStubbing();
 
 // When
-System.assertEquals('return 1', mock.doWithInteger(1));
+String returnValue = mock.doSomething();
 
 // Then
-((ATKMockTest) ATK.then(mock).should().once()).doWithInteger(1);
+System.assertEquals('Sth.', returnValue);
+((ATKMockTest) ATK.then(mock).should().once()).doSomething();
 ```
 
-## 1. Given Statements
+## Strictness
 
-### 1.1 Three Rules
+ATK begins with the most strict settings by default, and developers can use setting methods to gradually relax them. Each of the following setting methods can only work within its corresponding strictness.
 
-**Rule 1**: Given statements must be wrapped between `ATK.startStubbing()` and `ATK.stopStubbing()` statements.
+| Strictness   | `stubVoid()` | `defaultAnswer()` | `stubOnly()`                                                 |
+| ------------ | ------------ | ----------------- | ------------------------------------------------------------ |
+| Strict Mode  | ✓            |                   | ✓                                                            |
+| Lenient Mode |              | ✓                 | ✓                                                            |
+|              |              |                   | **When** step cannot track stub-only invocations<br />**Then** step cannot verify stub-only invocations |
+
+Settings can be applied at three levels from high to low. Lower level settings will override the high level settings:
+
+```
++------------------------------+
+|        +------------------+  |
+|        |      +--------+  |  |
+| global | mock |  stub  |  |  |
+|        |      +--------|  |  |
+|        +------------------+  |
++------------------------------+
+```
+
+### Strict Mode
+
+Strict mode is the default strictness enforced for all mocking activities. It helps write clean mocking codes and increase productivity. In strict mode, ATK will:
+
+1. Fail unstubbed method invocation immediately.
+2. Mark stubbed method invocation as verified implicitly for the `haveNoMoreInteractions()` calls.
+3. Detect unused stubs at the end of test with `haveNoUnusedStubs()` calls.
+
+In strict mode, void methods can be treated as stubbed methods automatically at the following two levels:
 
 ```java
-ATKMockTest mock = (ATKMockTest) ATK.mock(ATKMockTest.class);
+// 1. global level
+ATK.mock().withSettings().stubVoid();
+// 2. mock level
+ATK.mock(YourClass.class, ATK.withSettings().stubVoid());
+```
+
+### Lenient Mode
+
+In lenient mode, unstubbed methods will return default values, but they have to be explicitly verified for the `haveNoMoreInteractions()` calls. Use `lenient()` at three levels to enable lenient mode:
+
+```java
+// 1. global level
+ATK.mock().withSettings().lenient();
+// 2. mock level
+ATK.mock(YourClass.class, ATK.withSettings().lenient());
+// 3. stub level
+ATK.lenient().given(mock.doSomething()).willReturn('Sth.');
+```
+
+In lenient mode, default answers can be specified differently at two levels:
+
+```java
+// 1. global level
+ATK.mock().withSettings().lenient().defaultAnswer(ATK.RETURNS_DEFAULTS);
+// 2. mock level
+ATK.mock(YourClass.class, ATK.RETURNS_DEFAULTS);
+ATK.mock(YourClass.class, ATK.withSettings().lenient().defaultAnswer(ATK.RETURNS_DEFAULTS));
+```
+
+| Default Answers        | Description                                                  |
+| ---------------------- | ------------------------------------------------------------ |
+| `ATK.RETURNS_DEFAULTS` | Return zeros, false, empty strings, empty collections (list, set, map), and then nulls. This is also the default behavior in lenient mode. |
+| `ATK.RETURNS_SELF`     | Return itself whenever a method is invoked that returns a Type equal to the class or a superclass. |
+| `ATK.RETURNS_MOCKS`    | Return ordinary values (zeros, false, empty string, empty collections) first, then it tries to return mocks. If the return type cannot be mocked (e.g. is final) then plain `null` is returned. |
+
+Custom default answers can also be supplied here, just implement the `ATK.Answer` interface:
+
+```java
+public class YourDefaultAnswer implements ATK.Answer {
+    public Object answer(ATK.Invocation invocation) {
+        // ...
+    }
+}
+```
+
+## Given Statements
+
+```java
+YourClass mock = (YourClass) ATK.mock(YourClass.class);
+
+// 1. Given Statements must defined between ATK.startStubbing() and ATK.stopStubbing().
 ATK.startStubbing();
-// Given Statements Here!
+
+// 2. The following two flavors define the same behavior. 
+ATK.given(mock.doWithInteger(1)).willReturn('one');               // 2-1. Flavor 1
+((YourClass) ATK.willReturn('one').given(mock)).doWithInteger(1); // 2-2. Flavor 2
+
+// 3. Only the second flavor can be used for void methods.
+((YourClass) ATK.willDoNothing().given(mock)).doVoidReturn();
+
+// 4. Matchers can be used to define the stubs with arbitrary arguments.
+ATK.given(mock.doWithInteger(ATK.anyInteger())).willReturn('any');
+ATK.given(mock.doWithInteger(ATK.gte(1)).willReturn('>=1');
+
+// 5. Latter Stub with same arguments can override the former one.
+ATK.given(mock.doWithInteger(1).willReturn('one');           // 5-1. Cannot be matched
+ATK.given(mock.doWithInteger(ATK.gte(1)).willReturn('>=1');  // 5-2. Will be matched
+
 ATK.stopStubbing();
 ```
 
-**Rule 2**: There are two flavors to declare given statements.  The following two will define the same behavior.
-
-```java
-// Flavor 1
-ATK.given(mock.doWithInteger(1)).willReturn('return 1');
-
-// Flavor 2
-((ATKMockTest) ATK.willReturn('return 1').given(mock)).doWithInteger(1);
-```
-
-However only the latter flavor can be used for methods that return void.
-
-```java
-((ATKMockTest) ATK.willDoNothing().given(mock)).doVoidReturn(1);
-```
-
-**Rule 3**: Argument matchers can be used to match arbitrary arguments.
-
-```java
-ATK.given(mock.doWithInteger(ATK.eqInteger(1)).willReturn('return 1');
-ATK.given(mock.doWithInteger(ATK.anyInteger())).willReturn('return any integer');
-```
-
-### 1.2 Answers
+### Answers
 
 | API Name                        | Description                                                  |
 | ------------------------------- | ------------------------------------------------------------ |
 | `willReturn(Object value)`      | Return any value that compatible with the target method return type. |
-| `willAnswer(ATK.Answer answer)` | Return a customized answer dynamically according to conditions such as arguments. |
+| `willAnswer(ATK.Answer answer)` | Return a customized answer dynamically according to conditions such as arguments and return type. |
 | `willThrow(Exception exp)`      | Throw the exception when target method is called.            |
-| `willDoNothing()`               | Return `null`.                                               |
+| `willDoNothing()`               | Return `null`. Supposed to be called with void methods only. |
 
-## 2. Then Statements
+Answers can be chained for a particular stub, and they will be returned in their defining order for each invocation. If the answers are exhausted, `null` will returned instead. Here is an example:
+
+```java
+YourClass mock = (YourClass) ATK.mock(YourClass.class);
+ATK.startStubbing();
+ATK.given(mock.doWithInteger(1)).willReturn('one').willReturn('another one');
+ATK.stopStubbing();
+
+System.assertEquals('one', mock.doWithInteger(1));
+System.assertEquals('another one', mock.doWithInteger(1));
+System.assertEquals(null, mock.doWithInteger(1));
+```
+
+Custom answers can be supplied to `willAnswer(ATK.Answer answer)` method.
+
+```java
+public class YourCustomAnswer implements ATK.Answer {
+    public Object answer(ATK.Invocation invocation) {
+        // ...
+    }
+}
+```
+
+| `ATK.Invocation` Properties | Description |
+| --------------------------- | ----------- |
+| `Object mock`               |             |
+| `ATK.Method method`         |             |
+| `List<Object> arguments`    |             |
+
+| `ATK.Method` Properties   | Description |
+| ------------------------- | ----------- |
+| `String name`             |             |
+| `Type returnType`         |             |
+| `List<Type> paramTypes`   |             |
+| `List<String> paramNames` |             |
+
+
+
+## Then Statements
 
 This is the only flavor to declare then statements. And same as given statements, argument matchers can be used as well.
 
@@ -110,7 +175,7 @@ This is the only flavor to declare then statements. And same as given statements
 ((ATKMockTest) ATK.then(mock).should().once()).doWithInteger(ATK.anyInteger());
 ```
 
-### 2.1 Verification Modes
+### Verification Modes
 
 | API Name             | Alias To     | Description                                      |
 | -------------------- | ------------ | ------------------------------------------------ |
@@ -122,7 +187,7 @@ This is the only flavor to declare then statements. And same as given statements
 | `atMostOnce()`       | `atMost(1)`  | Allows at-most-once verification.                |
 | `atMost(Integer n)`  |              | Allows at-most-n verification.                   |
 
-### 2.2 Assertion Messages
+### Assertion Messages
 
 Here are sample assertion messages. The generated method signature could be different than the one defined in the test classes, such as all exact values will be replaced by `ATK.eq()` matchers.
 
@@ -132,7 +197,7 @@ Expected "[ATKMockTest].doWithIntegers(ATK.eq(1))" to be called at least 3 time(
 Expected "[ATKMockTest].doWithIntegers(ATK.eq(1))" to be called at most 3 time(s). But has been called 0 time(s).
 ```
 
-## 3. Argument Matchers
+## Argument Matchers
 
 Please don't mix exact values and matchers in one given statement, either use exact values or matchers for all arguments.
 
@@ -145,7 +210,7 @@ ATK.given(mock.doWithIntegers(ATK.eqInteger(1), ATK.eqInteger(2), ATK.eqInteger(
 ATK.given(mock.doWithIntegers(1, 2, ATK.eqInteger(3)).willReturn('1, 2, 3');
 ```
 
-### 3.1 Type Matchers
+### Type Matchers
 
 #### Any Types
 
@@ -167,6 +232,7 @@ Please supply exactly the same type used by the matched argument, neither ancest
 | `Decimal anyDecimal()`   | `ATK.any(Decimal.class)`     | Only allow valued `Decimal`, excluding nulls.                |
 | `Date anyDate()`         | `ATK.any(Date.class)`        | Only allow valued `Date`, excluding nulls.                   |
 | `Datetime anyDatetime()` | `ATK.any(Datetime.class)`    | Only allow valued `Datetime`, excluding nulls.               |
+| `Time anyTime()` | `ATK.any(Time.class)` | Only allow valued `Time`, excluding nulls. |
 | `Id anyId()`             | `ATK.any(Id.class)`          | Only allow valued `Id`, excluding nulls.                     |
 | `String anyString()`     | `ATK.any(String.class)`      | Only allow valued `String`, excluding nulls.                 |
 | `Boolean anyBoolean()`   | `ATK.any(Boolean.class)`     | Only allow valued `Boolean`, excluding nulls.                |
@@ -181,7 +247,7 @@ Please supply exactly the same type used by the matched argument, neither ancest
 | `SObject anySObject()`     | Only allow non-null `SObject`. | `ATK.anySObject()` |
 | `List<SObject> anySObjectList()`     | Only allow non-null `List<SObject>`, such as `List<Account>` etc. | `ATK.anySObjectList()` |
 
-### 3.2 Value Matchers
+### Value Matchers
 
 #### References
 | API Name | Description |
@@ -201,6 +267,7 @@ Please supply exactly the same type used by the matched argument, neither ancest
 |`Decimal eqDecimal(Decimal value)`| `(Decimal) ATK.eq(123.0)` | `Decimal` argument that is equal to the given value. |
 |`Date eqDate(Date value)`| `(Date) ATK.eq(Date.today())` | `Date` argument that is equal to the given value. |
 |`Datetime eqDatetime(Datetime value)`| `(Datetime) ATK.eq(Datetime.now())` | `Datetime` argument that is equal to the given value. |
+|`Time eqTime(Time value)`| `(Time) ATK.eq(Time.newInstance(0, 0, 0, 0))` | `Time` argument that is equal to the given value. |
 |`Id eqId(Id value)`| `(Id) ATK.eq(accountId)` | `Id` argument that is equal to the given value. |
 |`String eqString(String value)`| `(String) ATK.eq('In Progress')` | `String` argument that is equal to the given value. |
 |`Boolean eqBoolean(Boolean value)`| `(Boolean) ATK.eq(true)` | `Boolean` argument that is equal to the given value. |
@@ -216,31 +283,24 @@ Please supply exactly the same type used by the matched argument, neither ancest
 |`Decimal neDecimal(Decimal value)`| `Decimal` argument that is not equal to the given value. |
 |`Date neDate(Date value)`| `Date` argument that is not equal to the given value. |
 |`Datetime neDatetime(Datetime value)`| `Datetime` argument that is not equal to the given value. |
+|`Time neTime(Datetime value)`| `Time` argument that is not equal to the given value. |
 |`Id neId(Id value)`| `Id` argument that is not equal to the given value. |
 |`String neString(String value)`| `String` argument that is not equal to the given value. |
 |`Boolean neBoolean(Boolean value)`| `Boolean` argument that is not equal to the given value. |
 
 #### Comparisons
 
-Comparison matchers need to be casted to their targeting argument types with the following syntax:
-
-```java
-// Correct
-ATK.given(mock.doWithInteger(ATK.gt(10).asInteger())).willReturn('> 10');
-    
-// Wrong - Error will be thrown
-ATK.given(mock.doWithInteger((Integer) ATK.gt(10))).willReturn('> 10');
-```
+Comparison matchers are overloaded with the following primitive types: `Integer`, `Long`, `Double`, `Decimal`, `Date`, `Datetime`, `Time`, `Id`, `String`.
 
 | API Name | Description | Example |
 | ---- | ---- | ---- |
-| `gt(Object value)` | Greater than the given value. | `ATK.gt(10L).asLong()` |
-| `gte(Object value)` | Greater than or equal to the given value. | `ATK.gte(10.0D).asDouble()` |
-| `lt(Object value)` | Less than the given value. | `ATK.lt(10.0).asDecimal()` |
-| `lte(Object value)` | Less than or equal to the given value. | `ATK.lte(Date.today()).asDate()` |
-| `between(Object min, Object max)` | Between the given values. `min` and `max` values are included, same behavior as the `BETWEEN` keyword used in SQL. | `ATK.between(1, 10).Integer()` |
-| `between(Object min, Object max, Boolean inclusive)` | `inclusive = false` to exclude boundary values. | `ATK.between(1, 10, true).Integer()` |
-| `between(Object min, Boolean minInclusive, Object max, Boolean maxInclusive)` | Finer control to the `min` and `max` inclusive behaviors. | `ATK.between(1, false, 10, true).Integer()` |
+| `gt(Object value)` | Greater than the given value. | `ATK.gt(10L)` |
+| `gte(Object value)` | Greater than or equal to the given value. | `ATK.gte(10.0D)` |
+| `lt(Object value)` | Less than the given value. | `ATK.lt(10.0)` |
+| `lte(Object value)` | Less than or equal to the given value. | `ATK.lte(Date.today())` |
+| `between(Object min, Object max)` | Between the given values. `min` and `max` values are inclusive, same behavior as the `BETWEEN` keyword used in SQL. | `ATK.between(1, 10)` |
+| `between(Object min, Object max, Boolean inclusive)` | Use `inclusive = false` to exclude boundary values. | `ATK.between(1, 10, true)` |
+| `between(Object min, Boolean minInclusive, Object max, Boolean maxInclusive)` | Finer control to the `min` and `max` inclusive behaviors. | `ATK.between(1, false, 10, true)` |
 
 #### Strings
 
@@ -259,18 +319,15 @@ ATK.given(mock.doWithInteger((Integer) ATK.gt(10))).willReturn('> 10');
 | ---- | ---- |
 | `SObject sObjectWithId(Id value)` | `ATK.sObjectWithId(accountId)` |
 | `SObject sObjectWithName(String value)` | `ATK.sObjectWithName('Salesforce')` |
-| `SObject sObjectWith(SObjectField field, Object value)` | `ATK.sObjectWithId(Account.Name, 'Salesforce')` |
+| `SObject sObjectWith(SObjectField field, Object value)` | `ATK.sObjectWith(Account.Name, 'Salesforce')` |
 | `SObject sObjectWith(Map<SObjectField, Object> value)` | `ATK.sObjectWith(new Map<SObjectField, Object> {})` |
 | `LIst<SObject> sObjectListWith(SObjectField field, Object value)` | `ATK.sObjectListWith(Opportunity.StageName, 'Open')` |
 | `LIst<SObject> sObjectListWith(Map<SObjectField, Object> value)` | `ATK.sObjectListWith(new Map<SObjectField, Object> {})` |
 | `LIst<SObject> sObjectListWith(List<Map<SObjectField, Object>> value, Boolean inOrder)` | `ATK.sObjectListWith(new List<Map<SObjectField, Object>>{}` |
 
-### 3.3 Logical Matchers
-
-Only matchers are allowed to be used as arguments for logical matchers, for example:
+### Logical Matchers
 
 ```java
-// Type casting is no longer need for ATK.gt and ATK.lt, since they are wrapped within the logical matcher.
 ATK.given(mock.doWithInteger((Integer) ATK.allOf(ATK.gt(1), ATK.lt(10)))).willReturn('arg > 1 AND arg < 10');
 ```
 
