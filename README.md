@@ -23,13 +23,13 @@ It can also help generate method stubs with the help of Apex `StubProvider` inte
 
 #### Major Changes
 
-1. Ported Mockito BDD Features
+-   Ported Mockito BDD Features
 
 #### Next Steps
 
-1. Performance tuning for the BDD features.
-2. Enhance the BDD features.
-3. Support `HttpCalloutMock` in BDD style.
+-   Performance tuning for the BDD features.
+-   Enhance the BDD features.
+-   Support `HttpCalloutMock` in BDD style.
 
 ---
 
