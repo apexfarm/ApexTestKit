@@ -1,38 +1,41 @@
 # Apex Test Kit
 
-![](https://img.shields.io/badge/version-4.0.0-brightgreen.svg) ![](https://img.shields.io/badge/build-passing-brightgreen.svg) ![](https://img.shields.io/badge/coverage-95%25-brightgreen.svg)
+![](https://img.shields.io/badge/version-4.0.1-brightgreen.svg) ![](https://img.shields.io/badge/build-passing-brightgreen.svg) ![](https://img.shields.io/badge/coverage-95%25-brightgreen.svg)
 
-Apex Test Kit can help generate massive records for Apex test classes, including mock sObjects with read-only fields. It solves two pain points during record creation:
+Apex Test Kit can help generate massive data for Apex test classes, including mock sObjects with read-only fields. It solves two pain points during data creation:
 
 1. Establish arbitrary levels of many-to-one, one-to-many relationships.
 2. Generate field values based on simple rules automatically.
 
-And it also ported the [Mockito](https://site.mockito.org/) BDD APIs with some twists.
+It can also help generate method stubs with the help of Apex `StubProvider` interface underneath. Thanks to both [Mockito](https://github.com/mockito/mockito) and [fflib-apex-mocks](https://github.com/apex-enterprise-patterns/fflib-apex-mocks) libraries.
+
+1. Stubs are defined and verified with BDD given-when-then styles.
+2. [Strict mode](https://github.com/apexfarm/ApexTestKit/wiki/Apex-Test-Kit-with-BDD#1-1-strict-mode) is enforced by default to help developers write clean mocking codes and increase productivity.
 
 | Environment           | Installation Link                                            | Version   |
 | --------------------- | ------------------------------------------------------------ | --------- |
-| Production, Developer | <a target="_blank" href="https://login.salesforce.com/packaging/installPackage.apexp?p0=04t2v000007GUCxAAO"><img src="docs/images/deploy-button.png"></a> | ver 4.0.0 |
-| Sandbox               | <a target="_blank" href="https://test.salesforce.com/packaging/installPackage.apexp?p0=04t2v000007GUCxAAO"><img src="docs/images/deploy-button.png"></a> | ver 4.0.0 |
+| Production, Developer | <a target="_blank" href="https://login.salesforce.com/packaging/installPackage.apexp?p0=04t2v000007GULbAAO"><img src="docs/images/deploy-button.png"></a> | ver 4.0.1 |
+| Sandbox               | <a target="_blank" href="https://test.salesforce.com/packaging/installPackage.apexp?p0=04t2v000007GULbAAO"><img src="docs/images/deploy-button.png"></a> | ver 4.0.1 |
 
 ---
 
-## &#128293; v4.0.0 preview
+## &#128293; Apex Test Kit with BDD
 
-Check wiki page <a href="https://github.com/apexfarm/ApexTestKit/wiki/Apex-Test-Kit-with-BDD" target="_blank">Apex Test Kit with BDD</a> for detail. Please leave your comments at GitHub issue <a href="https://github.com/apexfarm/ApexTestKit/issues/34" target="_blank">v4.0 with BDD</a>. Any missing features or API suggestions are welcomed. Also please help give a star if you like the BDD feature, it might help accelerate the release &#128522;.
+Please check the developer guide at this [wiki page](https://github.com/apexfarm/ApexTestKit/wiki/Apex-Test-Kit-with-BDD).
 
 ```java
-ATKMockTest mock = (ATKMockTest) ATK.mock(ATKMockTest.class);
-ATK.startStubbing();
+YourClass mock = (YourClass) ATK.mock(YourClass.class);
 // Given
-ATK.given(mock.doWithInteger(1)).willReturn('return 1');
+ATK.startStubbing();
+ATK.given(mock.doSomething()).willReturn('Sth.');
 ATK.stopStubbing();
 
 // When
-String returnValue = mock.doWithInteger(1);
+String returnValue = mock.doSomething();
 
 // Then
-System.assertEquals('return 1', returnValue);
-((ATKMockTest) ATK.then(mock).should().once()).doWithInteger(1);
+System.assertEquals('Sth.', returnValue);
+((ATKMockTest) ATK.then(mock).should().once()).doSomething();
 ```
 
 ---

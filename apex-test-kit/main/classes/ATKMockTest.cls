@@ -18,7 +18,7 @@
 @IsTest
 public with sharing class ATKMockTest {
     @IsTest
-    static void tests_not_asserted() {
+    static void tests_for_not_asserted() {
         ATKMockTest mock = (ATKMockTest) ATK.mock(ATKMockTest.class);
 
         ATK.startStubbing();
@@ -58,6 +58,22 @@ public with sharing class ATKMockTest {
         ATK.between(time1, time1);
         ATK.between(time1, time1, false);
         ATK.between(time1, false, time1, false);
+    }
+
+    @IsTest
+    static void tests_for_performance_tuning() {
+        ATKMockTest mock = (ATKMockTest) ATK.mock(ATKMockTest.class);
+
+        ATK.startStubbing();
+        ((ATKMockTest) ATK.willReturn('one').given(mock)).doWithInteger(1);
+        ATK.stopStubbing();
+
+        for (Integer i = 0; i < 10; i++) {
+            mock.doWithInteger(1);
+        }
+
+        ((ATKMockTest) ATK.then(mock).should().times(10)).doWithInteger(1);
+        System.debug(Limits.getCpuTime());
     }
 
     // ===============
@@ -138,8 +154,8 @@ public with sharing class ATKMockTest {
     }
 
     @IsTest
-    static void test_answers_for_strict_lenientVoid() {
-        ATK.mock().withSettings().lenientVoid();
+    static void test_answers_for_strict_stubbedVoids() {
+        ATK.mock().withSettings().stubbedVoids();
 
         ATKMockTest mock = (ATKMockTest) ATK.mock(ATKMockTest.class);
         ATK.startStubbing();
@@ -149,16 +165,6 @@ public with sharing class ATKMockTest {
         System.assertEquals('one', mock.doWithInteger(1));
         mock.doReturnVoid();
 
-        ATK.MockException exp;
-        try {
-            ATK.then(mock).should().haveNoMoreInteractions();
-        } catch (ATK.MockException ex) {
-            exp = ex;
-        }
-        System.assert(exp != null);
-        System.debug(exp);
-
-        ((ATKMockTest) ATK.then(mock).should().once()).doReturnVoid();
         ATK.then(mock).should().haveNoMoreInteractions();
         ATK.then(mock).should().haveNoUnusedStubs();
     }

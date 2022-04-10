@@ -111,7 +111,7 @@ public with sharing class ATK {
         MockSettings defaultAnswer(Answer answer);
         MockSettings stubOnly();
         MockSettings lenient();
-        MockSettings lenientVoid();
+        MockSettings stubbedVoids();
         MockSettings verbose();
     }
 
@@ -154,7 +154,8 @@ public with sharing class ATK {
 
     public virtual class Invocation {
         public Method method { get; protected set; }
-        public Object mock { get; set; }
+        public Object mock { get; protected set; }
+        public Type mockType { get; protected set; }
         public List<Object> arguments { get; protected set; }
     }
 

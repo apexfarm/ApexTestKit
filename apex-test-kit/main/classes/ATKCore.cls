@@ -1709,7 +1709,7 @@ public with sharing class ATKCore {
             } else if (input instanceof String) {
                 return (String) input;
             } else if (input instanceof Date) {
-                return ((Datetime) input).format('yyyy-MM-dd');
+                return ((Datetime) input).formatGMT('yyyy-MM-dd');
             } else if (input instanceof Datetime) {
                 return ((Datetime) input).formatGMT('yyyy-MM-dd\'T\'HH:mm:ss.SSS\'Z\'');
             } else {

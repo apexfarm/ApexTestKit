@@ -15,29 +15,17 @@ System.assertEquals('Sth.', returnValue);
 ((ATKMockTest) ATK.then(mock).should().once()).doSomething();
 ```
 
-## Strictness
+## 1. Strictness
 
 ATK begins with the most strict settings by default, and developers can use setting methods to gradually relax them. Each of the following setting methods can only work within its corresponding strictness.
 
-| Strictness   | `stubVoid()` | `defaultAnswer()` | `stubOnly()`                                                 |
-| ------------ | ------------ | ----------------- | ------------------------------------------------------------ |
-| Strict Mode  | ✓            |                   | ✓                                                            |
-| Lenient Mode |              | ✓                 | ✓                                                            |
-|              |              |                   | **When** step cannot track stub-only invocations<br />**Then** step cannot verify stub-only invocations |
+| Strictness   | `stubbedVoids()` | `defaultAnswer()` | `stubOnly()`                                                 |
+| ------------ | ---------------- | ----------------- | ------------------------------------------------------------ |
+| Strict Mode  | ✓                |                   | ✓                                                            |
+| Lenient Mode |                  | ✓                 | ✓                                                            |
+|              |                  |                   | **When** step cannot track stub-only invocations<br />**Then** step cannot verify stub-only invocations |
 
-Settings can be applied at three levels from high to low. Lower level settings will override the high level settings:
-
-```
-+------------------------------+
-|        +------------------+  |
-|        |      +--------+  |  |
-| global | mock |  stub  |  |  |
-|        |      +--------|  |  |
-|        +------------------+  |
-+------------------------------+
-```
-
-### Strict Mode
+### 1. 1 Strict Mode
 
 Strict mode is the default strictness enforced for all mocking activities. It helps write clean mocking codes and increase productivity. In strict mode, ATK will:
 
@@ -45,18 +33,18 @@ Strict mode is the default strictness enforced for all mocking activities. It he
 2. Mark stubbed method invocation as verified implicitly for the `haveNoMoreInteractions()` calls.
 3. Detect unused stubs at the end of test with `haveNoUnusedStubs()` calls.
 
-In strict mode, void methods can be treated as stubbed methods automatically at the following two levels:
+In strict mode, void methods can be treated as stubbed methods and automatically verified:
 
 ```java
 // 1. global level
-ATK.mock().withSettings().stubVoid();
+ATK.mock().withSettings().stubbedVoids();
 // 2. mock level
-ATK.mock(YourClass.class, ATK.withSettings().stubVoid());
+ATK.mock(YourClass.class, ATK.withSettings().stubbedVoids());
 ```
 
-### Lenient Mode
+### 1.2 Lenient Mode
 
-In lenient mode, unstubbed methods will return default values, but they have to be explicitly verified for the `haveNoMoreInteractions()` calls. Use `lenient()` at three levels to enable lenient mode:
+In lenient mode, unstubbed methods will return default values, and they have to be explicitly verified for the `haveNoMoreInteractions()` calls. Use `lenient()` to enable lenient mode:
 
 ```java
 // 1. global level
@@ -82,18 +70,68 @@ ATK.mock(YourClass.class, ATK.withSettings().lenient().defaultAnswer(ATK.RETURNS
 | `ATK.RETURNS_DEFAULTS` | Return zeros, false, empty strings, empty collections (list, set, map), and then nulls. This is also the default behavior in lenient mode. |
 | `ATK.RETURNS_SELF`     | Return itself whenever a method is invoked that returns a Type equal to the class or a superclass. |
 | `ATK.RETURNS_MOCKS`    | Return ordinary values (zeros, false, empty string, empty collections) first, then it tries to return mocks. If the return type cannot be mocked (e.g. is final) then plain `null` is returned. |
+| Custom Answers         | Custom default answers can also be supplied to the `defaultAnswer()` method, please check [Answer Customization](#answer-customization) for detail. |
 
-Custom default answers can also be supplied here, just implement the `ATK.Answer` interface:
+## 2. Mock Settings
+
+As you have already seen, settings can be applied at three levels from high to low. Lower level settings will override the higher level settings:
+
+```
++------------------------------+
+|        +------------------+  |
+|        |      +--------+  |  |
+| global | mock |  stub  |  |  |
+|        |      +--------|  |  |
+|        +------------------+  |
++------------------------------+
+```
+| Mock API Name                                               | Example                                                    |
+| ----------------------------------------------------------- | ---------------------------------------------------------- |
+| `ATK.GlobalSettings ATK.mock()`                             | `ATK.mock().withSettings().lenient();`                     |
+| `Object ATK.mock(Type mockType)`                            | `ATK.mock(YourClass.class);`                               |
+| `Object ATK.mock(Type mockType, ATK.Answer defaultAnswer)`  | `ATK.mock(YourClass.class, ATK.RETURNS_DEFAULTS);`         |
+| `Object ATK.mock(Type mockType, ATK.MockSettings settings)` | `ATK.mock(YourClass.class, ATK.withSettings().lenient());` |
+
+### 2.1 Global  Level  Settings
+
+Global settings are defined with `ATK.mock().withSettings()`.
 
 ```java
-public class YourDefaultAnswer implements ATK.Answer {
-    public Object answer(ATK.Invocation invocation) {
-        // ...
-    }
-}
+ATK.mock().withSettings()
+    .stubbedVoids()                      // In strict mode, void methods are treated as stubbed methods and automatically verified.
+    .lenient()                           // Enable lenient mode.
+    .defaultAnswer(ATK.RETURNS_DEFAULTS) // Specify default answers for lenient mode.
+    .stubOnly()                          // In either strict or lenient mode, any interactions can neither be tracked nor verified.
+    .verbose();                          // For development/debug purpose to print verbose messages.
 ```
 
-## Given Statements
+### 2.2 Mock Level Settings
+
+```java
+YourClass mock = (YourClass) ATK.mock(YourClass.class, ATK.withSettings()
+    .name('mock')                        // This name is used in exception message, otherwise "[YourClass]" is used as instance name.
+    .stubbedVoids()                      // In strict mode, void methods are treated as stubbed methods and automatically verified.
+    .lenient()                           // Enable lenient mode.
+    .defaultAnswer(ATK.RETURNS_DEFAULTS) // Specify default answers for lenient mode.
+    .stubOnly()                          // In either strict or lenient mode, any interactions can neither be tracked nor verified.
+    .verbose());                         // For development/debug purpose to print verbose messages.
+```
+
+
+### 2.3 Stub Level Settings
+
+`ATK.lenient()` is the only stub level setting used to bypass the strict mode.
+
+```java
+ATK.lenient().given(mock.doWithInteger(1)).willReturn('one');
+((YourClass) ATK.lenient().willReturn('one').given(mock)).doWithInteger(1);
+```
+
+## 3. Given Steps
+
+### 3.1 Five Rules
+
+Please consider the following five rules carefully before define stubs in the given steps.
 
 ```java
 YourClass mock = (YourClass) ATK.mock(YourClass.class);
@@ -119,7 +157,9 @@ ATK.given(mock.doWithInteger(ATK.gte(1)).willReturn('>=1');  // 5-2. Will be mat
 ATK.stopStubbing();
 ```
 
-### Answers
+### 3.2 Answers
+
+Here are the APIs to define answers for the stubs in the give steps.
 
 | API Name                        | Description                                                  |
 | ------------------------------- | ------------------------------------------------------------ |
@@ -128,7 +168,9 @@ ATK.stopStubbing();
 | `willThrow(Exception exp)`      | Throw the exception when target method is called.            |
 | `willDoNothing()`               | Return `null`. Supposed to be called with void methods only. |
 
-Answers can be chained for a particular stub, and they will be returned in their defining order for each invocation. If the answers are exhausted, `null` will returned instead. Here is an example:
+#### Answer Chaining
+
+Answers can be chained for a particular stub, and their values will be returned one by one in the defining order for each interaction. If the answers are exhausted, `null` will be returned instead. Here is an example:
 
 ```java
 YourClass mock = (YourClass) ATK.mock(YourClass.class);
@@ -141,7 +183,9 @@ System.assertEquals('another one', mock.doWithInteger(1));
 System.assertEquals(null, mock.doWithInteger(1));
 ```
 
-Custom answers can be supplied to `willAnswer(ATK.Answer answer)` method.
+#### Answer Customization
+
+Customized answers can be supplied to both `defaultAnswer()` and `willAnswer()` methods.
 
 ```java
 public class YourCustomAnswer implements ATK.Answer {
@@ -149,33 +193,35 @@ public class YourCustomAnswer implements ATK.Answer {
         // ...
     }
 }
+
+ATK.mock(YourClass.class, ATK.withSettings().defaultAnswer(new YourCustomAnswer()));
+ATK.given(mock.doWithInteger(1)).willAnswer(new YourCustomAnswer()); // mock is created elsewhere
 ```
 
-| `ATK.Invocation` Properties | Description |
-| --------------------------- | ----------- |
-| `Object mock`               |             |
-| `ATK.Method method`         |             |
-| `List<Object> arguments`    |             |
+| `ATK.Invocation` Properties | Description                                                  |
+| --------------------------- | ------------------------------------------------------------ |
+| `Object mock`               | The mock object.                                             |
+| `Type mockType`             | The mock type.                                               |
+| `ATK.Method method`         | The method metadata, also reference to `ATK.method` properties below. |
+| `List<Object> arguments`    | The `Arguments` passed into the invocation.                  |
 
-| `ATK.Method` Properties   | Description |
-| ------------------------- | ----------- |
-| `String name`             |             |
-| `Type returnType`         |             |
-| `List<Type> paramTypes`   |             |
-| `List<String> paramNames` |             |
+| `ATK.Method` Properties   | Description                 |
+| ------------------------- | --------------------------- |
+| `String name`             | The method name.            |
+| `Type returnType`         | The method return type.     |
+| `List<String> paramNames` | The method parameter names. |
+| `List<Type> paramTypes`   | The method parameter types. |
 
+## 4. Then Steps
 
-
-## Then Statements
-
-This is the only flavor to declare then statements. And same as given statements, argument matchers can be used as well.
+This is the only flavor to declare then statements. And as the same as given statements, argument matchers can be used as well.
 
 ```java
-((ATKMockTest) ATK.then(mock).should().once()).doWithInteger(1);
-((ATKMockTest) ATK.then(mock).should().once()).doWithInteger(ATK.anyInteger());
+((YourClass) ATK.then(mock).should().once()).doWithInteger(1);
+((YourClass) ATK.then(mock).should().once()).doWithInteger(ATK.anyInteger());
 ```
 
-### Verification Modes
+### 4.1 Verification Mode
 
 | API Name             | Alias To     | Description                                      |
 | -------------------- | ------------ | ------------------------------------------------ |
@@ -187,9 +233,44 @@ This is the only flavor to declare then statements. And same as given statements
 | `atMostOnce()`       | `atMost(1)`  | Allows at-most-once verification.                |
 | `atMost(Integer n)`  |              | Allows at-most-n verification.                   |
 
-### Assertion Messages
+| API Name                   | Description                                                  | Example                                            |
+| -------------------------- | ------------------------------------------------------------ | -------------------------------------------------- |
+| `haveNoInteractions()`     | Fail if there are any interactions with the mock in when steps. | `ATK.then(mock).should().haveNoInteractions()`     |
+| `haveNoMoreInteractions()` | Fail if there are any interactions unverified with the mock. | `ATK.then(mock).should().haveNoMoreInteractions()` |
+| `haveNoUnusedStubs()`      | Fail if there are any unused/unmatched stubs in when steps.  | `ATK.then(mock).should().haveNoUnusedStubs()`      |
 
-Here are sample assertion messages. The generated method signature could be different than the one defined in the test classes, such as all exact values will be replaced by `ATK.eq()` matchers.
+### 4.2 In-Order  Verification
+
+```java
+YourClass mock = (YourClass) ATK.mock(YourClass.class, ATK.withSettings().lenient());
+
+mock.doWithInteger(1);
+mock.doWithInteger(1);
+mock.doWithInteger(2);
+mock.doWithInteger(1);
+
+ATK.InOrder inOrder = ATK.InOrder(mock);
+
+((YourClass) ATK.then(mock).should(inOrder).times(2)).doWithInteger(1);
+((YourClass) ATK.then(mock).should(inOrder).times(1)).doWithInteger(2);
+((YourClass) ATK.then(mock).should(inOrder).times(1)).doWithInteger(1);
+
+ATK.then(mock).should(inOrder).haveNoMoreInteractions();
+```
+
+Not all verification modes are supported by in-order verifications. Please stick to the following verification modes with `should(ATK.InOrder inOrder)`:
+
+| API Name                   | Descriptions                                                 |
+| -------------------------- | ------------------------------------------------------------ |
+| `never()`                  | Verifies that interaction did not happen.                    |
+| `once()`                   | Verifies that interaction happened exactly once.             |
+| `times(Integer n)`         | Allows verifying exact number of invocations.                |
+| `calls(Integer n)`         | Non-greedy verifications. Check Mockito wiki [Greedy Algorithm of Verification InOrder](https://github.com/mockito/mockito/wiki/Greedy-algorithm-of-verification-InOrder) for detail. |
+| `haveNoMoreInteractions()` | In-order verifications are tracked in a different context, so even in strict mode, all interactions should be exhausted with verifications explicitly. |
+
+### 4.3 Assert Messages
+
+Here are sample assertion messages. The generated method signature could be different than the one defined in the test classes, such as all exact values will be replaced by `ATK.eq()` matchers. In future this is an area I will continuously improve, to help developers better understand the message contexts.
 
 ```
 Expected "[ATKMockTest].doWithIntegers(ATK.eq(1))" to be called 1 time(s). But has been called 0 time(s).
@@ -197,7 +278,7 @@ Expected "[ATKMockTest].doWithIntegers(ATK.eq(1))" to be called at least 3 time(
 Expected "[ATKMockTest].doWithIntegers(ATK.eq(1))" to be called at most 3 time(s). But has been called 0 time(s).
 ```
 
-## Argument Matchers
+## 5. Matchers
 
 Please don't mix exact values and matchers in one given statement, either use exact values or matchers for all arguments.
 
@@ -210,7 +291,7 @@ ATK.given(mock.doWithIntegers(ATK.eqInteger(1), ATK.eqInteger(2), ATK.eqInteger(
 ATK.given(mock.doWithIntegers(1, 2, ATK.eqInteger(3)).willReturn('1, 2, 3');
 ```
 
-### Type Matchers
+### 5.1 Type Matchers
 
 #### Any Types
 
@@ -247,7 +328,7 @@ Please supply exactly the same type used by the matched argument, neither ancest
 | `SObject anySObject()`     | Only allow non-null `SObject`. | `ATK.anySObject()` |
 | `List<SObject> anySObjectList()`     | Only allow non-null `List<SObject>`, such as `List<Account>` etc. | `ATK.anySObjectList()` |
 
-### Value Matchers
+### 5.2 Value Matchers
 
 #### References
 | API Name | Description |
@@ -274,19 +355,19 @@ Please supply exactly the same type used by the matched argument, neither ancest
 
 #### Non Equals
 
-| API Name | Description |
-| ---- | ---- |
-|`Object ne(Object value)`| Object argument that is not equal to the given value. |
-|`Integer neInteger(Integer value)`| `Integer` argument that is not equal to the given value. |
-|`Long neLong(Long value)`| `Long` argument that is not equal to the given value. |
-|`Double neDouble(Double value)`| `Double` argument that is not equal to the given value. |
-|`Decimal neDecimal(Decimal value)`| `Decimal` argument that is not equal to the given value. |
-|`Date neDate(Date value)`| `Date` argument that is not equal to the given value. |
-|`Datetime neDatetime(Datetime value)`| `Datetime` argument that is not equal to the given value. |
-|`Time neTime(Datetime value)`| `Time` argument that is not equal to the given value. |
-|`Id neId(Id value)`| `Id` argument that is not equal to the given value. |
-|`String neString(String value)`| `String` argument that is not equal to the given value. |
-|`Boolean neBoolean(Boolean value)`| `Boolean` argument that is not equal to the given value. |
+| API Name | Alias To | Description |
+| ---- | ---- | ---- |
+|`Object ne(Object value)`| | Object argument that is not equal to the given value. |
+|`Integer neInteger(Integer value)`| `(Integer) ATK.ne(123)` | `Integer` argument that is not equal to the given value. |
+|`Long neLong(Long value)`| `(Long) ATK.ne(123L)` | `Long` argument that is not equal to the given value. |
+|`Double neDouble(Double value)`| `(Double) ATK.ne(123.0D)` | `Double` argument that is not equal to the given value. |
+|`Decimal neDecimal(Decimal value)`| `(Decimal) ATK.ne(123.0)` | `Decimal` argument that is not equal to the given value. |
+|`Date neDate(Date value)`| `(Date) ATK.ne(Date.today())` | `Date` argument that is not equal to the given value. |
+|`Datetime neDatetime(Datetime value)`| `(Datetime) ATK.ne(Datetime.now())` | `Datetime` argument that is not equal to the given value. |
+|`Time neTime(Datetime value)`| `(Time) ATK.ne(Time.newInstance(0, 0, 0, 0))` | `Time` argument that is not equal to the given value. |
+|`Id neId(Id value)`| `(Id) ATK.ne(accountId)` | `Id` argument that is not equal to the given value. |
+|`String neString(String value)`| `(String) ATK.ne('In Progress')` | `String` argument that is not equal to the given value. |
+|`Boolean neBoolean(Boolean value)`| `(Boolean) ATK.ne(true)` | `Boolean` argument that is not equal to the given value. |
 
 #### Comparisons
 
@@ -323,9 +404,9 @@ Comparison matchers are overloaded with the following primitive types: `Integer`
 | `SObject sObjectWith(Map<SObjectField, Object> value)` | `ATK.sObjectWith(new Map<SObjectField, Object> {})` |
 | `LIst<SObject> sObjectListWith(SObjectField field, Object value)` | `ATK.sObjectListWith(Opportunity.StageName, 'Open')` |
 | `LIst<SObject> sObjectListWith(Map<SObjectField, Object> value)` | `ATK.sObjectListWith(new Map<SObjectField, Object> {})` |
-| `LIst<SObject> sObjectListWith(List<Map<SObjectField, Object>> value, Boolean inOrder)` | `ATK.sObjectListWith(new List<Map<SObjectField, Object>>{}` |
+| `LIst<SObject> sObjectListWith(List<Map<SObjectField, Object>> value, Boolean inOrder)` | `ATK.sObjectListWith(new List<Map<SObjectField, Object>>{})` |
 
-### Logical Matchers
+### 5.3 Logical Matchers
 
 ```java
 ATK.given(mock.doWithInteger((Integer) ATK.allOf(ATK.gt(1), ATK.lt(10)))).willReturn('arg > 1 AND arg < 10');
@@ -362,3 +443,6 @@ ATK.given(mock.doWithInteger((Integer) ATK.allOf(ATK.gt(1), ATK.lt(10)))).willRe
 | `Object noneOf(Object arg1, Object arg2, Object arg3, Object arg4, Object arg5)` | Logical NOR operator. |
 | `Object noneOf(List<Object> args)`                           | Logical NOR operator. |
 
+------
+
+## Happy Hacking!
