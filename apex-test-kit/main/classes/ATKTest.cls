@@ -51,27 +51,27 @@ public with sharing class ATKTest {
         List<Case> cases = result.get(Case.SObjectType);
         List<Contact> contacts = result.get(Contact.SObjectType);
 
-        System.assertEquals(10, accounts.size());
-        System.assertEquals(20, cases.size());
-        System.assertEquals(10, contacts.size());
+        System.Assert.areEqual(10, accounts.size());
+        System.Assert.areEqual(20, cases.size());
+        System.Assert.areEqual(10, contacts.size());
 
-        System.assertEquals(accounts[0], cases[0].Account);
-        System.assertEquals(contacts[0], cases[0].Contact);
-        System.assertEquals(accounts[0], cases[1].Account);
-        System.assertEquals(contacts[1], cases[1].Contact);
-        System.assertEquals(accounts[1], cases[2].Account);
-        System.assertEquals(contacts[2], cases[2].Contact);
-        System.assertEquals(accounts[1], cases[3].Account);
-        System.assertEquals(contacts[3], cases[3].Contact);
+        System.Assert.areEqual(accounts[0], cases[0].Account);
+        System.Assert.areEqual(contacts[0], cases[0].Contact);
+        System.Assert.areEqual(accounts[0], cases[1].Account);
+        System.Assert.areEqual(contacts[1], cases[1].Contact);
+        System.Assert.areEqual(accounts[1], cases[2].Account);
+        System.Assert.areEqual(contacts[2], cases[2].Contact);
+        System.Assert.areEqual(accounts[1], cases[3].Account);
+        System.Assert.areEqual(contacts[3], cases[3].Contact);
 
-        System.assertEquals(accounts[5], cases[10].Account);
-        System.assertEquals(contacts[0], cases[11].Contact);
-        System.assertEquals(accounts[5], cases[12].Account);
-        System.assertEquals(contacts[1], cases[13].Contact);
-        System.assertEquals(accounts[6], cases[14].Account);
-        System.assertEquals(contacts[2], cases[15].Contact);
-        System.assertEquals(accounts[6], cases[16].Account);
-        System.assertEquals(contacts[3], cases[17].Contact);
+        System.Assert.areEqual(accounts[5], cases[10].Account);
+        System.Assert.areEqual(contacts[0], cases[11].Contact);
+        System.Assert.areEqual(accounts[5], cases[12].Account);
+        System.Assert.areEqual(contacts[1], cases[13].Contact);
+        System.Assert.areEqual(accounts[6], cases[14].Account);
+        System.Assert.areEqual(contacts[2], cases[15].Contact);
+        System.Assert.areEqual(accounts[6], cases[16].Account);
+        System.Assert.areEqual(contacts[3], cases[17].Contact);
     }
 
     @IsTest
@@ -89,27 +89,27 @@ public with sharing class ATKTest {
         List<Case> cases = result.get(Case.SObjectType);
         List<Contact> contacts = result.get(Contact.SObjectType);
 
-        System.assertEquals(10, accounts.size());
-        System.assertEquals(20, cases.size());
-        System.assertEquals(10, contacts.size());
+        System.Assert.areEqual(10, accounts.size());
+        System.Assert.areEqual(20, cases.size());
+        System.Assert.areEqual(10, contacts.size());
 
-        System.assertEquals(accounts[0], cases[0].Account);
-        System.assertEquals(contacts[0], cases[0].Contact);
-        System.assertEquals(accounts[0], cases[1].Account);
-        System.assertEquals(contacts[1], cases[1].Contact);
-        System.assertEquals(accounts[1], cases[2].Account);
-        System.assertEquals(contacts[2], cases[2].Contact);
-        System.assertEquals(accounts[1], cases[3].Account);
-        System.assertEquals(contacts[3], cases[3].Contact);
+        System.Assert.areEqual(accounts[0], cases[0].Account);
+        System.Assert.areEqual(contacts[0], cases[0].Contact);
+        System.Assert.areEqual(accounts[0], cases[1].Account);
+        System.Assert.areEqual(contacts[1], cases[1].Contact);
+        System.Assert.areEqual(accounts[1], cases[2].Account);
+        System.Assert.areEqual(contacts[2], cases[2].Contact);
+        System.Assert.areEqual(accounts[1], cases[3].Account);
+        System.Assert.areEqual(contacts[3], cases[3].Contact);
 
-        System.assertEquals(accounts[5], cases[10].Account);
-        System.assertEquals(contacts[0], cases[11].Contact);
-        System.assertEquals(accounts[5], cases[12].Account);
-        System.assertEquals(contacts[1], cases[13].Contact);
-        System.assertEquals(accounts[6], cases[14].Account);
-        System.assertEquals(contacts[2], cases[15].Contact);
-        System.assertEquals(accounts[6], cases[16].Account);
-        System.assertEquals(contacts[3], cases[17].Contact);
+        System.Assert.areEqual(accounts[5], cases[10].Account);
+        System.Assert.areEqual(contacts[0], cases[11].Contact);
+        System.Assert.areEqual(accounts[5], cases[12].Account);
+        System.Assert.areEqual(contacts[1], cases[13].Contact);
+        System.Assert.areEqual(accounts[6], cases[14].Account);
+        System.Assert.areEqual(contacts[2], cases[15].Contact);
+        System.Assert.areEqual(accounts[6], cases[16].Account);
+        System.Assert.areEqual(contacts[3], cases[17].Contact);
     }
 
     @IsTest
@@ -124,27 +124,27 @@ public with sharing class ATKTest {
         List<Case> cases = result.get(Case.SObjectType);
         List<Contact> contacts = result.get(Contact.SObjectType);
 
-        System.assertEquals(10, accounts.size());
-        System.assertEquals(20, cases.size());
-        System.assertEquals(10, contacts.size());
+        System.Assert.areEqual(10, accounts.size());
+        System.Assert.areEqual(20, cases.size());
+        System.Assert.areEqual(10, contacts.size());
 
-        System.assertEquals(contacts[0], cases[0].Contact);
-        System.assertEquals(accounts[0], cases[0].Account);
-        System.assertEquals(contacts[0], cases[1].Contact);
-        System.assertEquals(accounts[1], cases[1].Account);
-        System.assertEquals(contacts[1], cases[2].Contact);
-        System.assertEquals(accounts[2], cases[2].Account);
-        System.assertEquals(contacts[1], cases[3].Contact);
-        System.assertEquals(accounts[3], cases[3].Account);
+        System.Assert.areEqual(contacts[0], cases[0].Contact);
+        System.Assert.areEqual(accounts[0], cases[0].Account);
+        System.Assert.areEqual(contacts[0], cases[1].Contact);
+        System.Assert.areEqual(accounts[1], cases[1].Account);
+        System.Assert.areEqual(contacts[1], cases[2].Contact);
+        System.Assert.areEqual(accounts[2], cases[2].Account);
+        System.Assert.areEqual(contacts[1], cases[3].Contact);
+        System.Assert.areEqual(accounts[3], cases[3].Account);
 
-        System.assertEquals(contacts[5], cases[10].Contact);
-        System.assertEquals(accounts[0], cases[11].Account);
-        System.assertEquals(contacts[5], cases[12].Contact);
-        System.assertEquals(accounts[1], cases[13].Account);
-        System.assertEquals(contacts[6], cases[14].Contact);
-        System.assertEquals(accounts[2], cases[15].Account);
-        System.assertEquals(contacts[6], cases[16].Contact);
-        System.assertEquals(accounts[3], cases[17].Account);
+        System.Assert.areEqual(contacts[5], cases[10].Contact);
+        System.Assert.areEqual(accounts[0], cases[11].Account);
+        System.Assert.areEqual(contacts[5], cases[12].Contact);
+        System.Assert.areEqual(accounts[1], cases[13].Account);
+        System.Assert.areEqual(contacts[6], cases[14].Contact);
+        System.Assert.areEqual(accounts[2], cases[15].Account);
+        System.Assert.areEqual(contacts[6], cases[16].Contact);
+        System.Assert.areEqual(accounts[3], cases[17].Account);
     }
 
     @IsTest
@@ -159,9 +159,9 @@ public with sharing class ATKTest {
         List<Case> cases = result.get(Case.SObjectType);
         List<Contact> contacts = result.get(Contact.SObjectType);
 
-        System.assertEquals(0, accounts.size());
-        System.assertEquals(0, cases.size());
-        System.assertEquals(0, contacts.size());
+        System.Assert.areEqual(0, accounts.size());
+        System.Assert.areEqual(0, cases.size());
+        System.Assert.areEqual(0, contacts.size());
     }
 
     @IsTest
@@ -183,27 +183,27 @@ public with sharing class ATKTest {
                 .junctionOf(Case.AccountId, Case.ContactId)
                 .withParents(Contact.SObjectType, Case.ContactId, contacts)
             .save(false);
-        System.assertEquals(10, accounts.size());
-        System.assertEquals(20, cases.size());
-        System.assertEquals(10, contacts.size());
+        System.Assert.areEqual(10, accounts.size());
+        System.Assert.areEqual(20, cases.size());
+        System.Assert.areEqual(10, contacts.size());
 
-        System.assertEquals(accounts[0], cases[0].Account);
-        System.assertEquals(contacts[0], cases[0].Contact);
-        System.assertEquals(accounts[0], cases[1].Account);
-        System.assertEquals(contacts[1], cases[1].Contact);
-        System.assertEquals(accounts[1], cases[2].Account);
-        System.assertEquals(contacts[2], cases[2].Contact);
-        System.assertEquals(accounts[1], cases[3].Account);
-        System.assertEquals(contacts[3], cases[3].Contact);
+        System.Assert.areEqual(accounts[0], cases[0].Account);
+        System.Assert.areEqual(contacts[0], cases[0].Contact);
+        System.Assert.areEqual(accounts[0], cases[1].Account);
+        System.Assert.areEqual(contacts[1], cases[1].Contact);
+        System.Assert.areEqual(accounts[1], cases[2].Account);
+        System.Assert.areEqual(contacts[2], cases[2].Contact);
+        System.Assert.areEqual(accounts[1], cases[3].Account);
+        System.Assert.areEqual(contacts[3], cases[3].Contact);
 
-        System.assertEquals(accounts[6], cases[0].Account);
-        System.assertEquals(contacts[0], cases[0].Contact);
-        System.assertEquals(accounts[6], cases[1].Account);
-        System.assertEquals(contacts[1], cases[1].Contact);
-        System.assertEquals(accounts[7], cases[2].Account);
-        System.assertEquals(contacts[2], cases[2].Contact);
-        System.assertEquals(accounts[7], cases[3].Account);
-        System.assertEquals(contacts[3], cases[3].Contact);
+        System.Assert.areEqual(accounts[6], cases[0].Account);
+        System.Assert.areEqual(contacts[0], cases[0].Contact);
+        System.Assert.areEqual(accounts[6], cases[1].Account);
+        System.Assert.areEqual(contacts[1], cases[1].Contact);
+        System.Assert.areEqual(accounts[7], cases[2].Account);
+        System.Assert.areEqual(contacts[2], cases[2].Contact);
+        System.Assert.areEqual(accounts[7], cases[3].Account);
+        System.Assert.areEqual(contacts[3], cases[3].Contact);
     }
 
     @IsTest
@@ -215,12 +215,12 @@ public with sharing class ATKTest {
         List<Account> accounts = result.get(Account.SObjectType);
         List<Case> cases = result.get(Case.SObjectType);
 
-        System.assertEquals(10, accounts.size());
-        System.assertEquals(20, cases.size());
-        System.assertEquals(accounts[0], cases[0].Account);
-        System.assertEquals(accounts[0], cases[1].Account);
-        System.assertEquals(accounts[1], cases[2].Account);
-        System.assertEquals(accounts[1], cases[3].Account);
+        System.Assert.areEqual(10, accounts.size());
+        System.Assert.areEqual(20, cases.size());
+        System.Assert.areEqual(accounts[0], cases[0].Account);
+        System.Assert.areEqual(accounts[0], cases[1].Account);
+        System.Assert.areEqual(accounts[1], cases[2].Account);
+        System.Assert.areEqual(accounts[1], cases[3].Account);
     }
 
     @IsTest
@@ -284,16 +284,16 @@ public with sharing class ATKTest {
             Case case3 = (Case) result.get(Case.SObjectType)[i * 4 + 2];
             Case case4 = (Case) result.get(Case.SObjectType)[i * 4 + 3];
 
-            System.assertEquals(acc, contact1.Account);
-            System.assertEquals(acc, contact2.Account);
-            System.assertEquals(acc, case1.Account);
-            System.assertEquals(acc, case2.Account);
-            System.assertEquals(acc, case3.Account);
-            System.assertEquals(acc, case4.Account);
-            System.assertEquals(contact1, case1.Contact);
-            System.assertEquals(contact1, case2.Contact);
-            System.assertEquals(contact2, case3.Contact);
-            System.assertEquals(contact2, case4.Contact);
+            System.Assert.areEqual(acc, contact1.Account);
+            System.Assert.areEqual(acc, contact2.Account);
+            System.Assert.areEqual(acc, case1.Account);
+            System.Assert.areEqual(acc, case2.Account);
+            System.Assert.areEqual(acc, case3.Account);
+            System.Assert.areEqual(acc, case4.Account);
+            System.Assert.areEqual(contact1, case1.Contact);
+            System.Assert.areEqual(contact1, case2.Contact);
+            System.Assert.areEqual(contact2, case3.Contact);
+            System.Assert.areEqual(contact2, case4.Contact);
         }
     }
 
@@ -306,8 +306,8 @@ public with sharing class ATKTest {
             Contact contact1 = (Contact) result.get(Contact.SObjectType)[i * 2];
             Contact contact2 = (Contact) result.get(Contact.SObjectType)[i * 2 + 1];
 
-            System.assertEquals(acc, contact1.Account);
-            System.assertEquals(acc, contact2.Account);
+            System.Assert.areEqual(acc, contact1.Account);
+            System.Assert.areEqual(acc, contact2.Account);
         }
     }
 
@@ -318,8 +318,8 @@ public with sharing class ATKTest {
         List<Account> accounts = result.get(Account.SObjectType);
         List<Contact> contacts = result.get(Contact.SObjectType);
 
-        System.assertEquals(0, accounts.size());
-        System.assertEquals(0, contacts.size());
+        System.Assert.areEqual(0, accounts.size());
+        System.Assert.areEqual(0, contacts.size());
     }
 
     @IsTest
@@ -339,8 +339,8 @@ public with sharing class ATKTest {
             Contact contact1 = (Contact) result.get(Contact.SObjectType)[i * 2];
             Contact contact2 = (Contact) result.get(Contact.SObjectType)[i * 2 + 1];
 
-            System.assertEquals(acc, contact1.Account);
-            System.assertEquals(acc, contact2.Account);
+            System.Assert.areEqual(acc, contact1.Account);
+            System.Assert.areEqual(acc, contact2.Account);
         }
     }
 
@@ -351,8 +351,8 @@ public with sharing class ATKTest {
         List<Account> accounts = result.get(Account.SObjectType);
         List<Contact> contacts = result.get(Contact.SObjectType);
 
-        System.assertEquals(0, accounts.size());
-        System.assertEquals(0, contacts.size());
+        System.Assert.areEqual(0, accounts.size());
+        System.Assert.areEqual(0, contacts.size());
     }
 
     // #endregion
@@ -381,16 +381,16 @@ public with sharing class ATKTest {
             Case case3 = (Case) result.get(Case.SObjectType)[i * 4 + 2];
             Case case4 = (Case) result.get(Case.SObjectType)[i * 4 + 3];
 
-            System.assertEquals(acc, contact1.Account);
-            System.assertEquals(acc, contact2.Account);
-            System.assertEquals(acc, case1.Account);
-            System.assertEquals(acc, case2.Account);
-            System.assertEquals(acc, case3.Account);
-            System.assertEquals(acc, case4.Account);
-            System.assertEquals(contact1, case1.Contact);
-            System.assertEquals(contact1, case2.Contact);
-            System.assertEquals(contact2, case3.Contact);
-            System.assertEquals(contact2, case4.Contact);
+            System.Assert.areEqual(acc, contact1.Account);
+            System.Assert.areEqual(acc, contact2.Account);
+            System.Assert.areEqual(acc, case1.Account);
+            System.Assert.areEqual(acc, case2.Account);
+            System.Assert.areEqual(acc, case3.Account);
+            System.Assert.areEqual(acc, case4.Account);
+            System.Assert.areEqual(contact1, case1.Contact);
+            System.Assert.areEqual(contact1, case2.Contact);
+            System.Assert.areEqual(contact2, case3.Contact);
+            System.Assert.areEqual(contact2, case4.Contact);
         }
     }
 
@@ -403,8 +403,8 @@ public with sharing class ATKTest {
             Contact contact1 = (Contact) result.get(Contact.SObjectType)[i * 2];
             Contact contact2 = (Contact) result.get(Contact.SObjectType)[i * 2 + 1];
 
-            System.assertEquals(acc, contact1.Account);
-            System.assertEquals(acc, contact2.Account);
+            System.Assert.areEqual(acc, contact1.Account);
+            System.Assert.areEqual(acc, contact2.Account);
         }
     }
 
@@ -415,8 +415,8 @@ public with sharing class ATKTest {
         List<Account> accounts = result.get(Account.SObjectType);
         List<Contact> contacts = result.get(Contact.SObjectType);
 
-        System.assertEquals(0, accounts.size());
-        System.assertEquals(0, contacts.size());
+        System.Assert.areEqual(0, accounts.size());
+        System.Assert.areEqual(0, contacts.size());
     }
 
     @IsTest
@@ -436,8 +436,8 @@ public with sharing class ATKTest {
             Contact contact1 = (Contact) result.get(Contact.SObjectType)[i * 2];
             Contact contact2 = (Contact) result.get(Contact.SObjectType)[i * 2 + 1];
 
-            System.assertEquals(acc, contact1.Account);
-            System.assertEquals(acc, contact2.Account);
+            System.Assert.areEqual(acc, contact1.Account);
+            System.Assert.areEqual(acc, contact2.Account);
         }
     }
 
@@ -448,8 +448,8 @@ public with sharing class ATKTest {
         List<Account> accounts = result.get(Account.SObjectType);
         List<Contact> contacts = result.get(Contact.SObjectType);
 
-        System.assertEquals(0, accounts.size());
-        System.assertEquals(0, contacts.size());
+        System.Assert.areEqual(0, accounts.size());
+        System.Assert.areEqual(0, contacts.size());
     }
     // #endregion
     // *******************
@@ -482,37 +482,37 @@ public with sharing class ATKTest {
             Case case3 = (Case) result.get(Case.SObjectType)[i * 4 + 2];
             Case case4 = (Case) result.get(Case.SObjectType)[i * 4 + 3];
 
-            System.assertEquals(2, acc.Contacts.size());
-            System.assertEquals(4, acc.Cases.size());
+            System.Assert.areEqual(2, acc.Contacts.size());
+            System.Assert.areEqual(4, acc.Cases.size());
 
-            System.assertNotEquals(null, owner.Id);
-            System.assertNotEquals(null, acc.Id);
-            System.assertNotEquals(null, contact1.Id);
-            System.assertNotEquals(null, contact2.Id);
+            System.Assert.areNotEqual(null, owner.Id);
+            System.Assert.areNotEqual(null, acc.Id);
+            System.Assert.areNotEqual(null, contact1.Id);
+            System.Assert.areNotEqual(null, contact2.Id);
 
-            System.assertEquals(owner.Id, acc.OwnerId);
-            System.assertEquals(contact1.Id, case1.Contact.Id);
-            System.assertEquals(contact1.Id, case2.Contact.Id);
-            System.assertEquals(contact2.Id, case3.Contact.Id);
-            System.assertEquals(contact2.Id, case4.Contact.Id);
+            System.Assert.areEqual(owner.Id, acc.OwnerId);
+            System.Assert.areEqual(contact1.Id, case1.Contact.Id);
+            System.Assert.areEqual(contact1.Id, case2.Contact.Id);
+            System.Assert.areEqual(contact2.Id, case3.Contact.Id);
+            System.Assert.areEqual(contact2.Id, case4.Contact.Id);
 
-            System.assertEquals(owner.Id, acc.Owner.Id);
-            System.assertEquals(acc.Id, contact1.AccountId);
-            System.assertEquals(acc.Id, contact2.AccountId);
-            System.assertEquals(acc.Id, case1.AccountId);
-            System.assertEquals(acc.Id, case2.AccountId);
-            System.assertEquals(acc.Id, case3.AccountId);
-            System.assertEquals(acc.Id, case4.AccountId);
-            System.assertEquals(contact1.Id, case1.ContactId);
-            System.assertEquals(contact1.Id, case2.ContactId);
-            System.assertEquals(contact2.Id, case3.ContactId);
-            System.assertEquals(contact2.Id, case4.ContactId);
+            System.Assert.areEqual(owner.Id, acc.Owner.Id);
+            System.Assert.areEqual(acc.Id, contact1.AccountId);
+            System.Assert.areEqual(acc.Id, contact2.AccountId);
+            System.Assert.areEqual(acc.Id, case1.AccountId);
+            System.Assert.areEqual(acc.Id, case2.AccountId);
+            System.Assert.areEqual(acc.Id, case3.AccountId);
+            System.Assert.areEqual(acc.Id, case4.AccountId);
+            System.Assert.areEqual(contact1.Id, case1.ContactId);
+            System.Assert.areEqual(contact1.Id, case2.ContactId);
+            System.Assert.areEqual(contact2.Id, case3.ContactId);
+            System.Assert.areEqual(contact2.Id, case4.ContactId);
 
-            System.assertEquals(owner, acc.Owner);
-            System.assertEquals(contact1, case1.Contact);
-            System.assertEquals(contact1, case2.Contact);
-            System.assertEquals(contact2, case3.Contact);
-            System.assertEquals(contact2, case4.Contact);
+            System.Assert.areEqual(owner, acc.Owner);
+            System.Assert.areEqual(contact1, case1.Contact);
+            System.Assert.areEqual(contact1, case2.Contact);
+            System.Assert.areEqual(contact2, case3.Contact);
+            System.Assert.areEqual(contact2, case4.Contact);
         }
     }
 
@@ -544,49 +544,49 @@ public with sharing class ATKTest {
             User owner3 = (User) result.get(User.SObjectType)[i * 4 + 2];
             User owner4 = (User) result.get(User.SObjectType)[i * 4 + 3];
 
-            System.assertEquals(2, acc.Contacts.size());
-            System.assertEquals(4, acc.Cases.size());
+            System.Assert.areEqual(2, acc.Contacts.size());
+            System.Assert.areEqual(4, acc.Cases.size());
 
-            System.assertNotEquals(null, owner1.Id);
-            System.assertNotEquals(null, owner2.Id);
-            System.assertNotEquals(null, owner3.Id);
-            System.assertNotEquals(null, owner4.Id);
-            System.assertNotEquals(null, acc.Id);
-            System.assertNotEquals(null, contact1.Id);
-            System.assertNotEquals(null, contact2.Id);
+            System.Assert.areNotEqual(null, owner1.Id);
+            System.Assert.areNotEqual(null, owner2.Id);
+            System.Assert.areNotEqual(null, owner3.Id);
+            System.Assert.areNotEqual(null, owner4.Id);
+            System.Assert.areNotEqual(null, acc.Id);
+            System.Assert.areNotEqual(null, contact1.Id);
+            System.Assert.areNotEqual(null, contact2.Id);
 
-            System.assertEquals(contact1.Id, case1.Contact.Id);
-            System.assertEquals(contact1.Id, case2.Contact.Id);
-            System.assertEquals(contact2.Id, case3.Contact.Id);
-            System.assertEquals(contact2.Id, case4.Contact.Id);
-            System.assertEquals(owner1.Id, case1.Owner.Id);
-            System.assertEquals(owner2.Id, case2.Owner.Id);
-            System.assertEquals(owner3.Id, case3.Owner.Id);
-            System.assertEquals(owner4.Id, case4.Owner.Id);
+            System.Assert.areEqual(contact1.Id, case1.Contact.Id);
+            System.Assert.areEqual(contact1.Id, case2.Contact.Id);
+            System.Assert.areEqual(contact2.Id, case3.Contact.Id);
+            System.Assert.areEqual(contact2.Id, case4.Contact.Id);
+            System.Assert.areEqual(owner1.Id, case1.Owner.Id);
+            System.Assert.areEqual(owner2.Id, case2.Owner.Id);
+            System.Assert.areEqual(owner3.Id, case3.Owner.Id);
+            System.Assert.areEqual(owner4.Id, case4.Owner.Id);
 
-            System.assertEquals(acc.Id, contact1.AccountId);
-            System.assertEquals(acc.Id, contact2.AccountId);
-            System.assertEquals(acc.Id, case1.AccountId);
-            System.assertEquals(acc.Id, case2.AccountId);
-            System.assertEquals(acc.Id, case3.AccountId);
-            System.assertEquals(acc.Id, case4.AccountId);
-            System.assertEquals(contact1.Id, case1.ContactId);
-            System.assertEquals(contact1.Id, case2.ContactId);
-            System.assertEquals(contact2.Id, case3.ContactId);
-            System.assertEquals(contact2.Id, case4.ContactId);
-            System.assertEquals(owner1.Id, case1.OwnerId);
-            System.assertEquals(owner2.Id, case2.OwnerId);
-            System.assertEquals(owner3.Id, case3.OwnerId);
-            System.assertEquals(owner4.Id, case4.OwnerId);
+            System.Assert.areEqual(acc.Id, contact1.AccountId);
+            System.Assert.areEqual(acc.Id, contact2.AccountId);
+            System.Assert.areEqual(acc.Id, case1.AccountId);
+            System.Assert.areEqual(acc.Id, case2.AccountId);
+            System.Assert.areEqual(acc.Id, case3.AccountId);
+            System.Assert.areEqual(acc.Id, case4.AccountId);
+            System.Assert.areEqual(contact1.Id, case1.ContactId);
+            System.Assert.areEqual(contact1.Id, case2.ContactId);
+            System.Assert.areEqual(contact2.Id, case3.ContactId);
+            System.Assert.areEqual(contact2.Id, case4.ContactId);
+            System.Assert.areEqual(owner1.Id, case1.OwnerId);
+            System.Assert.areEqual(owner2.Id, case2.OwnerId);
+            System.Assert.areEqual(owner3.Id, case3.OwnerId);
+            System.Assert.areEqual(owner4.Id, case4.OwnerId);
 
-            System.assertEquals(contact1, case1.Contact);
-            System.assertEquals(contact1, case2.Contact);
-            System.assertEquals(contact2, case3.Contact);
-            System.assertEquals(contact2, case4.Contact);
-            System.assertEquals(owner1, (User) case1.Owner);
-            System.assertEquals(owner2, (User) case2.Owner);
-            System.assertEquals(owner3, (User) case3.Owner);
-            System.assertEquals(owner4, (User) case4.Owner);
+            System.Assert.areEqual(contact1, case1.Contact);
+            System.Assert.areEqual(contact1, case2.Contact);
+            System.Assert.areEqual(contact2, case3.Contact);
+            System.Assert.areEqual(contact2, case4.Contact);
+            System.Assert.areEqual(owner1, (User) case1.Owner);
+            System.Assert.areEqual(owner2, (User) case2.Owner);
+            System.Assert.areEqual(owner3, (User) case3.Owner);
+            System.Assert.areEqual(owner4, (User) case4.Owner);
         }
     }
 
@@ -601,11 +601,11 @@ public with sharing class ATKTest {
             .field(Account.LastModifiedDate).addDays(Datetime.newInstance(2020, 1, 1), 1)
             .mock();
         List<SObject> accounts = result.get(Account.SObjectType);
-        System.assertEquals(9, accounts.size());
+        System.Assert.areEqual(9, accounts.size());
         for (SObject obj : accounts) {
             Account acc = (Account) obj;
-            System.assertEquals(fakeUserId, acc.CreatedById);
-            System.assertEquals(Datetime.newInstance(2020, 1, 1), acc.CreatedDate);
+            System.Assert.areEqual(fakeUserId, acc.CreatedById);
+            System.Assert.areEqual(Datetime.newInstance(2020, 1, 1), acc.CreatedDate);
         }
     }
 
@@ -624,12 +624,12 @@ public with sharing class ATKTest {
             .field(Contact.Id)
             .repeat(contactId0, (String) contactId1)
             .mock();
-        System.assertEquals(accountId0, result.get(Account.SObjectType)[0].Id);
-        System.assertEquals(accountId1, result.get(Account.SObjectType)[1].Id);
-        System.assertEquals(contactId0, result.get(Contact.SObjectType)[0].Id);
-        System.assertEquals(contactId1, result.get(Contact.SObjectType)[1].Id);
-        System.assertEquals(accountId0, ((Contact) result.get(Contact.SObjectType)[0]).AccountId);
-        System.assertEquals(accountId1, ((Contact) result.get(Contact.SObjectType)[1]).AccountId);
+        System.Assert.areEqual(accountId0, result.get(Account.SObjectType)[0].Id);
+        System.Assert.areEqual(accountId1, result.get(Account.SObjectType)[1].Id);
+        System.Assert.areEqual(contactId0, result.get(Contact.SObjectType)[0].Id);
+        System.Assert.areEqual(contactId1, result.get(Contact.SObjectType)[1].Id);
+        System.Assert.areEqual(accountId0, ((Contact) result.get(Contact.SObjectType)[0]).AccountId);
+        System.Assert.areEqual(accountId1, ((Contact) result.get(Contact.SObjectType)[1]).AccountId);
     }
     // #endregion
     // ************
@@ -643,17 +643,17 @@ public with sharing class ATKTest {
             .withParents(Account.SObjectType, Case.AccountId, 4)
             .withChildren(Contact.SObjectType, Contact.AccountId, 5)
             .save(false);
-        System.assertEquals(1, result.get(Account.SObjectType).size());
-        System.assertEquals(1, result.get(Account.SObjectType, 0).size());
-        System.assertEquals(4, result.get(Account.SObjectType, 1).size());
-        System.assertEquals(2, result.get(Contact.SObjectType).size());
-        System.assertEquals(2, result.get(Contact.SObjectType, 0).size());
-        System.assertEquals(5, result.get(Contact.SObjectType, 1).size());
-        System.assertEquals(3, result.get(Case.SObjectType).size());
+        System.Assert.areEqual(1, result.get(Account.SObjectType).size());
+        System.Assert.areEqual(1, result.get(Account.SObjectType, 0).size());
+        System.Assert.areEqual(4, result.get(Account.SObjectType, 1).size());
+        System.Assert.areEqual(2, result.get(Contact.SObjectType).size());
+        System.Assert.areEqual(2, result.get(Contact.SObjectType, 0).size());
+        System.Assert.areEqual(5, result.get(Contact.SObjectType, 1).size());
+        System.Assert.areEqual(3, result.get(Case.SObjectType).size());
 
-        System.assertEquals(5, result.getAll(Account.SObjectType).size());
-        System.assertEquals(7, result.getAll(Contact.SObjectType).size());
-        System.assertEquals(3, result.getAll(Case.SObjectType).size());
+        System.Assert.areEqual(5, result.getAll(Account.SObjectType).size());
+        System.Assert.areEqual(7, result.getAll(Contact.SObjectType).size());
+        System.Assert.areEqual(3, result.getAll(Case.SObjectType).size());
     }
 
     @IsTest
@@ -667,9 +667,9 @@ public with sharing class ATKTest {
             .also(2)
             .withChildren(Contact.SObjectType, Contact.AccountId, 5)
             .save(false);
-        System.assertEquals(1, result.getAll(Account.SObjectType).size());
-        System.assertEquals(7, result.getAll(Contact.SObjectType).size());
-        System.assertEquals(7, result.getAll(Case.SObjectType).size());
+        System.Assert.areEqual(1, result.getAll(Account.SObjectType).size());
+        System.Assert.areEqual(7, result.getAll(Contact.SObjectType).size());
+        System.Assert.areEqual(7, result.getAll(Case.SObjectType).size());
     }
 
     @IsTest
@@ -731,9 +731,9 @@ public with sharing class ATKTest {
 
     @IsTest
     static void test_FakeId() {
-        System.assertEquals(ATK.fakeId(Account.SObjectType, 1), ATK.fakeId(Account.SObjectType));
-        System.assertEquals(ATK.fakeId(Account.SObjectType, 2), ATK.fakeId(Account.SObjectType));
-        System.assertEquals(ATK.fakeId(Account.SObjectType, 3), ATK.fakeId(Account.SObjectType));
+        System.Assert.areEqual(ATK.fakeId(Account.SObjectType, 1), ATK.fakeId(Account.SObjectType));
+        System.Assert.areEqual(ATK.fakeId(Account.SObjectType, 2), ATK.fakeId(Account.SObjectType));
+        System.Assert.areEqual(ATK.fakeId(Account.SObjectType, 3), ATK.fakeId(Account.SObjectType));
     }
 
     @IsTest

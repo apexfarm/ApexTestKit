@@ -98,7 +98,7 @@ public with sharing class ATKMockTest {
         } catch (ATK.MockException ex) {
             exp = ex;
         }
-        System.assert(exp != null);
+        System.Assert.isNotNull(exp);
         System.debug(exp);
 
         exp = null;
@@ -107,7 +107,7 @@ public with sharing class ATKMockTest {
         } catch (ATK.MockException ex) {
             exp = ex;
         }
-        System.assert(exp != null);
+        System.Assert.isNotNull(exp);
         System.debug(exp);
 
         exp = null;
@@ -116,7 +116,7 @@ public with sharing class ATKMockTest {
         } catch (ATK.MockException ex) {
             exp = ex;
         }
-        System.assert(exp != null);
+        System.Assert.isNotNull(exp);
         System.debug(exp);
 
         mock.doWithInteger(2);
@@ -162,7 +162,7 @@ public with sharing class ATKMockTest {
         ATK.given(mock.doWithInteger(1)).willReturn('one');
         ATK.stopStubbing();
 
-        System.assertEquals('one', mock.doWithInteger(1));
+        System.Assert.areEqual('one', mock.doWithInteger(1));
         mock.doReturnVoid();
 
         ATK.then(mock).should().haveNoMoreInteractions();
@@ -176,17 +176,17 @@ public with sharing class ATKMockTest {
         ATK.given(mock.doWithInteger(ATK.anyInteger())).willReturn('1').willReturn('2').willAnswer(new CustomAnswer('Three')).willThrow(new MockTestException());
         ATK.stopStubbing();
 
-        System.assertEquals('1', mock.doWithInteger(1));
-        System.assertEquals('2', mock.doWithInteger(2));
-        System.assertEquals('Three', mock.doWithInteger(3));
+        System.Assert.areEqual('1', mock.doWithInteger(1));
+        System.Assert.areEqual('2', mock.doWithInteger(2));
+        System.Assert.areEqual('Three', mock.doWithInteger(3));
         MockTestException thrownExp;
         try {
             mock.doWithInteger(4);
         } catch (MockTestException ex) {
             thrownExp = ex;
         }
-        System.assertNotEquals(null, thrownExp);
-        System.assertEquals(null, mock.doWithInteger(5));
+        System.Assert.areNotEqual(null, thrownExp);
+        System.Assert.areEqual(null, mock.doWithInteger(5));
     }
 
     @IsTest
@@ -198,17 +198,17 @@ public with sharing class ATKMockTest {
             ((ATKMockTest) ATK.willReturn('1').willReturn('2').willAnswer(new CustomAnswer('Three')).willThrow(new MockTestException()).given(mock)).doWithInteger(ATK.anyInteger());
             ATK.stopStubbing();
 
-            System.assertEquals('1', mock.doWithInteger(1));
-            System.assertEquals('2', mock.doWithInteger(2));
-            System.assertEquals('Three', mock.doWithInteger(3));
+            System.Assert.areEqual('1', mock.doWithInteger(1));
+            System.Assert.areEqual('2', mock.doWithInteger(2));
+            System.Assert.areEqual('Three', mock.doWithInteger(3));
             MockTestException thrownExp;
             try {
                 mock.doWithInteger(4);
             } catch (MockTestException ex) {
                 thrownExp = ex;
             }
-            System.assertNotEquals(null, thrownExp);
-            System.assertEquals(null, mock.doWithInteger(5));
+            System.Assert.areNotEqual(null, thrownExp);
+            System.Assert.areEqual(null, mock.doWithInteger(5));
             ((ATKMockTest) ATK.then(mock).should().times(5)).doWithInteger(ATK.anyInteger());
         }
 
@@ -218,14 +218,14 @@ public with sharing class ATKMockTest {
             ((ATKMockTest) ATK.willThrow(new MockTestException()).given(mock)).doWithInteger(4);
             ATK.stopStubbing();
 
-            System.assertEquals('Three', mock.doWithInteger(3));
+            System.Assert.areEqual('Three', mock.doWithInteger(3));
             MockTestException thrownExp;
             try {
                 mock.doWithInteger(4);
             } catch (MockTestException ex) {
                 thrownExp = ex;
             }
-            System.assertNotEquals(null, thrownExp);
+            System.Assert.areNotEqual(null, thrownExp);
         }
 
         {
@@ -242,7 +242,7 @@ public with sharing class ATKMockTest {
             } catch (MockTestException ex) {
                 thrownExp = ex;
             }
-            System.assertNotEquals(null, thrownExp);
+            System.Assert.areNotEqual(null, thrownExp);
             mock.doReturnVoid();
 
             ((ATKMockTest) ATK.then(mock).should().times(5)).doReturnVoid();
@@ -253,18 +253,18 @@ public with sharing class ATKMockTest {
     static void test_answers_for_returns_defaults() {
         ATKMockTest mock = (ATKMockTest) ATK.mock(ATKMockTest.class, ATK.withSettings().lenient());
 
-        System.assertEquals(0, mock.doReturnInteger());
-        System.assertEquals(0L, mock.doReturnLong());
-        System.assertEquals(0.0d, mock.doReturnDouble());
-        System.assertEquals(0, mock.doReturnDecimal());
-        System.assertEquals('', mock.doReturnString());
-        System.assertEquals(false, mock.doReturnBoolean());
-        System.assert(null != mock.doReturnAccountList());
-        System.assert(null != mock.doReturnAccountSet());
-        System.assert(null != mock.doReturnAccountMap());
-        System.assert(null != mock.doReturnAccount());
-        System.assertEquals(null, mock.doReturnSObject());
-        System.assertEquals(null, mock.doReturnMock(null));
+        System.Assert.areEqual(0, mock.doReturnInteger());
+        System.Assert.areEqual(0L, mock.doReturnLong());
+        System.Assert.areEqual(0.0d, mock.doReturnDouble());
+        System.Assert.areEqual(0, mock.doReturnDecimal());
+        System.Assert.areEqual('', mock.doReturnString());
+        System.Assert.isFalse(mock.doReturnBoolean());
+        System.Assert.isNotNull(mock.doReturnAccountList());
+        System.Assert.isNotNull(mock.doReturnAccountSet());
+        System.Assert.isNotNull(mock.doReturnAccountMap());
+        System.Assert.isNotNull(mock.doReturnAccount());
+        System.Assert.areEqual(null, mock.doReturnSObject());
+        System.Assert.areEqual(null, mock.doReturnMock(null));
     }
 
     @IsTest
@@ -280,7 +280,7 @@ public with sharing class ATKMockTest {
                 .willReturn('return 1');
         ATK.stopStubbing();
 
-        System.assertEquals('return 1', mock.doReturnSelf('1').doReturnSelf(1).doWithInteger(1));
+        System.Assert.areEqual('return 1', mock.doReturnSelf('1').doReturnSelf(1).doWithInteger(1));
     }
 
     @IsTest
@@ -294,9 +294,9 @@ public with sharing class ATKMockTest {
             ATK.given(mock.doReturnMock(null)).willReturn(null).willReturn(instance);
             ATK.stopStubbing();
 
-            System.assertEquals(null, mock.doReturnMock(null));
-            System.assertEquals(instance, mock.doReturnMock(null));
-            System.assertEquals(null, mock.doReturnMock(null));
+            System.Assert.areEqual(null, mock.doReturnMock(null));
+            System.Assert.areEqual(instance, mock.doReturnMock(null));
+            System.Assert.areEqual(null, mock.doReturnMock(null));
         }
 
         {
@@ -316,18 +316,18 @@ public with sharing class ATKMockTest {
         ATKMockTest mock1 = (ATKMockTest) ATK.mock(ATKMockTest.class, ATK.RETURNS_DEFAULTS);
         ATKMockTest mock2 = (ATKMockTest) ATK.mock(ATKMockTest.class, ATK.RETURNS_SELF);
 
-        System.assertEquals(0, mock1.doReturnInteger());
-        System.assertEquals(0L, mock1.doReturnLong());
-        System.assertEquals(0.0d, mock1.doReturnDouble());
-        System.assertEquals(0, mock1.doReturnDecimal());
-        System.assertEquals('', mock1.doReturnString());
-        System.assertEquals(false, mock1.doReturnBoolean());
-        System.assert(null != mock1.doReturnAccountList());
-        System.assert(null != mock1.doReturnAccountSet());
-        System.assert(null != mock1.doReturnAccountMap());
-        System.assert(null != mock1.doReturnAccount());
-        System.assertEquals(null, mock1.doReturnSObject());
-        System.assertEquals(null, mock1.doReturnMock(null));
+        System.Assert.areEqual(0, mock1.doReturnInteger());
+        System.Assert.areEqual(0L, mock1.doReturnLong());
+        System.Assert.areEqual(0.0d, mock1.doReturnDouble());
+        System.Assert.areEqual(0, mock1.doReturnDecimal());
+        System.Assert.areEqual('', mock1.doReturnString());
+        System.Assert.isFalse(mock1.doReturnBoolean());
+        System.Assert.isNotNull(mock1.doReturnAccountList());
+        System.Assert.isNotNull(mock1.doReturnAccountSet());
+        System.Assert.isNotNull(mock1.doReturnAccountMap());
+        System.Assert.isNotNull(mock1.doReturnAccount());
+        System.Assert.areEqual(null, mock1.doReturnSObject());
+        System.Assert.areEqual(null, mock1.doReturnMock(null));
 
         ATK.startStubbing();
         // prettier-ignore
@@ -338,22 +338,22 @@ public with sharing class ATKMockTest {
                 .willReturn('one');
         ATK.stopStubbing();
 
-        System.assertEquals('one', mock2.doReturnSelf('1').doReturnSelf(1).doWithInteger(1));
+        System.Assert.areEqual('one', mock2.doReturnSelf('1').doReturnSelf(1).doWithInteger(1));
     }
 
     @IsTest
     static void test_answers_for_custom_answers() {
         ATK.mock().withSettings().lenient();
         ATKMockTest mock1 = (ATKMockTest) ATK.mock(ATKMockTest.class, new CustomAnswer('Custom Answer 1'));
-        System.assertEquals('Custom Answer 1', mock1.doWithInteger(1));
+        System.Assert.areEqual('Custom Answer 1', mock1.doWithInteger(1));
 
         ATK.mock().withSettings().defaultAnswer(new CustomAnswer('Custom Answer 2'));
 
         ATKMockTest mock2 = (ATKMockTest) ATK.mock(ATKMockTest.class);
-        System.assertEquals('Custom Answer 2', mock2.doWithInteger(2));
+        System.Assert.areEqual('Custom Answer 2', mock2.doWithInteger(2));
 
         ATKMockTest mock3 = (ATKMockTest) ATK.mock(ATKMockTest.class, new CustomAnswer('Custom Answer 3'));
-        System.assertEquals('Custom Answer 3', mock3.doWithInteger(3));
+        System.Assert.areEqual('Custom Answer 3', mock3.doWithInteger(3));
     }
 
     // #endregion
@@ -400,35 +400,35 @@ public with sharing class ATKMockTest {
         ATK.given(mock.doWithSObjects(ATK.anySObjectList())).willReturn('0');
         ATK.stopStubbing();
 
-        System.assertEquals('0', mock.doWithInteger(1));
-        System.assertEquals('0', mock.doWithIntegers(1, 2, 3));
-        System.assertEquals('0', mock.doWithLong(1L));
-        System.assertEquals('0', mock.doWithLongs(1L, 2L, 3L));
-        System.assertEquals('0', mock.doWithDouble(1.1d));
-        System.assertEquals('0', mock.doWithDoubles(1.1d, 2.2d, 3.3d));
-        System.assertEquals('0', mock.doWithDecimal(1.1));
-        System.assertEquals('0', mock.doWithDecimals(1.1, 2.2, 3.3));
-        System.assertEquals('0', mock.doWithDate(Date.newInstance(2022, 1, 1)));
-        System.assertEquals('0', mock.doWithDates(Date.newInstance(2022, 1, 1), Date.newInstance(2022, 1, 2), Date.newInstance(2022, 1, 3)));
-        System.assertEquals('0', mock.doWithDatetime(Datetime.newInstance(2022, 1, 1)));
-        System.assertEquals('0', mock.doWithDatetimes(Datetime.newInstance(2022, 1, 1), Datetime.newInstance(2022, 1, 2), Datetime.newInstance(2022, 1, 3)));
-        System.assertEquals('0', mock.doWithId(ATK.fakeId(Account.SObjectType)));
-        System.assertEquals('0', mock.doWithIds(ATK.fakeId(Account.SObjectType), ATK.fakeId(Account.SObjectType), ATK.fakeId(Account.SObjectType)));
-        System.assertEquals('0', mock.doWithString('1'));
-        System.assertEquals('0', mock.doWithStrings('1', '2', '3'));
-        System.assertEquals('0', mock.doWithBoolean(true));
-        System.assertEquals('0', mock.doWithBooleans(false, true, false));
-        System.assertEquals('nullable', mock.doWithObject(null));
-        System.assertEquals('0', mock.doWithObject(new ATKMockTest()));
-        System.assertEquals('0', mock.doWithObjects(new ATKMockTest(), 2, '3'));
-        System.assertEquals('0', mock.doWithList(new List<ATKMockTest>()));
-        System.assertEquals('0', mock.doWithLists(new List<ATKMockTest>(), new List<Object>(), new List<Object>()));
-        System.assertEquals('0', mock.doWithSet(new Set<ATKMockTest>()));
-        System.assertEquals('0', mock.doWithSets(new Set<ATKMockTest>(), new Set<Object>(), new Set<Object>()));
-        System.assertEquals('0', mock.doWithMap(new Map<String, ATKMockTest>()));
-        System.assertEquals('0', mock.doWithMaps(new Map<String, ATKMockTest>(), new Map<Object, Object>(), new Map<Object, Object>()));
-        System.assertEquals('0', mock.doWithSObject(new Account()));
-        System.assertEquals('0', mock.doWithSObjects(new List<Account>()));
+        System.Assert.areEqual('0', mock.doWithInteger(1));
+        System.Assert.areEqual('0', mock.doWithIntegers(1, 2, 3));
+        System.Assert.areEqual('0', mock.doWithLong(1L));
+        System.Assert.areEqual('0', mock.doWithLongs(1L, 2L, 3L));
+        System.Assert.areEqual('0', mock.doWithDouble(1.1d));
+        System.Assert.areEqual('0', mock.doWithDoubles(1.1d, 2.2d, 3.3d));
+        System.Assert.areEqual('0', mock.doWithDecimal(1.1));
+        System.Assert.areEqual('0', mock.doWithDecimals(1.1, 2.2, 3.3));
+        System.Assert.areEqual('0', mock.doWithDate(Date.newInstance(2022, 1, 1)));
+        System.Assert.areEqual('0', mock.doWithDates(Date.newInstance(2022, 1, 1), Date.newInstance(2022, 1, 2), Date.newInstance(2022, 1, 3)));
+        System.Assert.areEqual('0', mock.doWithDatetime(Datetime.newInstance(2022, 1, 1)));
+        System.Assert.areEqual('0', mock.doWithDatetimes(Datetime.newInstance(2022, 1, 1), Datetime.newInstance(2022, 1, 2), Datetime.newInstance(2022, 1, 3)));
+        System.Assert.areEqual('0', mock.doWithId(ATK.fakeId(Account.SObjectType)));
+        System.Assert.areEqual('0', mock.doWithIds(ATK.fakeId(Account.SObjectType), ATK.fakeId(Account.SObjectType), ATK.fakeId(Account.SObjectType)));
+        System.Assert.areEqual('0', mock.doWithString('1'));
+        System.Assert.areEqual('0', mock.doWithStrings('1', '2', '3'));
+        System.Assert.areEqual('0', mock.doWithBoolean(true));
+        System.Assert.areEqual('0', mock.doWithBooleans(false, true, false));
+        System.Assert.areEqual('nullable', mock.doWithObject(null));
+        System.Assert.areEqual('0', mock.doWithObject(new ATKMockTest()));
+        System.Assert.areEqual('0', mock.doWithObjects(new ATKMockTest(), 2, '3'));
+        System.Assert.areEqual('0', mock.doWithList(new List<ATKMockTest>()));
+        System.Assert.areEqual('0', mock.doWithLists(new List<ATKMockTest>(), new List<Object>(), new List<Object>()));
+        System.Assert.areEqual('0', mock.doWithSet(new Set<ATKMockTest>()));
+        System.Assert.areEqual('0', mock.doWithSets(new Set<ATKMockTest>(), new Set<Object>(), new Set<Object>()));
+        System.Assert.areEqual('0', mock.doWithMap(new Map<String, ATKMockTest>()));
+        System.Assert.areEqual('0', mock.doWithMaps(new Map<String, ATKMockTest>(), new Map<Object, Object>(), new Map<Object, Object>()));
+        System.Assert.areEqual('0', mock.doWithSObject(new Account()));
+        System.Assert.areEqual('0', mock.doWithSObjects(new List<Account>()));
     }
 
     @IsTest
@@ -447,18 +447,18 @@ public with sharing class ATKMockTest {
         ATK.given(mock.doWithInteger(ATK.between(8, 10, false))).willReturn('9');
         ATK.stopStubbing();
 
-        System.assertEquals('<=1', mock.doWithInteger(0));
-        System.assertEquals('<=1', mock.doWithInteger(1));
-        System.assertEquals('<3', mock.doWithInteger(2));
-        System.assertEquals('=3', mock.doWithInteger(3));
-        System.assertEquals('>3', mock.doWithInteger(4));
-        System.assertEquals('>=5', mock.doWithInteger(5));
-        System.assertEquals('>=5', mock.doWithInteger(6));
-        System.assertEquals('7-10', mock.doWithInteger(7));
-        System.assertEquals('8-10', mock.doWithInteger(8));
-        System.assertEquals('9', mock.doWithInteger(9));
-        System.assertEquals('8-10', mock.doWithInteger(10));
-        System.assertEquals('8-11', mock.doWithInteger(11));
+        System.Assert.areEqual('<=1', mock.doWithInteger(0));
+        System.Assert.areEqual('<=1', mock.doWithInteger(1));
+        System.Assert.areEqual('<3', mock.doWithInteger(2));
+        System.Assert.areEqual('=3', mock.doWithInteger(3));
+        System.Assert.areEqual('>3', mock.doWithInteger(4));
+        System.Assert.areEqual('>=5', mock.doWithInteger(5));
+        System.Assert.areEqual('>=5', mock.doWithInteger(6));
+        System.Assert.areEqual('7-10', mock.doWithInteger(7));
+        System.Assert.areEqual('8-10', mock.doWithInteger(8));
+        System.Assert.areEqual('9', mock.doWithInteger(9));
+        System.Assert.areEqual('8-10', mock.doWithInteger(10));
+        System.Assert.areEqual('8-11', mock.doWithInteger(11));
     }
 
     @IsTest
@@ -477,18 +477,18 @@ public with sharing class ATKMockTest {
         ATK.given(mock.doWithLong(ATK.between(8L, 10L, false))).willReturn('9');
         ATK.stopStubbing();
 
-        System.assertEquals('<=1', mock.doWithLong(0L));
-        System.assertEquals('<=1', mock.doWithLong(1L));
-        System.assertEquals('<3', mock.doWithLong(2L));
-        System.assertEquals('=3', mock.doWithLong(3L));
-        System.assertEquals('>3', mock.doWithLong(4L));
-        System.assertEquals('>=5', mock.doWithLong(5L));
-        System.assertEquals('>=5', mock.doWithLong(6L));
-        System.assertEquals('7-10', mock.doWithLong(7L));
-        System.assertEquals('8-10', mock.doWithLong(8L));
-        System.assertEquals('9', mock.doWithLong(9L));
-        System.assertEquals('8-10', mock.doWithLong(10L));
-        System.assertEquals('8-11', mock.doWithLong(11L));
+        System.Assert.areEqual('<=1', mock.doWithLong(0L));
+        System.Assert.areEqual('<=1', mock.doWithLong(1L));
+        System.Assert.areEqual('<3', mock.doWithLong(2L));
+        System.Assert.areEqual('=3', mock.doWithLong(3L));
+        System.Assert.areEqual('>3', mock.doWithLong(4L));
+        System.Assert.areEqual('>=5', mock.doWithLong(5L));
+        System.Assert.areEqual('>=5', mock.doWithLong(6L));
+        System.Assert.areEqual('7-10', mock.doWithLong(7L));
+        System.Assert.areEqual('8-10', mock.doWithLong(8L));
+        System.Assert.areEqual('9', mock.doWithLong(9L));
+        System.Assert.areEqual('8-10', mock.doWithLong(10L));
+        System.Assert.areEqual('8-11', mock.doWithLong(11L));
     }
 
     @IsTest
@@ -507,18 +507,18 @@ public with sharing class ATKMockTest {
         ATK.given(mock.doWithDouble(ATK.between(8.0d, 10.0d, false))).willReturn('9');
         ATK.stopStubbing();
 
-        System.assertEquals('<=1', mock.doWithDouble(0.0d));
-        System.assertEquals('<=1', mock.doWithDouble(1.0d));
-        System.assertEquals('<3', mock.doWithDouble(2.0d));
-        System.assertEquals('=3', mock.doWithDouble(3.0d));
-        System.assertEquals('>3', mock.doWithDouble(4.0d));
-        System.assertEquals('>=5', mock.doWithDouble(5.0d));
-        System.assertEquals('>=5', mock.doWithDouble(6.0d));
-        System.assertEquals('7-10', mock.doWithDouble(7.0d));
-        System.assertEquals('8-10', mock.doWithDouble(8.0d));
-        System.assertEquals('9', mock.doWithDouble(9.0d));
-        System.assertEquals('8-10', mock.doWithDouble(10.0d));
-        System.assertEquals('8-11', mock.doWithDouble(11.0d));
+        System.Assert.areEqual('<=1', mock.doWithDouble(0.0d));
+        System.Assert.areEqual('<=1', mock.doWithDouble(1.0d));
+        System.Assert.areEqual('<3', mock.doWithDouble(2.0d));
+        System.Assert.areEqual('=3', mock.doWithDouble(3.0d));
+        System.Assert.areEqual('>3', mock.doWithDouble(4.0d));
+        System.Assert.areEqual('>=5', mock.doWithDouble(5.0d));
+        System.Assert.areEqual('>=5', mock.doWithDouble(6.0d));
+        System.Assert.areEqual('7-10', mock.doWithDouble(7.0d));
+        System.Assert.areEqual('8-10', mock.doWithDouble(8.0d));
+        System.Assert.areEqual('9', mock.doWithDouble(9.0d));
+        System.Assert.areEqual('8-10', mock.doWithDouble(10.0d));
+        System.Assert.areEqual('8-11', mock.doWithDouble(11.0d));
     }
 
     @IsTest
@@ -537,18 +537,18 @@ public with sharing class ATKMockTest {
         ATK.given(mock.doWithDecimal(ATK.between(8.0, 10.0, false))).willReturn('9');
         ATK.stopStubbing();
 
-        System.assertEquals('<=1', mock.doWithDecimal(0.0));
-        System.assertEquals('<=1', mock.doWithDecimal(1.0));
-        System.assertEquals('<3', mock.doWithDecimal(2.0));
-        System.assertEquals('=3', mock.doWithDecimal(3.0));
-        System.assertEquals('>3', mock.doWithDecimal(4.0));
-        System.assertEquals('>=5', mock.doWithDecimal(5.0));
-        System.assertEquals('>=5', mock.doWithDecimal(6.0));
-        System.assertEquals('7-10', mock.doWithDecimal(7.0));
-        System.assertEquals('8-10', mock.doWithDecimal(8.0));
-        System.assertEquals('9', mock.doWithDecimal(9.0));
-        System.assertEquals('8-10', mock.doWithDecimal(10.0));
-        System.assertEquals('8-11', mock.doWithDecimal(11.0));
+        System.Assert.areEqual('<=1', mock.doWithDecimal(0.0));
+        System.Assert.areEqual('<=1', mock.doWithDecimal(1.0));
+        System.Assert.areEqual('<3', mock.doWithDecimal(2.0));
+        System.Assert.areEqual('=3', mock.doWithDecimal(3.0));
+        System.Assert.areEqual('>3', mock.doWithDecimal(4.0));
+        System.Assert.areEqual('>=5', mock.doWithDecimal(5.0));
+        System.Assert.areEqual('>=5', mock.doWithDecimal(6.0));
+        System.Assert.areEqual('7-10', mock.doWithDecimal(7.0));
+        System.Assert.areEqual('8-10', mock.doWithDecimal(8.0));
+        System.Assert.areEqual('9', mock.doWithDecimal(9.0));
+        System.Assert.areEqual('8-10', mock.doWithDecimal(10.0));
+        System.Assert.areEqual('8-11', mock.doWithDecimal(11.0));
     }
 
     @IsTest
@@ -567,18 +567,18 @@ public with sharing class ATKMockTest {
         ATK.given(mock.doWithDate(ATK.between(Date.newInstance(2022, 1, 8), Date.newInstance(2022, 1, 10), false))).willReturn('9');
         ATK.stopStubbing();
 
-        System.assertEquals('<=1', mock.doWithDate(Date.newInstance(2021, 12, 31)));
-        System.assertEquals('<=1', mock.doWithDate(Date.newInstance(2022, 1, 1)));
-        System.assertEquals('<3', mock.doWithDate(Date.newInstance(2022, 1, 2)));
-        System.assertEquals('=3', mock.doWithDate(Date.newInstance(2022, 1, 3)));
-        System.assertEquals('>3', mock.doWithDate(Date.newInstance(2022, 1, 4)));
-        System.assertEquals('>=5', mock.doWithDate(Date.newInstance(2022, 1, 5)));
-        System.assertEquals('>=5', mock.doWithDate(Date.newInstance(2022, 1, 6)));
-        System.assertEquals('7-10', mock.doWithDate(Date.newInstance(2022, 1, 7)));
-        System.assertEquals('8-10', mock.doWithDate(Date.newInstance(2022, 1, 8)));
-        System.assertEquals('9', mock.doWithDate(Date.newInstance(2022, 1, 9)));
-        System.assertEquals('8-10', mock.doWithDate(Date.newInstance(2022, 1, 10)));
-        System.assertEquals('8-11', mock.doWithDate(Date.newInstance(2022, 1, 11)));
+        System.Assert.areEqual('<=1', mock.doWithDate(Date.newInstance(2021, 12, 31)));
+        System.Assert.areEqual('<=1', mock.doWithDate(Date.newInstance(2022, 1, 1)));
+        System.Assert.areEqual('<3', mock.doWithDate(Date.newInstance(2022, 1, 2)));
+        System.Assert.areEqual('=3', mock.doWithDate(Date.newInstance(2022, 1, 3)));
+        System.Assert.areEqual('>3', mock.doWithDate(Date.newInstance(2022, 1, 4)));
+        System.Assert.areEqual('>=5', mock.doWithDate(Date.newInstance(2022, 1, 5)));
+        System.Assert.areEqual('>=5', mock.doWithDate(Date.newInstance(2022, 1, 6)));
+        System.Assert.areEqual('7-10', mock.doWithDate(Date.newInstance(2022, 1, 7)));
+        System.Assert.areEqual('8-10', mock.doWithDate(Date.newInstance(2022, 1, 8)));
+        System.Assert.areEqual('9', mock.doWithDate(Date.newInstance(2022, 1, 9)));
+        System.Assert.areEqual('8-10', mock.doWithDate(Date.newInstance(2022, 1, 10)));
+        System.Assert.areEqual('8-11', mock.doWithDate(Date.newInstance(2022, 1, 11)));
     }
 
     @IsTest
@@ -597,18 +597,18 @@ public with sharing class ATKMockTest {
         ATK.given(mock.doWithDatetime(ATK.between(Datetime.newInstance(2022, 1, 8), Datetime.newInstance(2022, 1, 10), false))).willReturn('9');
         ATK.stopStubbing();
 
-        System.assertEquals('<=1', mock.doWithDatetime(Datetime.newInstance(2021, 12, 31)));
-        System.assertEquals('<=1', mock.doWithDatetime(Datetime.newInstance(2022, 1, 1)));
-        System.assertEquals('<3', mock.doWithDatetime(Datetime.newInstance(2022, 1, 2)));
-        System.assertEquals('=3', mock.doWithDatetime(Datetime.newInstance(2022, 1, 3)));
-        System.assertEquals('>3', mock.doWithDatetime(Datetime.newInstance(2022, 1, 4)));
-        System.assertEquals('>=5', mock.doWithDatetime(Datetime.newInstance(2022, 1, 5)));
-        System.assertEquals('>=5', mock.doWithDatetime(Datetime.newInstance(2022, 1, 6)));
-        System.assertEquals('7-10', mock.doWithDatetime(Datetime.newInstance(2022, 1, 7)));
-        System.assertEquals('8-10', mock.doWithDatetime(Datetime.newInstance(2022, 1, 8)));
-        System.assertEquals('9', mock.doWithDatetime(Datetime.newInstance(2022, 1, 9)));
-        System.assertEquals('8-10', mock.doWithDatetime(Datetime.newInstance(2022, 1, 10)));
-        System.assertEquals('8-11', mock.doWithDatetime(Datetime.newInstance(2022, 1, 11)));
+        System.Assert.areEqual('<=1', mock.doWithDatetime(Datetime.newInstance(2021, 12, 31)));
+        System.Assert.areEqual('<=1', mock.doWithDatetime(Datetime.newInstance(2022, 1, 1)));
+        System.Assert.areEqual('<3', mock.doWithDatetime(Datetime.newInstance(2022, 1, 2)));
+        System.Assert.areEqual('=3', mock.doWithDatetime(Datetime.newInstance(2022, 1, 3)));
+        System.Assert.areEqual('>3', mock.doWithDatetime(Datetime.newInstance(2022, 1, 4)));
+        System.Assert.areEqual('>=5', mock.doWithDatetime(Datetime.newInstance(2022, 1, 5)));
+        System.Assert.areEqual('>=5', mock.doWithDatetime(Datetime.newInstance(2022, 1, 6)));
+        System.Assert.areEqual('7-10', mock.doWithDatetime(Datetime.newInstance(2022, 1, 7)));
+        System.Assert.areEqual('8-10', mock.doWithDatetime(Datetime.newInstance(2022, 1, 8)));
+        System.Assert.areEqual('9', mock.doWithDatetime(Datetime.newInstance(2022, 1, 9)));
+        System.Assert.areEqual('8-10', mock.doWithDatetime(Datetime.newInstance(2022, 1, 10)));
+        System.Assert.areEqual('8-11', mock.doWithDatetime(Datetime.newInstance(2022, 1, 11)));
     }
 
     @IsTest
@@ -627,18 +627,18 @@ public with sharing class ATKMockTest {
         ATK.given(mock.doWithId(ATK.between(ATK.fakeId(Account.SObjectType, 8), ATK.fakeId(Account.SObjectType, 10), false))).willReturn('9');
         ATK.stopStubbing();
 
-        System.assertEquals('<=1', mock.doWithId(ATK.fakeId(Account.SObjectType, 0)));
-        System.assertEquals('<=1', mock.doWithId(ATK.fakeId(Account.SObjectType, 1)));
-        System.assertEquals('<3', mock.doWithId(ATK.fakeId(Account.SObjectType, 2)));
-        System.assertEquals('=3', mock.doWithId(ATK.fakeId(Account.SObjectType, 3)));
-        System.assertEquals('>3', mock.doWithId(ATK.fakeId(Account.SObjectType, 4)));
-        System.assertEquals('>=5', mock.doWithId(ATK.fakeId(Account.SObjectType, 5)));
-        System.assertEquals('>=5', mock.doWithId(ATK.fakeId(Account.SObjectType, 6)));
-        System.assertEquals('7-10', mock.doWithId(ATK.fakeId(Account.SObjectType, 7)));
-        System.assertEquals('8-10', mock.doWithId(ATK.fakeId(Account.SObjectType, 8)));
-        System.assertEquals('9', mock.doWithId(ATK.fakeId(Account.SObjectType, 9)));
-        System.assertEquals('8-10', mock.doWithId(ATK.fakeId(Account.SObjectType, 10)));
-        System.assertEquals('8-11', mock.doWithId(ATK.fakeId(Account.SObjectType, 11)));
+        System.Assert.areEqual('<=1', mock.doWithId(ATK.fakeId(Account.SObjectType, 0)));
+        System.Assert.areEqual('<=1', mock.doWithId(ATK.fakeId(Account.SObjectType, 1)));
+        System.Assert.areEqual('<3', mock.doWithId(ATK.fakeId(Account.SObjectType, 2)));
+        System.Assert.areEqual('=3', mock.doWithId(ATK.fakeId(Account.SObjectType, 3)));
+        System.Assert.areEqual('>3', mock.doWithId(ATK.fakeId(Account.SObjectType, 4)));
+        System.Assert.areEqual('>=5', mock.doWithId(ATK.fakeId(Account.SObjectType, 5)));
+        System.Assert.areEqual('>=5', mock.doWithId(ATK.fakeId(Account.SObjectType, 6)));
+        System.Assert.areEqual('7-10', mock.doWithId(ATK.fakeId(Account.SObjectType, 7)));
+        System.Assert.areEqual('8-10', mock.doWithId(ATK.fakeId(Account.SObjectType, 8)));
+        System.Assert.areEqual('9', mock.doWithId(ATK.fakeId(Account.SObjectType, 9)));
+        System.Assert.areEqual('8-10', mock.doWithId(ATK.fakeId(Account.SObjectType, 10)));
+        System.Assert.areEqual('8-11', mock.doWithId(ATK.fakeId(Account.SObjectType, 11)));
     }
 
     @IsTest
@@ -657,18 +657,18 @@ public with sharing class ATKMockTest {
         ATK.given(mock.doWithString(ATK.between('08', '10', false))).willReturn('09');
         ATK.stopStubbing();
 
-        System.assertEquals('<=01', mock.doWithString('00'));
-        System.assertEquals('<=01', mock.doWithString('01'));
-        System.assertEquals('<03', mock.doWithString('02'));
-        System.assertEquals('=03', mock.doWithString('03'));
-        System.assertEquals('>03', mock.doWithString('04'));
-        System.assertEquals('>=05', mock.doWithString('05'));
-        System.assertEquals('>=05', mock.doWithString('06'));
-        System.assertEquals('07-10', mock.doWithString('07'));
-        System.assertEquals('08-10', mock.doWithString('08'));
-        System.assertEquals('09', mock.doWithString('09'));
-        System.assertEquals('08-10', mock.doWithString('10'));
-        System.assertEquals('08-11', mock.doWithString('11'));
+        System.Assert.areEqual('<=01', mock.doWithString('00'));
+        System.Assert.areEqual('<=01', mock.doWithString('01'));
+        System.Assert.areEqual('<03', mock.doWithString('02'));
+        System.Assert.areEqual('=03', mock.doWithString('03'));
+        System.Assert.areEqual('>03', mock.doWithString('04'));
+        System.Assert.areEqual('>=05', mock.doWithString('05'));
+        System.Assert.areEqual('>=05', mock.doWithString('06'));
+        System.Assert.areEqual('07-10', mock.doWithString('07'));
+        System.Assert.areEqual('08-10', mock.doWithString('08'));
+        System.Assert.areEqual('09', mock.doWithString('09'));
+        System.Assert.areEqual('08-10', mock.doWithString('10'));
+        System.Assert.areEqual('08-11', mock.doWithString('11'));
     }
 
     @IsTest
@@ -684,12 +684,12 @@ public with sharing class ATKMockTest {
         ATK.given(mock.doWithString(ATK.matches('x{3}dx{3}'))).willReturn('d');
         ATK.stopStubbing();
 
-        System.assertEquals('a', mock.doWithString('xxxaxxx'));
-        System.assertEquals('b', mock.doWithString('bxxxxxx'));
-        System.assertEquals('c', mock.doWithString('xxxxxxc'));
-        System.assertEquals('d', mock.doWithString('xxxdxxx'));
-        System.assertEquals('not blank', mock.doWithString('xxxxxxx'));
-        System.assertEquals('blank', mock.doWithString(' \r\n'));
+        System.Assert.areEqual('a', mock.doWithString('xxxaxxx'));
+        System.Assert.areEqual('b', mock.doWithString('bxxxxxx'));
+        System.Assert.areEqual('c', mock.doWithString('xxxxxxc'));
+        System.Assert.areEqual('d', mock.doWithString('xxxdxxx'));
+        System.Assert.areEqual('not blank', mock.doWithString('xxxxxxx'));
+        System.Assert.areEqual('blank', mock.doWithString(' \r\n'));
     }
 
     @IsTest
@@ -701,8 +701,8 @@ public with sharing class ATKMockTest {
         ATK.given(mock.doWithBoolean(ATK.eqBoolean(false))).willReturn('false');
         ATK.stopStubbing();
 
-        System.assertEquals('true', mock.doWithBoolean(true));
-        System.assertEquals('false', mock.doWithBoolean(false));
+        System.Assert.areEqual('true', mock.doWithBoolean(true));
+        System.Assert.areEqual('false', mock.doWithBoolean(false));
     }
 
     @IsTest
@@ -716,9 +716,9 @@ public with sharing class ATKMockTest {
         ATK.given(mock.doWithObject(ATK.eq(theObject))).willReturn('eq Object');
         ATK.stopStubbing();
 
-        System.assertEquals('eq Object', mock.doWithObject(theObject));
-        System.assertEquals('not null', mock.doWithObject(new ATKMockTest()));
-        System.assertEquals('null', mock.doWithObject(null));
+        System.Assert.areEqual('eq Object', mock.doWithObject(theObject));
+        System.Assert.areEqual('not null', mock.doWithObject(new ATKMockTest()));
+        System.Assert.areEqual('null', mock.doWithObject(null));
     }
 
     @IsTest
@@ -732,9 +732,9 @@ public with sharing class ATKMockTest {
         ATK.given(mock.doWithList((List<ATKMockTest>) ATK.eq(new List<ATKMockTest>()))).willReturn('eq List');
         ATK.stopStubbing();
 
-        System.assertEquals('eq List', mock.doWithList(new List<ATKMockTest>()));
-        System.assertEquals('eq List', mock.doWithList(new List<Integer>{ 1, 2, 3 }));
-        System.assertEquals('same List', mock.doWithList(theList));
+        System.Assert.areEqual('eq List', mock.doWithList(new List<ATKMockTest>()));
+        System.Assert.areEqual('eq List', mock.doWithList(new List<Integer>{ 1, 2, 3 }));
+        System.Assert.areEqual('same List', mock.doWithList(theList));
     }
 
     @IsTest
@@ -748,10 +748,10 @@ public with sharing class ATKMockTest {
         ATK.given(mock.doWithSObject(ATK.sObjectWith(new Map<SObjectField, Object>{ Account.Id => ATK.fakeId(Account.SObjectType, 3), Account.Name => 'Account 3' }))).willReturn('3');
         ATK.stopStubbing();
 
-        System.assertEquals('0', mock.doWithSObject(new Account(Id = ATK.fakeId(Account.SObjectType, 0), Name = 'Account 0')));
-        System.assertEquals('1', mock.doWithSObject(new Account(Id = ATK.fakeId(Account.SObjectType, 1), Name = 'Account 1')));
-        System.assertEquals('2', mock.doWithSObject(new Account(Id = ATK.fakeId(Account.SObjectType, 2), Name = 'Account 2')));
-        System.assertEquals('3', mock.doWithSObject(new Account(Id = ATK.fakeId(Account.SObjectType, 3), Name = 'Account 3')));
+        System.Assert.areEqual('0', mock.doWithSObject(new Account(Id = ATK.fakeId(Account.SObjectType, 0), Name = 'Account 0')));
+        System.Assert.areEqual('1', mock.doWithSObject(new Account(Id = ATK.fakeId(Account.SObjectType, 1), Name = 'Account 1')));
+        System.Assert.areEqual('2', mock.doWithSObject(new Account(Id = ATK.fakeId(Account.SObjectType, 2), Name = 'Account 2')));
+        System.Assert.areEqual('3', mock.doWithSObject(new Account(Id = ATK.fakeId(Account.SObjectType, 3), Name = 'Account 3')));
     }
 
     @IsTest
@@ -788,7 +788,7 @@ public with sharing class ATKMockTest {
             .willReturn('4');
         ATK.stopStubbing();
 
-        System.assertEquals(
+        System.Assert.areEqual(
             '1',
             mock.doWithSObjects(
                 new List<Account>{
@@ -799,7 +799,7 @@ public with sharing class ATKMockTest {
             )
         );
 
-        System.assertEquals(
+        System.Assert.areEqual(
             '2',
             mock.doWithSObjects(
                 new List<Account>{
@@ -810,7 +810,7 @@ public with sharing class ATKMockTest {
             )
         );
 
-        System.assertEquals(
+        System.Assert.areEqual(
             '3',
             mock.doWithSObjects(
                 new List<Account>{
@@ -821,7 +821,7 @@ public with sharing class ATKMockTest {
             )
         );
 
-        System.assertEquals(
+        System.Assert.areEqual(
             '4',
             mock.doWithSObjects(
                 new List<Account>{
@@ -918,24 +918,24 @@ public with sharing class ATKMockTest {
         ATK.given(mock.doWithSObject((SObject) ATK.allOf(new List<Object>{ ATK.anySObject(), ATK.sObjectWith(Account.Name, 'Account 6') }))).willReturn('allOf 6');
         ATK.stopStubbing();
 
-        System.assertEquals('allOf 2', mock.doWithSObject(new Account(Id = ATK.fakeId(Account.SObjectType, 2), Name = 'Account 2')));
-        System.assertEquals('allOf 3', mock.doWithSObject(new Account(Id = ATK.fakeId(Account.SObjectType, 3), Name = 'Account 3')));
-        System.assertEquals('allOf 4', mock.doWithSObject(new Account(Id = ATK.fakeId(Account.SObjectType, 4), Name = 'Account 4')));
-        System.assertEquals('allOf 5', mock.doWithSObject(new Account(Id = ATK.fakeId(Account.SObjectType, 5), Name = 'Account 5', Description = 'Description 5')));
-        System.assertEquals('allOf 6', mock.doWithSObject(new Account(Id = ATK.fakeId(Account.SObjectType, 6), Name = 'Account 6')));
+        System.Assert.areEqual('allOf 2', mock.doWithSObject(new Account(Id = ATK.fakeId(Account.SObjectType, 2), Name = 'Account 2')));
+        System.Assert.areEqual('allOf 3', mock.doWithSObject(new Account(Id = ATK.fakeId(Account.SObjectType, 3), Name = 'Account 3')));
+        System.Assert.areEqual('allOf 4', mock.doWithSObject(new Account(Id = ATK.fakeId(Account.SObjectType, 4), Name = 'Account 4')));
+        System.Assert.areEqual('allOf 5', mock.doWithSObject(new Account(Id = ATK.fakeId(Account.SObjectType, 5), Name = 'Account 5', Description = 'Description 5')));
+        System.Assert.areEqual('allOf 6', mock.doWithSObject(new Account(Id = ATK.fakeId(Account.SObjectType, 6), Name = 'Account 6')));
 
-        System.assertEquals('anyOf 2', mock.doWithSObject(new Account(Id = ATK.fakeId(Account.SObjectType, 2), Name = 'Business 2')));
-        System.assertEquals('anyOf 3', mock.doWithSObject(new Account(Id = ATK.fakeId(Account.SObjectType, 3), Name = 'Business 3')));
-        System.assertEquals('anyOf 4', mock.doWithSObject(new Account(Id = ATK.fakeId(Account.SObjectType, 4), Name = 'Business 4')));
-        System.assertEquals('anyOf 5', mock.doWithSObject(new Account(Id = ATK.fakeId(Account.SObjectType, 5), Name = 'Business 5', Description = 'Description 5')));
-        System.assertEquals('anyOf 6', mock.doWithSObject(new Account(Id = ATK.fakeId(Account.SObjectType, 6), Name = 'Business 6')));
+        System.Assert.areEqual('anyOf 2', mock.doWithSObject(new Account(Id = ATK.fakeId(Account.SObjectType, 2), Name = 'Business 2')));
+        System.Assert.areEqual('anyOf 3', mock.doWithSObject(new Account(Id = ATK.fakeId(Account.SObjectType, 3), Name = 'Business 3')));
+        System.Assert.areEqual('anyOf 4', mock.doWithSObject(new Account(Id = ATK.fakeId(Account.SObjectType, 4), Name = 'Business 4')));
+        System.Assert.areEqual('anyOf 5', mock.doWithSObject(new Account(Id = ATK.fakeId(Account.SObjectType, 5), Name = 'Business 5', Description = 'Description 5')));
+        System.Assert.areEqual('anyOf 6', mock.doWithSObject(new Account(Id = ATK.fakeId(Account.SObjectType, 6), Name = 'Business 6')));
 
-        System.assertEquals('isNot 1', mock.doWithSObject(new Account(Name = 'Company 2')));
-        System.assertEquals('noneOf 2', mock.doWithSObject(new Account(Name = 'Company 3')));
-        System.assertEquals('noneOf 3', mock.doWithSObject(new Account(Name = 'Company 4')));
-        System.assertEquals('noneOf 4', mock.doWithSObject(new Account(Name = 'Company 5')));
-        System.assertEquals('noneOf 5', mock.doWithSObject(new Account(Name = 'Company 6')));
-        System.assertEquals('noneOf 6', mock.doWithSObject(new Account(Name = 'Company 7')));
+        System.Assert.areEqual('isNot 1', mock.doWithSObject(new Account(Name = 'Company 2')));
+        System.Assert.areEqual('noneOf 2', mock.doWithSObject(new Account(Name = 'Company 3')));
+        System.Assert.areEqual('noneOf 3', mock.doWithSObject(new Account(Name = 'Company 4')));
+        System.Assert.areEqual('noneOf 4', mock.doWithSObject(new Account(Name = 'Company 5')));
+        System.Assert.areEqual('noneOf 5', mock.doWithSObject(new Account(Name = 'Company 6')));
+        System.Assert.areEqual('noneOf 6', mock.doWithSObject(new Account(Name = 'Company 7')));
     }
 
     @IsTest
@@ -955,27 +955,27 @@ public with sharing class ATKMockTest {
         ATK.given(mock.doWithBoolean(ATK.neBoolean(true))).willReturn('11');
         ATK.stopStubbing();
 
-        System.assertEquals('', mock.doWithObject(1));
-        System.assertEquals('', mock.doWithInteger(2));
-        System.assertEquals('', mock.doWithLong(3L));
-        System.assertEquals('', mock.doWithDouble(4.0d));
-        System.assertEquals('', mock.doWithDecimal(5.0));
-        System.assertEquals('', mock.doWithDate(Date.newInstance(2022, 1, 6)));
-        System.assertEquals('', mock.doWithDatetime(Datetime.newInstance(2022, 1, 7)));
-        System.assertEquals('', mock.doWithId(ATK.fakeId(Account.SObjectType, 9)));
-        System.assertEquals('', mock.doWithString('10'));
-        System.assertEquals('', mock.doWithBoolean(true));
+        System.Assert.areEqual('', mock.doWithObject(1));
+        System.Assert.areEqual('', mock.doWithInteger(2));
+        System.Assert.areEqual('', mock.doWithLong(3L));
+        System.Assert.areEqual('', mock.doWithDouble(4.0d));
+        System.Assert.areEqual('', mock.doWithDecimal(5.0));
+        System.Assert.areEqual('', mock.doWithDate(Date.newInstance(2022, 1, 6)));
+        System.Assert.areEqual('', mock.doWithDatetime(Datetime.newInstance(2022, 1, 7)));
+        System.Assert.areEqual('', mock.doWithId(ATK.fakeId(Account.SObjectType, 9)));
+        System.Assert.areEqual('', mock.doWithString('10'));
+        System.Assert.areEqual('', mock.doWithBoolean(true));
 
-        System.assertEquals('1', mock.doWithObject(2));
-        System.assertEquals('2', mock.doWithInteger(3));
-        System.assertEquals('3', mock.doWithLong(4L));
-        System.assertEquals('4', mock.doWithDouble(5.0d));
-        System.assertEquals('5', mock.doWithDecimal(6.0));
-        System.assertEquals('6', mock.doWithDate(Date.newInstance(2022, 1, 7)));
-        System.assertEquals('7', mock.doWithDatetime(Datetime.newInstance(2022, 1, 8)));
-        System.assertEquals('9', mock.doWithId(ATK.fakeId(Account.SObjectType, 10)));
-        System.assertEquals('10', mock.doWithString('11'));
-        System.assertEquals('11', mock.doWithBoolean(false));
+        System.Assert.areEqual('1', mock.doWithObject(2));
+        System.Assert.areEqual('2', mock.doWithInteger(3));
+        System.Assert.areEqual('3', mock.doWithLong(4L));
+        System.Assert.areEqual('4', mock.doWithDouble(5.0d));
+        System.Assert.areEqual('5', mock.doWithDecimal(6.0));
+        System.Assert.areEqual('6', mock.doWithDate(Date.newInstance(2022, 1, 7)));
+        System.Assert.areEqual('7', mock.doWithDatetime(Datetime.newInstance(2022, 1, 8)));
+        System.Assert.areEqual('9', mock.doWithId(ATK.fakeId(Account.SObjectType, 10)));
+        System.Assert.areEqual('10', mock.doWithString('11'));
+        System.Assert.areEqual('11', mock.doWithBoolean(false));
     }
 
     // #endregion
@@ -1028,7 +1028,7 @@ public with sharing class ATKMockTest {
         } catch (ATK.MockException ex) {
             exp = ex;
         }
-        System.assert(exp != null);
+        System.Assert.isNotNull(exp);
         System.debug(exp.getMessage());
         exp = null;
 
@@ -1037,7 +1037,7 @@ public with sharing class ATKMockTest {
         } catch (ATK.MockException ex) {
             exp = ex;
         }
-        System.assert(exp != null);
+        System.Assert.isNotNull(exp);
         System.debug(exp.getMessage());
         exp = null;
 
@@ -1046,7 +1046,7 @@ public with sharing class ATKMockTest {
         } catch (ATK.MockException ex) {
             exp = ex;
         }
-        System.assert(exp != null);
+        System.Assert.isNotNull(exp);
         System.debug(exp.getMessage());
         exp = null;
 
@@ -1055,7 +1055,7 @@ public with sharing class ATKMockTest {
         } catch (ATK.MockException ex) {
             exp = ex;
         }
-        System.assert(exp != null);
+        System.Assert.isNotNull(exp);
         System.debug(exp.getMessage());
         exp = null;
 
@@ -1064,7 +1064,7 @@ public with sharing class ATKMockTest {
         } catch (ATK.MockException ex) {
             exp = ex;
         }
-        System.assert(exp != null);
+        System.Assert.isNotNull(exp);
         System.debug(exp.getMessage());
         exp = null;
 
@@ -1073,7 +1073,7 @@ public with sharing class ATKMockTest {
         } catch (ATK.MockException ex) {
             exp = ex;
         }
-        System.assert(exp != null);
+        System.Assert.isNotNull(exp);
         System.debug(exp.getMessage());
         exp = null;
 
@@ -1082,7 +1082,7 @@ public with sharing class ATKMockTest {
         } catch (ATK.MockException ex) {
             exp = ex;
         }
-        System.assert(exp != null);
+        System.Assert.isNotNull(exp);
         System.debug(exp.getMessage());
         exp = null;
 
@@ -1091,7 +1091,7 @@ public with sharing class ATKMockTest {
         } catch (ATK.MockException ex) {
             exp = ex;
         }
-        System.assert(exp != null);
+        System.Assert.isNotNull(exp);
         System.debug(exp.getMessage());
         exp = null;
 
@@ -1100,7 +1100,7 @@ public with sharing class ATKMockTest {
         } catch (ATK.MockException ex) {
             exp = ex;
         }
-        System.assert(exp != null);
+        System.Assert.isNotNull(exp);
         System.debug(exp.getMessage());
         exp = null;
     }
@@ -1133,7 +1133,7 @@ public with sharing class ATKMockTest {
             } catch (ATK.MockException ex) {
                 exp = ex;
             }
-            System.assertNotEquals(null, exp);
+            System.Assert.areNotEqual(null, exp);
             System.debug(exp.getMessage());
         }
 
@@ -1149,7 +1149,7 @@ public with sharing class ATKMockTest {
             } catch (ATK.MockException ex) {
                 exp = ex;
             }
-            System.assertNotEquals(null, exp);
+            System.Assert.areNotEqual(null, exp);
             System.debug(exp.getMessage());
         }
 
@@ -1164,7 +1164,7 @@ public with sharing class ATKMockTest {
             } catch (ATK.MockException ex) {
                 exp = ex;
             }
-            System.assertNotEquals(null, exp);
+            System.Assert.areNotEqual(null, exp);
             System.debug(exp.getMessage());
         }
 
@@ -1191,7 +1191,7 @@ public with sharing class ATKMockTest {
             } catch (ATK.MockException ex) {
                 exp = ex;
             }
-            System.assertNotEquals(null, exp);
+            System.Assert.areNotEqual(null, exp);
             System.debug(exp.getMessage());
         }
         ATK.then(mock2).should().haveNoInteractions();
@@ -1212,7 +1212,7 @@ public with sharing class ATKMockTest {
             } catch (ATK.MockException ex) {
                 exp = ex;
             }
-            System.assertNotEquals(null, exp);
+            System.Assert.areNotEqual(null, exp);
             System.debug(exp.getMessage());
         }
 
