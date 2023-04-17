@@ -1,29 +1,30 @@
 # Apex Test Kit
 
-![](https://img.shields.io/badge/version-4.0.1-brightgreen.svg) ![](https://img.shields.io/badge/build-passing-brightgreen.svg) ![](https://img.shields.io/badge/coverage-95%25-brightgreen.svg)
+![](https://img.shields.io/badge/version-4.1-brightgreen.svg) ![](https://img.shields.io/badge/build-passing-brightgreen.svg) ![](https://img.shields.io/badge/coverage-97%25-brightgreen.svg)
 
 Apex Test Kit can help generate massive data for Apex test classes, including mock sObjects with read-only fields. It solves two pain points during data creation:
 
 1. Establish arbitrary levels of many-to-one, one-to-many relationships.
 2. Generate field values based on simple rules automatically.
 
-It can also help generate method stubs with the help of Apex `StubProvider` interface underneath. Thanks to both [Mockito](https://github.com/mockito/mockito) and [fflib-apex-mocks](https://github.com/apex-enterprise-patterns/fflib-apex-mocks) libraries.
+It can also help generate method stubs with the help of Apex `StubProvider` interface underneath.
 
 1. Stubs are defined and verified with BDD given-when-then styles.
 2. [Strict mode](https://github.com/apexfarm/ApexTestKit/wiki/Apex-Test-Kit-with-BDD#1-1-strict-mode) is enforced by default to help developers write clean mocking codes and increase productivity.
 
-| Environment           | Installation Link                                                                                                                                         | Version   |
-| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- | --------- |
-| Production, Developer | <a target="_blank" href="https://login.salesforce.com/packaging/installPackage.apexp?p0=04t2v000007GULbAAO"><img src="docs/images/deploy-button.png"></a> | ver 4.0.1 |
-| Sandbox               | <a target="_blank" href="https://test.salesforce.com/packaging/installPackage.apexp?p0=04t2v000007GULbAAO"><img src="docs/images/deploy-button.png"></a>  | ver 4.0.1 |
+| Environment           | Installation Link                                            | Version |
+| --------------------- | ------------------------------------------------------------ | ------- |
+| Production, Developer | <a target="_blank" href="https://login.salesforce.com/packaging/installPackage.apexp?p0=04t2v000007Cg6NAAS"><img src="docs/images/deploy-button.png"></a> | ver 4.1 |
+| Sandbox               | <a target="_blank" href="https://test.salesforce.com/packaging/installPackage.apexp?p0=04t2v000007Cg6NAAS"><img src="docs/images/deploy-button.png"></a> | ver 4.1 |
 
 ---
 
-### **v4.0 Release Notes**
+### **v4.x Release Notes**
 
 #### Major Changes
 
--   Ported Mockito BDD Features
+-   **v4.0 Feature**: Ported Mockito BDD Features
+-   **v4.1 Enhancement**: `ATK.SaveResult` now supports getting list of Ids.
 
 #### Next Steps
 
@@ -126,15 +127,15 @@ ATK.SaveResult result = ATK.prepare(Account.SObjectType, 200)
 
 ### Performance
 
-The scripts used to perform benchmark testing are documented under `scripts/apex/benchmark.apex`. All tests will insert 1000 accounts under the following conditions:
+The scripts used to perform benchmark testing are documented under `scripts/apex/benchmark.apex`. The results are averages of three successive insertions of 1000 accounts under the following conditions:
 
 1. No duplicate rules, process builders, and triggers etc.
 2. Debug level is set to DEBUG.
 
 | 1000 \* Account | Database.insert | ATK Save | ATK Mock | ATK Mock Perf. |
 | --------------- | --------------- | -------- | -------- | -------------- |
-| CPU Time        | 0               | 0        | 487      | N/A            |
-| Real Time (ms)  | 6300            | 6631     | 656      | ~10x faster    |
+| CPU Time        | 2005            | 2304     | 1103     | ~2x faster     |
+| Real Time (ms)  | 5672            | 5584     | 869      | ~6.5x faster   |
 
 ### Demos
 
@@ -256,11 +257,14 @@ There are three commands to create the sObjects, in database, in memory, or in m
 
 Use `ATK.SaveResult` to retrieve sObjects generated from the ATK statement.
 
-| Method                                                      | Description                                                                                                       |
-| ----------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| List<SObject> get(SObjectType _objectType_)                 | Get the sObjects generated from the first `SObjectType` defined in ATK statement.                                 |
-| List<SObject> get(SObjectType _objectType_, Integer _nth_); | Get the sObjects generated from the nth `SObjectType` defined in ATK statement, such as in the Account Hierarchy. |
-| List<SObject> getAll(SObjectType _objectType_)              | Get all sObjects generated from `SObjectType` defined in ATK statement.                                           |
+| Method                                                      | Description                                                  |
+| ----------------------------------------------------------- | ------------------------------------------------------------ |
+| List<SObject> get(SObjectType _objectType_)                 | Get the sObjects generated for the first `SObjectType` defined in ATK statement. |
+| List<SObject> get(SObjectType _objectType_, Integer _nth_); | Get the sObjects generated for the nth `SObjectType` defined in ATK statement, i.e. child accounts in the Account Hierarchy. |
+| List<SObject> getAll(SObjectType _objectType_)              | Get all sObjects generated for `SObjectType` defined in ATK statement. |
+| List<Id> getIds(SObjectType _objectType_)                   | Get the sObject Ids generated for the first `SObjectType` defined in ATK statement. |
+| List<Id> getIds(SObjectType _objectType_, Integer _nth_);   | Get the sObject Ids generated for the nth `SObjectType` defined in ATK statement, i.e. child accounts in the Account Hierarchy. |
+| List<Id> getAllIds(SObjectType _objectType_)                | Get all sObject Ids generated for`SObjectType` defined in ATK statement. |
 
 ## &#9749; Mock
 

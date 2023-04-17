@@ -26,6 +26,7 @@ public with sharing class ATKCore {
     private static final Converter CONVERTER = new Converter();
     @TestVisible
     private static final Distributor DISTRIBUTOR = new Distributor();
+    private static final GlobalDSR GLOBAL_DSR = new GlobalDSR();
 
     @TestVisible
     private static final Profiles PROFILES = new Profiles();
@@ -47,6 +48,17 @@ public with sharing class ATKCore {
 
         {
             this.setMessage(msg);
+        }
+    }
+
+    private class GlobalDSR {
+        private Map<SObjectType, Schema.DescribeSObjectResult> results = new Map<SObjectType, Schema.DescribeSObjectResult>();
+
+        private Schema.DescribeSObjectResult get(SObjectType objectType) {
+            if (!results.containsKey(objectType)) {
+                results.put(objectType, objectType.getDescribe());
+            }
+            return results.get(objectType);
         }
     }
 
@@ -86,16 +98,22 @@ public with sharing class ATKCore {
         private void createMockObjects(EntityNode entityNode) {
             if (entityNode.mockObjects.isEmpty()) {
                 String objectName = entityNode.dsr.getName();
-                List<Id> ids = FAKEID.generate(entityNode.objectType, entityNode.size);
-                entityNode.mockIds.addAll(ids);
 
                 if (!entityNode.objects.isEmpty()) {
                     // convert objects to mock objects
                     for (Integer i = 0; i < entityNode.size; ++i) {
-                        entityNode.mockObjects.add(new MockSObject(objectName, ids[i], entityNode.objects[i]));
+                        SObject obj = entityNode.objects[i];
+                        Id objId = obj.Id;
+                        if (objId == null) {
+                            objId = FAKEID.get(entityNode.objectType);
+                        }
+                        entityNode.mockIds.add(objId);
+                        entityNode.mockObjects.add(new MockSObject(objectName, objId, obj));
                     }
                     entityNode.objects.clear();
                 } else {
+                    List<Id> ids = FAKEID.generate(entityNode.objectType, entityNode.size);
+                    entityNode.mockIds.addAll(ids);
                     for (Integer i = 0; i < entityNode.size; ++i) {
                         entityNode.mockObjects.add(new MockSObject(objectName, ids[i]));
                     }
@@ -841,7 +859,7 @@ public with sharing class ATKCore {
 
         private EntityNode(Schema.SObjectType objectType) {
             this.objectType = objectType;
-            this.dsr = objectType.getDescribe();
+            this.dsr = GLOBAL_DSR.get(objectType);
             this.isJunction = false;
 
             this.relationships = new List<EntityNodeRelationship>();
@@ -1135,8 +1153,10 @@ public with sharing class ATKCore {
     // ***********************
     // #region SObject Command
 
+
     public class SaveResult implements ATK.SaveResult {
-        Map<SObjectType, List<List<SObject>>> result = new Map<SObjectType, List<List<SObject>>>();
+        private Map<SObjectType, List<List<SObject>>> result = new Map<SObjectType, List<List<SObject>>>();
+        private Map<SObjectType, List<List<Id>>> idResult = new Map<SObjectType, List<List<Id>>>();
         EntityNodeMatrix matrix { get; set; }
 
         @TestVisible
@@ -1160,16 +1180,44 @@ public with sharing class ATKCore {
         }
 
         public List<SObject> getAll(SObjectType objectType) {
-            List<SObject> allObjects;
-            if (result.get(objectType).size() == 1) {
-                allObjects = result.get(objectType)[0];
-            } else {
-                allObjects = new List<SObject>();
-                for (List<SObject> objects : result.get(objectType)) {
-                    allObjects.addAll(objects);
-                }
+            List<SObject> allObjects = new List<SObject>();
+            for (List<SObject> objects : result.get(objectType)) {
+                allObjects.addAll(objects);
             }
             return allObjects;
+        }
+
+        public List<Id> getIds(SObjectType objectType) {
+            this.loadIds(objectType);
+            return idResult.get(objectType)[0];
+        }
+
+        public List<Id> getIds(SObjectType objectType, Integer index) {
+            this.loadIds(objectType);
+            return idResult.get(objectType)[index];
+        }
+
+        public List<Id> getAllIds(SObjectType objectType) {
+            this.loadIds(objectType);
+            List<Id> allIds = new List<Id>();
+            for (List<Id> ids : idResult.get(objectType)) {
+                allIds.addAll(ids);
+            }
+            return allIds;
+        }
+
+        private void loadIds(SObjectType objectType) {
+            if (!idResult.containsKey(objectType)) {
+                List<List<Id>> idChuncks = new List<List<Id>>();
+                for (List<SObject> objects : result.get(objectType)) {
+                    List<Id> ids = new List<Id>();
+                    for (SObject obj : objects) {
+                        ids.add(obj.Id);
+                    }
+                    idChuncks.add(ids);
+                }
+                idResult.put(objectType, idChuncks);
+            }
         }
 
         public void debug() {
@@ -1831,11 +1879,15 @@ public with sharing class ATKCore {
         }
 
         public Id get(Schema.SObjectType objectType) {
-            return generate(objectType, 1)[0];
+            if (!objectIdIndexes.containsKey(objectType)) {
+                objectIdIndexes.put(objectType, new Indexer());
+            }
+            Indexer idx = objectIdIndexes.get(objectType);
+            return GLOBAL_DSR.get(objectType).getKeyPrefix() + '000zzzz' + String.valueOf(++idx.i).leftPad(5, '0');
         }
 
         public Id get(Schema.SObjectType objectType, Integer i) {
-            return objectType.getDescribe().getKeyPrefix() + '000zzzz' + String.valueOf(i).leftPad(5, '0');
+            return GLOBAL_DSR.get(objectType).getKeyPrefix() + '000zzzz' + String.valueOf(i).leftPad(5, '0');
         }
 
         private List<Id> generate(Schema.SObjectType objectType, Integer size) {
@@ -1845,7 +1897,7 @@ public with sharing class ATKCore {
             }
 
             Indexer idx = objectIdIndexes.get(objectType);
-            String prefix = objectType.getDescribe().getKeyPrefix() + '000zzzz';
+            String prefix = GLOBAL_DSR.get(objectType).getKeyPrefix() + '000zzzz';
             for (Integer i = 0; i < size; i++) {
                 ids.add(prefix + String.valueOf(++idx.i).leftPad(5, '0'));
             }

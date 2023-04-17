@@ -618,11 +618,9 @@ public with sharing class ATKTest {
 
         // prettier-ignore
         ATK.SaveResult result = ATK.prepare(Account.SObjectType, 2)
-            .field(Account.Id)
-            .repeat(accountId0, (String) accountId1)
+            .field(Account.Id).repeat(accountId0, (String) accountId1)
             .withChildren(Contact.SObjectType, Contact.AccountId, 2)
-            .field(Contact.Id)
-            .repeat(contactId0, (String) contactId1)
+                .field(Contact.Id).repeat(contactId0, (String) contactId1)
             .mock();
         System.assertEquals(accountId0, result.get(Account.SObjectType)[0].Id);
         System.assertEquals(accountId1, result.get(Account.SObjectType)[1].Id);
@@ -654,6 +652,18 @@ public with sharing class ATKTest {
         System.assertEquals(5, result.getAll(Account.SObjectType).size());
         System.assertEquals(7, result.getAll(Contact.SObjectType).size());
         System.assertEquals(3, result.getAll(Case.SObjectType).size());
+
+        System.assertEquals(1, result.getIds(Account.SObjectType).size());
+        System.assertEquals(1, result.getIds(Account.SObjectType, 0).size());
+        System.assertEquals(4, result.getIds(Account.SObjectType, 1).size());
+        System.assertEquals(2, result.getIds(Contact.SObjectType).size());
+        System.assertEquals(2, result.getIds(Contact.SObjectType, 0).size());
+        System.assertEquals(5, result.getIds(Contact.SObjectType, 1).size());
+        System.assertEquals(3, result.getIds(Case.SObjectType).size());
+
+        System.assertEquals(5, result.getAllIds(Account.SObjectType).size());
+        System.assertEquals(7, result.getAllIds(Contact.SObjectType).size());
+        System.assertEquals(3, result.getAllIds(Case.SObjectType).size());
     }
 
     @IsTest
@@ -670,6 +680,10 @@ public with sharing class ATKTest {
         System.assertEquals(1, result.getAll(Account.SObjectType).size());
         System.assertEquals(7, result.getAll(Contact.SObjectType).size());
         System.assertEquals(7, result.getAll(Case.SObjectType).size());
+
+        System.assertEquals(1, result.getAllIds(Account.SObjectType).size());
+        System.assertEquals(7, result.getAllIds(Contact.SObjectType).size());
+        System.assertEquals(7, result.getAllIds(Case.SObjectType).size());
     }
 
     @IsTest

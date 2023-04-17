@@ -15,16 +15,23 @@
  * limitations under the License.
  */
 
-public with sharing class ATKMock {
-    public static final Answer DEFAULT_ANSWERS = new DefaultAnswer();
-    public static final Answer NULL_ANSWERS = new NullAnswer();
-    public static final Answer SELF_ANSWERS = new SelfAnswer();
-    public static final Answer MOCK_ANSWERS = new MockAnswer();
+public with sharing class ATKMock implements ATK.Mock {
+    private static final Answer INTERNAL_DEFAULT_ANSWERS = new DefaultAnswer();
+    private static final Answer INTERNAL_SELF_ANSWERS = new SelfAnswer();
+    private static final Answer INTERNAL_MOCK_ANSWERS = new MockAnswer();
+    private static final Answer INTERNAL_NULL_ANSWERS = new NullAnswer();
+    private static final MockingProgress INTERNAL_PROGRESS = new MockingProgress();
 
-    public static final MockingProgress progress = new MockingProgress();
     private static final InvocationFinder INVOCATION_FINDER = new InvocationFinder();
     private static final Reporter REPORTER = new Reporter();
     private static Map<String, SObjectType> globalDescribe { get; set; }
+
+
+    public ATK.Answer getReturnsDefaults() { return INTERNAL_DEFAULT_ANSWERS; }
+    public ATK.Answer getReturnsSelf() { return INTERNAL_SELF_ANSWERS; }
+    public ATK.Answer getReturnsMocks() { return INTERNAL_MOCK_ANSWERS; }
+    public ATK.MockingProgress getProgress() { return INTERNAL_PROGRESS; }
+    public ATK.MatcherRecorder getMatcherRecorder() { return INTERNAL_PROGRESS.matcherRecorder; }
 
     private static Boolean isSObjectType(Type type) {
         if (globalDescribe == null) {
@@ -43,40 +50,40 @@ public with sharing class ATKMock {
 
     public class MockHandler implements System.StubProvider {
         public Object handleMethodCall(Object mock, String methodName, Type returnType, List<Type> paramTypes, List<String> paramNames, List<Object> arguments) {
-            Invocation invocation = new Invocation(progress.getMockSettings(mock), mock, methodName, returnType, paramTypes, paramNames, arguments);
+            Invocation invocation = new Invocation(INTERNAL_PROGRESS.getMockSettings(mock), mock, methodName, returnType, paramTypes, paramNames, arguments);
 
-            if (progress.isStubbing) {
-                progress.setMatchableInvocation(invocation, arguments);
+            if (INTERNAL_PROGRESS.isStubbing) {
+                INTERNAL_PROGRESS.setMatchableInvocation(invocation, arguments);
 
-                if (progress.isWillStubbing) {
-                    progress.finishStubbing();
+                if (INTERNAL_PROGRESS.isWillStubbing) {
+                    INTERNAL_PROGRESS.finishStubbing();
                 }
-                return progress.container.defaultAnswer(invocation);
+                return INTERNAL_PROGRESS.container.defaultAnswer(invocation);
             }
 
-            if (progress.isVerifying) {
-                progress.setMatchableInvocation(invocation, arguments);
+            if (INTERNAL_PROGRESS.isVerifying) {
+                INTERNAL_PROGRESS.setMatchableInvocation(invocation, arguments);
 
                 try {
-                    progress.currentModeWrapper.verify(progress.container, (VerifiableInvocation) progress.currentMatchable);
+                    INTERNAL_PROGRESS.currentModeWrapper.verify(INTERNAL_PROGRESS.container, (VerifiableInvocation) INTERNAL_PROGRESS.currentMatchable);
                 } catch (ATK.MockException exp) {
                     throw new ATK.MockException(exp.getMessage());
                 } finally {
-                    progress.finishVerifiying();
+                    INTERNAL_PROGRESS.finishVerifiying();
                 }
 
-                return progress.container.defaultAnswer(invocation);
+                return INTERNAL_PROGRESS.container.defaultAnswer(invocation);
             }
 
-            progress.container.addInvocation(invocation);
-            return progress.container.answer(invocation, progress.context);
+            INTERNAL_PROGRESS.container.addInvocation(invocation);
+            return INTERNAL_PROGRESS.container.answer(invocation, INTERNAL_PROGRESS.context);
         }
     }
 
     // =================
     // #region Stubber
 
-    public class MockingProgress {
+    public class MockingProgress implements ATK.MockingProgress {
         public final GlobalSettings settings { get; set; }
         private final MockHandler mockHandler { get; set; }
         private final InvocationContainer container { get; set; }
@@ -149,6 +156,14 @@ public with sharing class ATKMock {
 
         private void putMockSettings(Object mock, MockSettings settings) {
             this.container.mockSettings.put(mock, settings);
+        }
+
+        public MockSettings newCustomSettings() {
+            return new MockSettings();
+        }
+
+        public GlobalSettings getGlobalSettings() {
+            return this.settings;
         }
 
         public Object createMock(Type mockType) {
@@ -430,7 +445,7 @@ public with sharing class ATKMock {
         }
 
         public ATK.Will willDoNothing() {
-            this.stubbedInvocation.addAnswer(NULL_ANSWERS);
+            this.stubbedInvocation.addAnswer(INTERNAL_NULL_ANSWERS);
             return this;
         }
 
@@ -508,7 +523,7 @@ public with sharing class ATKMock {
 
     public class GlobalSettings extends MockSettings implements ATK.GlobalSettings {
         private GlobalSettings() {
-            this.defaultAnswer = DEFAULT_ANSWERS;
+            this.defaultAnswer = INTERNAL_DEFAULT_ANSWERS;
             this.lenient = false;
             this.stubbedVoids = false;
             this.stubOnly = false;
@@ -830,7 +845,7 @@ public with sharing class ATKMock {
 
     private class SelfAnswer implements Answer {
         public Object answer(ATK.Invocation invocation) {
-            Object defaultAnswer = DEFAULT_ANSWERS.answer(invocation);
+            Object defaultAnswer = INTERNAL_DEFAULT_ANSWERS.answer(invocation);
             if (defaultAnswer != null) {
                 return defaultAnswer;
             }
@@ -847,16 +862,16 @@ public with sharing class ATKMock {
 
     private class MockAnswer implements Answer {
         public Object answer(ATK.Invocation invocation) {
-            Object defaultAnswer = DEFAULT_ANSWERS.answer(invocation);
+            Object defaultAnswer = INTERNAL_DEFAULT_ANSWERS.answer(invocation);
             if (defaultAnswer != null) {
                 return defaultAnswer;
             }
 
             try {
-                if (progress.isStubbing || progress.isVerifying) {
+                if (INTERNAL_PROGRESS.isStubbing || INTERNAL_PROGRESS.isVerifying) {
                     return null;
                 }
-                return progress.createMock(invocation.method.returnType, progress.getMockSettings(invocation.mock));
+                return INTERNAL_PROGRESS.createMock(invocation.method.returnType, INTERNAL_PROGRESS.getMockSettings(invocation.mock));
             } catch (Exception ex) {
             }
             return null;

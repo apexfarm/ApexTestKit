@@ -1,5 +1,9 @@
 {
   "trailingComma": "none",
-  "printWidth": 200,
-  "tabWidth": 4
+  "overrides": [
+    {
+      "files": "*.{cls,apex}",
+      "options": { "tabWidth": 4, "printWidth": 120 }
+    }
+  ]
 }

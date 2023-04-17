@@ -19,71 +19,206 @@ public with sharing class ATK {
     public virtual class MockException extends Exception {
     }
 
+    // ==============
+    // #region Entity
+
+    public static JunctionEntity prepare(Schema.SObjectType objectType, Integer size) {
+        ATKCore.EntityCommand sharedCommand = new ATKCore.EntityCommand();
+        sharedCommand.prepare(objectType, size);
+        return sharedCommand;
+    }
+
+    public static Entity prepare(Schema.SObjectType objectType, List<SObject> objects) {
+        ATKCore.EntityCommand sharedCommand = new ATKCore.EntityCommand();
+        sharedCommand.prepare(objectType, objects);
+        return sharedCommand;
+    }
+
+    public static Id fakeId(Schema.SObjectType objectType) {
+        return ATKCore.FAKEID.get(objectType);
+    }
+
+    public static Id fakeId(Schema.SObjectType objectType, Integer index) {
+        return ATKCore.FAKEID.get(objectType, index);
+    }
+
+    public interface JunctionEntity extends Entity {
+        Entity junctionOf(Schema.SObjectField parentIdField1, Schema.SObjectField parentIdField2);
+        Entity junctionOf(Schema.SObjectField parentIdField1, Schema.SObjectField parentIdField2, Schema.SObjectField parentIdField3);
+        Entity junctionOf(Schema.SObjectField parentIdField1, Schema.SObjectField parentIdField2, Schema.SObjectField parentIdField3, Schema.SObjectField parentIdField4);
+        Entity junctionOf(
+            Schema.SObjectField parentIdField1,
+            Schema.SObjectField parentIdField2,
+            Schema.SObjectField parentIdField3,
+            Schema.SObjectField parentIdField4,
+            Schema.SObjectField parentIdField5
+        );
+        Entity junctionOf(List<Schema.SObjectField> parentIdFields);
+    }
+
+    public interface Entity {
+        // keywords to start new context
+        JunctionEntity withParents(Schema.SObjectType objectType, Schema.SObjectField parentIdField);
+        JunctionEntity withParents(Schema.SObjectType objectType, Schema.SObjectField parentIdField, Integer size);
+        JunctionEntity withParents(Schema.SObjectType objectType, Schema.SObjectField parentIdField, List<SObject> objects);
+        JunctionEntity withChildren(Schema.SObjectType objectType, Schema.SObjectField parentIdField);
+        JunctionEntity withChildren(Schema.SObjectType objectType, Schema.SObjectField parentIdField, Integer size);
+        JunctionEntity withChildren(Schema.SObjectType objectType, Schema.SObjectField parentIdField, List<SObject> objects);
+
+        // keywords to build graph
+        Entity also();
+        Entity also(Integer depth);
+        Entity build(ATK.EntityBuilder builder);
+        Field field(SObjectField field);
+
+        // keywords to lookup relation
+        Entity recordType(String name);
+        Entity profile(String name);
+        Entity permissionSet(String name);
+        Entity permissionSet(String name1, String name2);
+        Entity permissionSet(String name1, String name2, String name3);
+        Entity permissionSet(List<String> names);
+
+        // keywords to end with
+        SaveResult save();
+        SaveResult save(Boolean doInsert);
+        SaveResult mock();
+    }
+
+    public interface Field {
+        // deprecated on 3.2.0
+        Entity recordType(String name);
+        Entity profile(String name);
+        Entity permissionSet(String name);
+        Entity permissionSet(String name1, String name2);
+        Entity permissionSet(String name1, String name2, String name3);
+        Entity permissionSet(List<String> names);
+
+        // Fixed Values
+        Entity index(String format);
+        Entity repeat(Object value);
+        Entity repeat(Object value1, Object value2);
+        Entity repeat(Object value1, Object value2, Object value3);
+        Entity repeat(Object value1, Object value2, Object value3, Object value4);
+        Entity repeat(Object value1, Object value2, Object value3, Object value4, Object value5);
+        Entity repeat(List<Object> values);
+        Entity repeatX(Object value1, Integer size1, Object value2, Integer size2);
+        Entity repeatX(Object value1, Integer size1, Object value2, Integer size2, Object value3, Integer size3);
+        Entity repeatX(Object value1, Integer size1, Object value2, Integer size2, Object value3, Integer size3, Object value4, Integer size4);
+        Entity repeatX(Object value1, Integer size1, Object value2, Integer size2, Object value3, Integer size3, Object value4, Integer size4, Object value5, Integer size5);
+        Entity repeatX(List<Object> values, List<Integer> sizes);
+
+        // Arithmetic
+        Entity add(Decimal init, Decimal step);
+        Entity substract(Decimal init, Decimal step);
+        Entity divide(Decimal init, Decimal factor);
+        Entity multiply(Decimal init, Decimal factor);
+
+        Entity addYears(Object init, Integer step);
+        Entity addMonths(Object init, Integer step);
+        Entity addDays(Object init, Integer step);
+        Entity addHours(Object init, Integer step);
+        Entity addMinutes(Object init, Integer step);
+        Entity addSeconds(Object init, Integer step);
+    }
+
+    public interface EntityBuilder {
+        void build(Entity entity, Integer size);
+    }
+
+    public interface SaveResult {
+        List<SObject> get(SObjectType objectType);
+        List<SObject> get(SObjectType objectType, Integer index);
+        List<SObject> getAll(SObjectType objectType);
+        List<Id> getIds(SObjectType objectType);
+        List<Id> getIds(SObjectType objectType, Integer index);
+        List<Id> getAllIds(SObjectType objectType);
+    }
+
+    // #endregion
+    // ==============
+
     // =======================
     // #region Mock Interfaces
 
-    public static final Answer RETURNS_DEFAULTS = ATKMock.DEFAULT_ANSWERS;
-    public static final Answer RETURNS_SELF = ATKMock.SELF_ANSWERS;
-    public static final Answer RETURNS_MOCKS = ATKMock.MOCK_ANSWERS;
+    private static Mock MOCK {
+        get {
+            if (MOCK == null) {
+                Type mockType = Type.forName('ATKMock');
+                if (mockType != null) {
+                    MOCK = (Mock) mockType.newInstance();
+                } else {
+                    throw new MockException('Please install/add ATKMock class.');
+                }
+            }
+            return MOCK;
+        }
+        set;
+    }
+    public static final Answer RETURNS_DEFAULTS = MOCK.getReturnsDefaults();
+    public static final Answer RETURNS_SELF = MOCK.getReturnsSelf();
+    public static final Answer RETURNS_MOCKS = MOCK.getReturnsMocks();
+    private static final MockingProgress PROGRESS = MOCK.getProgress();
+    private static final MatcherRecorder MATCHER_RECORDER = MOCK.getMatcherRecorder();
 
     public static void startStubbing() {
-        ATKMock.progress.startStubbing();
+        PROGRESS.startStubbing();
     }
 
     public static void stopStubbing() {
-        ATKMock.progress.stopStubbing();
-    }
-
-    public static GlobalSettings mock() {
-        return ATKMock.progress.settings;
-    }
-
-    public static Object mock(Type mockType) {
-        return ATKMock.progress.createMock(mockType);
-    }
-
-    public static Object mock(Type mockType, Answer defaultAnswer) {
-        return ATKMock.progress.createMock(mockType, defaultAnswer);
-    }
-
-    public static Object mock(Type mockType, MockSettings settings) {
-        return ATKMock.progress.createMock(mockType, settings);
+        PROGRESS.stopStubbing();
     }
 
     public static MockSettings withSettings() {
-        return new ATKMock.MockSettings();
+        return PROGRESS.newCustomSettings();
+    }
+
+    public static GlobalSettings mock() {
+        return PROGRESS.getGlobalSettings();
+    }
+
+    public static Object mock(Type mockType) {
+        return PROGRESS.createMock(mockType);
+    }
+
+    public static Object mock(Type mockType, Answer defaultAnswer) {
+        return PROGRESS.createMock(mockType, defaultAnswer);
+    }
+
+    public static Object mock(Type mockType, MockSettings settings) {
+        return PROGRESS.createMock(mockType, settings);
     }
 
     public static Lenient lenient() {
-        return ATKMock.progress.createLenientStubber();
+        return PROGRESS.createLenientStubber();
     }
 
     public static Given given(Object value) {
-        return ATKMock.progress.createGivenStubber();
+        return PROGRESS.createGivenStubber();
     }
 
     public static Will willReturn(Object value) {
-        return ATKMock.progress.createWillStubber().willReturn(value);
+        return PROGRESS.createWillStubber().willReturn(value);
     }
 
     public static Will willAnswer(Answer answer) {
-        return ATKMock.progress.createWillStubber().willAnswer(answer);
+        return PROGRESS.createWillStubber().willAnswer(answer);
     }
 
     public static Will willThrow(Exception exp) {
-        return ATKMock.progress.createWillStubber().willThrow(exp);
+        return PROGRESS.createWillStubber().willThrow(exp);
     }
 
     public static Will willDoNothing() {
-        return ATKMock.progress.createWillStubber().willDoNothing();
+        return PROGRESS.createWillStubber().willDoNothing();
     }
 
     public static ThenOf then(Object mock) {
-        return ATKMock.progress.createThenStubber(mock);
+        return PROGRESS.createThenStubber(mock);
     }
 
     public static InOrder inOrder(List<Object> mocks) {
-        return ATKMock.progress.createInOrder(mocks);
+        return PROGRESS.createInOrder(mocks);
     }
 
     public static InOrder inOrder(Object mock1) {
@@ -104,6 +239,29 @@ public with sharing class ATK {
 
     public static InOrder inOrder(Object mock1, Object mock2, Object mock3, Object mock4, Object mock5) {
         return inOrder(new List<Object>{ mock1, mock2, mock3, mock4, mock5 });
+    }
+
+    public interface Mock {
+        ATK.Answer getReturnsDefaults();
+        ATK.Answer getReturnsSelf();
+        ATK.Answer getReturnsMocks();
+        ATK.MockingProgress getProgress();
+        ATK.MatcherRecorder getMatcherRecorder();
+    }
+
+    public interface MockingProgress {
+        void startStubbing();
+        void stopStubbing();
+        MockSettings newCustomSettings();
+        GlobalSettings getGlobalSettings();
+        Object createMock(Type mockType);
+        Object createMock(Type mockType, ATK.Answer defaultAnswer);
+        Object createMock(Type mockType, ATK.MockSettings settings);
+        Lenient createLenientStubber();
+        Given createGivenStubber();
+        Will createWillStubber();
+        ThenOf createThenStubber(Object mock);
+        InOrder createInOrder(List<Object> mocks);
     }
 
     public interface MockSettings {
@@ -213,562 +371,6 @@ public with sharing class ATK {
         void haveNoUnusedStubs(Object mock1, Object mock2, Object mock3, Object mock4, Object mock5);
         void haveNoUnusedStubs(List<Object> mocks);
     }
-
-    // #endregion
-    // =======================
-
-    // =========================
-    // #region Argument Matchers
-
-    // #region - Type Matchers
-    public static Integer anyInteger() {
-        return ATKMock.progress.matcherRecorder.anyInteger();
-    }
-
-    public static Long anyLong() {
-        return ATKMock.progress.matcherRecorder.anyLong();
-    }
-
-    public static Double anyDouble() {
-        return ATKMock.progress.matcherRecorder.anyDouble();
-    }
-
-    public static Decimal anyDecimal() {
-        return ATKMock.progress.matcherRecorder.anyDecimal();
-    }
-
-    public static Date anyDate() {
-        return ATKMock.progress.matcherRecorder.anyDate();
-    }
-
-    public static Datetime anyDatetime() {
-        return ATKMock.progress.matcherRecorder.anyDatetime();
-    }
-
-    public static Time anyTime() {
-        return ATKMock.progress.matcherRecorder.anyTime();
-    }
-
-    public static Id anyId() {
-        return ATKMock.progress.matcherRecorder.anyId();
-    }
-
-    public static String anyString() {
-        return ATKMock.progress.matcherRecorder.anyString();
-    }
-
-    public static Boolean anyBoolean() {
-        return ATKMock.progress.matcherRecorder.anyBoolean();
-    }
-
-    public static List<Object> anyList() {
-        return ATKMock.progress.matcherRecorder.anyList();
-    }
-
-    public static Object anySet() {
-        return ATKMock.progress.matcherRecorder.anySet();
-    }
-
-    public static Object anyMap() {
-        return ATKMock.progress.matcherRecorder.anyMap();
-    }
-
-    public static Object any() {
-        return ATKMock.progress.matcherRecorder.any();
-    }
-
-    public static Object any(Type type) {
-        return ATKMock.progress.matcherRecorder.any(type);
-    }
-
-    public static Object nullable(Type type) {
-        return ATKMock.progress.matcherRecorder.nullable(type);
-    }
-
-    public static SObject anySObject() {
-        return ATKMock.progress.matcherRecorder.anySObject();
-    }
-
-    public static List<SObject> anySObjectList() {
-        return ATKMock.progress.matcherRecorder.anySObjectList();
-    }
-    // #endregion
-
-    // #region - Value Matchers
-    public static Object isNull() {
-        return ATKMock.progress.matcherRecorder.isNull();
-    }
-
-    public static Object isNotNull() {
-        return ATKMock.progress.matcherRecorder.isNotNull();
-    }
-
-    public static Object same(Object value) {
-        return ATKMock.progress.matcherRecorder.same(value);
-    }
-
-    public static Object ne(Object value) {
-        return ATKMock.progress.matcherRecorder.ne(value);
-    }
-
-    public static Integer neInteger(Integer value) {
-        return ATKMock.progress.matcherRecorder.neInteger(value);
-    }
-
-    public static Long neLong(Long value) {
-        return ATKMock.progress.matcherRecorder.neLong(value);
-    }
-
-    public static Double neDouble(Double value) {
-        return ATKMock.progress.matcherRecorder.neDouble(value);
-    }
-
-    public static Decimal neDecimal(Decimal value) {
-        return ATKMock.progress.matcherRecorder.neDecimal(value);
-    }
-
-    public static Date neDate(Date value) {
-        return ATKMock.progress.matcherRecorder.neDate(value);
-    }
-
-    public static Datetime neDatetime(Datetime value) {
-        return ATKMock.progress.matcherRecorder.neDatetime(value);
-    }
-
-    public static Time neTime(Time value) {
-        return ATKMock.progress.matcherRecorder.neTime(value);
-    }
-
-    public static Id neId(Id value) {
-        return ATKMock.progress.matcherRecorder.neId(value);
-    }
-
-    public static String neString(String value) {
-        return ATKMock.progress.matcherRecorder.neString(value);
-    }
-
-    public static Boolean neBoolean(Boolean value) {
-        return ATKMock.progress.matcherRecorder.neBoolean(value);
-    }
-
-    public static Object eq(Object value) {
-        return ATKMock.progress.matcherRecorder.eq(value);
-    }
-
-    public static Integer eqInteger(Integer value) {
-        return ATKMock.progress.matcherRecorder.eqInteger(value);
-    }
-
-    public static Long eqLong(Long value) {
-        return ATKMock.progress.matcherRecorder.eqLong(value);
-    }
-
-    public static Double eqDouble(Double value) {
-        return ATKMock.progress.matcherRecorder.eqDouble(value);
-    }
-
-    public static Decimal eqDecimal(Decimal value) {
-        return ATKMock.progress.matcherRecorder.eqDecimal(value);
-    }
-
-    public static Date eqDate(Date value) {
-        return ATKMock.progress.matcherRecorder.eqDate(value);
-    }
-
-    public static Datetime eqDatetime(Datetime value) {
-        return ATKMock.progress.matcherRecorder.eqDatetime(value);
-    }
-
-    public static Time eqTime(Time value) {
-        return ATKMock.progress.matcherRecorder.eqTime(value);
-    }
-
-    public static Id eqId(Id value) {
-        return ATKMock.progress.matcherRecorder.eqId(value);
-    }
-
-    public static String eqString(String value) {
-        return ATKMock.progress.matcherRecorder.eqString(value);
-    }
-
-    public static Boolean eqBoolean(Boolean value) {
-        return ATKMock.progress.matcherRecorder.eqBoolean(value);
-    }
-
-    public static Integer gt(Integer value) {
-        return ATKMock.progress.matcherRecorder.gt(value);
-    }
-
-    public static Long gt(Long value) {
-        return ATKMock.progress.matcherRecorder.gt(value);
-    }
-
-    public static Double gt(Double value) {
-        return ATKMock.progress.matcherRecorder.gt(value);
-    }
-
-    public static Decimal gt(Decimal value) {
-        return ATKMock.progress.matcherRecorder.gt(value);
-    }
-
-    public static Date gt(Date value) {
-        return ATKMock.progress.matcherRecorder.gt(value);
-    }
-
-    public static Datetime gt(Datetime value) {
-        return ATKMock.progress.matcherRecorder.gt(value);
-    }
-
-    public static Time gt(Time value) {
-        return ATKMock.progress.matcherRecorder.gt(value);
-    }
-
-    public static Id gt(Id value) {
-        return ATKMock.progress.matcherRecorder.gt(value);
-    }
-
-    public static String gt(String value) {
-        return ATKMock.progress.matcherRecorder.gt(value);
-    }
-
-    public static Integer gte(Integer value) {
-        return ATKMock.progress.matcherRecorder.gte(value);
-    }
-
-    public static Long gte(Long value) {
-        return ATKMock.progress.matcherRecorder.gte(value);
-    }
-
-    public static Double gte(Double value) {
-        return ATKMock.progress.matcherRecorder.gte(value);
-    }
-
-    public static Decimal gte(Decimal value) {
-        return ATKMock.progress.matcherRecorder.gte(value);
-    }
-
-    public static Date gte(Date value) {
-        return ATKMock.progress.matcherRecorder.gte(value);
-    }
-
-    public static Datetime gte(Datetime value) {
-        return ATKMock.progress.matcherRecorder.gte(value);
-    }
-
-    public static Time gte(Time value) {
-        return ATKMock.progress.matcherRecorder.gte(value);
-    }
-
-    public static Id gte(Id value) {
-        return ATKMock.progress.matcherRecorder.gte(value);
-    }
-
-    public static String gte(String value) {
-        return ATKMock.progress.matcherRecorder.gte(value);
-    }
-
-    public static Integer lt(Integer value) {
-        return ATKMock.progress.matcherRecorder.lt(value);
-    }
-
-    public static Long lt(Long value) {
-        return ATKMock.progress.matcherRecorder.lt(value);
-    }
-
-    public static Double lt(Double value) {
-        return ATKMock.progress.matcherRecorder.lt(value);
-    }
-
-    public static Decimal lt(Decimal value) {
-        return ATKMock.progress.matcherRecorder.lt(value);
-    }
-
-    public static Date lt(Date value) {
-        return ATKMock.progress.matcherRecorder.lt(value);
-    }
-
-    public static Datetime lt(Datetime value) {
-        return ATKMock.progress.matcherRecorder.lt(value);
-    }
-
-    public static Time lt(Time value) {
-        return ATKMock.progress.matcherRecorder.lt(value);
-    }
-
-    public static Id lt(Id value) {
-        return ATKMock.progress.matcherRecorder.lt(value);
-    }
-
-    public static String lt(String value) {
-        return ATKMock.progress.matcherRecorder.lt(value);
-    }
-
-    public static Integer lte(Integer value) {
-        return ATKMock.progress.matcherRecorder.lte(value);
-    }
-
-    public static Long lte(Long value) {
-        return ATKMock.progress.matcherRecorder.lte(value);
-    }
-
-    public static Double lte(Double value) {
-        return ATKMock.progress.matcherRecorder.lte(value);
-    }
-
-    public static Decimal lte(Decimal value) {
-        return ATKMock.progress.matcherRecorder.lte(value);
-    }
-
-    public static Date lte(Date value) {
-        return ATKMock.progress.matcherRecorder.lte(value);
-    }
-
-    public static Datetime lte(Datetime value) {
-        return ATKMock.progress.matcherRecorder.lte(value);
-    }
-
-    public static Time lte(Time value) {
-        return ATKMock.progress.matcherRecorder.lte(value);
-    }
-
-    public static Id lte(Id value) {
-        return ATKMock.progress.matcherRecorder.lte(value);
-    }
-
-    public static String lte(String value) {
-        return ATKMock.progress.matcherRecorder.lte(value);
-    }
-
-    public static Integer between(Integer min, Integer max) {
-        return ATKMock.progress.matcherRecorder.between(min, true, max, true);
-    }
-
-    public static Integer between(Integer min, Integer max, Boolean inclusive) {
-        return ATKMock.progress.matcherRecorder.between(min, inclusive, max, inclusive);
-    }
-
-    public static Integer between(Integer min, Boolean minInclusive, Integer max, Boolean maxInclusive) {
-        return ATKMock.progress.matcherRecorder.between(min, minInclusive, max, maxInclusive);
-    }
-
-    public static Long between(Long min, Long max) {
-        return ATKMock.progress.matcherRecorder.between(min, true, max, true);
-    }
-
-    public static Long between(Long min, Long max, Boolean inclusive) {
-        return ATKMock.progress.matcherRecorder.between(min, inclusive, max, inclusive);
-    }
-
-    public static Long between(Long min, Boolean minInclusive, Long max, Boolean maxInclusive) {
-        return ATKMock.progress.matcherRecorder.between(min, minInclusive, max, maxInclusive);
-    }
-
-    public static Double between(Double min, Double max) {
-        return ATKMock.progress.matcherRecorder.between(min, true, max, true);
-    }
-
-    public static Double between(Double min, Double max, Boolean inclusive) {
-        return ATKMock.progress.matcherRecorder.between(min, inclusive, max, inclusive);
-    }
-
-    public static Double between(Double min, Boolean minInclusive, Double max, Boolean maxInclusive) {
-        return ATKMock.progress.matcherRecorder.between(min, minInclusive, max, maxInclusive);
-    }
-
-    public static Decimal between(Decimal min, Decimal max) {
-        return ATKMock.progress.matcherRecorder.between(min, true, max, true);
-    }
-
-    public static Decimal between(Decimal min, Decimal max, Boolean inclusive) {
-        return ATKMock.progress.matcherRecorder.between(min, inclusive, max, inclusive);
-    }
-
-    public static Decimal between(Decimal min, Boolean minInclusive, Decimal max, Boolean maxInclusive) {
-        return ATKMock.progress.matcherRecorder.between(min, minInclusive, max, maxInclusive);
-    }
-
-    public static Date between(Date min, Date max) {
-        return ATKMock.progress.matcherRecorder.between(min, true, max, true);
-    }
-
-    public static Date between(Date min, Date max, Boolean inclusive) {
-        return ATKMock.progress.matcherRecorder.between(min, inclusive, max, inclusive);
-    }
-
-    public static Date between(Date min, Boolean minInclusive, Date max, Boolean maxInclusive) {
-        return ATKMock.progress.matcherRecorder.between(min, minInclusive, max, maxInclusive);
-    }
-
-    public static Datetime between(Datetime min, Datetime max) {
-        return ATKMock.progress.matcherRecorder.between(min, true, max, true);
-    }
-
-    public static Datetime between(Datetime min, Datetime max, Boolean inclusive) {
-        return ATKMock.progress.matcherRecorder.between(min, inclusive, max, inclusive);
-    }
-
-    public static Datetime between(Datetime min, Boolean minInclusive, Datetime max, Boolean maxInclusive) {
-        return ATKMock.progress.matcherRecorder.between(min, minInclusive, max, maxInclusive);
-    }
-
-    public static Time between(Time min, Time max) {
-        return ATKMock.progress.matcherRecorder.between(min, true, max, true);
-    }
-
-    public static Time between(Time min, Time max, Boolean inclusive) {
-        return ATKMock.progress.matcherRecorder.between(min, inclusive, max, inclusive);
-    }
-
-    public static Time between(Time min, Boolean minInclusive, Time max, Boolean maxInclusive) {
-        return ATKMock.progress.matcherRecorder.between(min, minInclusive, max, maxInclusive);
-    }
-
-    public static Id between(Id min, Id max) {
-        return ATKMock.progress.matcherRecorder.between(min, true, max, true);
-    }
-
-    public static Id between(Id min, Id max, Boolean inclusive) {
-        return ATKMock.progress.matcherRecorder.between(min, inclusive, max, inclusive);
-    }
-
-    public static Id between(Id min, Boolean minInclusive, Id max, Boolean maxInclusive) {
-        return ATKMock.progress.matcherRecorder.between(min, minInclusive, max, maxInclusive);
-    }
-
-    public static String between(String min, String max) {
-        return ATKMock.progress.matcherRecorder.between(min, true, max, true);
-    }
-
-    public static String between(String min, String max, Boolean inclusive) {
-        return ATKMock.progress.matcherRecorder.between(min, inclusive, max, inclusive);
-    }
-
-    public static String between(String min, Boolean minInclusive, String max, Boolean maxInclusive) {
-        return ATKMock.progress.matcherRecorder.between(min, minInclusive, max, maxInclusive);
-    }
-
-    public static String isBlank() {
-        return ATKMock.progress.matcherRecorder.isBlank();
-    }
-
-    public static String isNotBlank() {
-        return ATKMock.progress.matcherRecorder.isNotBlank();
-    }
-
-    public static String contains(String value) {
-        return ATKMock.progress.matcherRecorder.contains(value);
-    }
-
-    public static String startsWith(String value) {
-        return ATKMock.progress.matcherRecorder.startsWith(value);
-    }
-
-    public static String endsWith(String value) {
-        return ATKMock.progress.matcherRecorder.endsWith(value);
-    }
-
-    public static String matches(String regexp) {
-        return ATKMock.progress.matcherRecorder.matches(regexp);
-    }
-
-    public static SObject sObjectWithId(Id value) {
-        return ATKMock.progress.matcherRecorder.sObjectWithId(value);
-    }
-
-    public static SObject sObjectWithName(String value) {
-        return ATKMock.progress.matcherRecorder.sObjectWithName(value);
-    }
-
-    public static SObject sObjectWith(SObjectField field, Object value) {
-        return ATKMock.progress.matcherRecorder.sObjectWith(field, value);
-    }
-
-    public static SObject sObjectWith(Map<SObjectField, Object> value) {
-        return ATKMock.progress.matcherRecorder.sObjectWith(value);
-    }
-
-    public static LIst<SObject> sObjectListWith(SObjectField field, Object value) {
-        return ATKMock.progress.matcherRecorder.sObjectListWith(field, value);
-    }
-
-    public static LIst<SObject> sObjectListWith(Map<SObjectField, Object> value) {
-        return ATKMock.progress.matcherRecorder.sObjectListWith(value);
-    }
-
-    public static LIst<SObject> sObjectListWith(List<Map<SObjectField, Object>> value) {
-        return ATKMock.progress.matcherRecorder.sObjectListWith(value, false);
-    }
-
-    public static LIst<SObject> sObjectListWith(List<Map<SObjectField, Object>> value, Boolean inOrder) {
-        return ATKMock.progress.matcherRecorder.sObjectListWith(value, inOrder);
-    }
-    // #endregion
-
-    // #region - Combo Matchers
-    public static Object allOf(Object arg1, Object arg2) {
-        return ATKMock.progress.matcherRecorder.allOf(arg1, arg2);
-    }
-
-    public static Object allOf(Object arg1, Object arg2, Object arg3) {
-        return ATKMock.progress.matcherRecorder.allOf(arg1, arg2, arg3);
-    }
-
-    public static Object allOf(Object arg1, Object arg2, Object arg3, Object arg4) {
-        return ATKMock.progress.matcherRecorder.allOf(arg1, arg2, arg3, arg4);
-    }
-
-    public static Object allOf(Object arg1, Object arg2, Object arg3, Object arg4, Object arg5) {
-        return ATKMock.progress.matcherRecorder.allOf(arg1, arg2, arg3, arg4, arg5);
-    }
-
-    public static Object allOf(List<Object> args) {
-        return ATKMock.progress.matcherRecorder.allOf(args);
-    }
-
-    public static Object anyOf(Object arg1, Object arg2) {
-        return ATKMock.progress.matcherRecorder.anyOf(arg1, arg2);
-    }
-
-    public static Object anyOf(Object arg1, Object arg2, Object arg3) {
-        return ATKMock.progress.matcherRecorder.anyOf(arg1, arg2, arg3);
-    }
-
-    public static Object anyOf(Object arg1, Object arg2, Object arg3, Object arg4) {
-        return ATKMock.progress.matcherRecorder.anyOf(arg1, arg2, arg3, arg4);
-    }
-
-    public static Object anyOf(Object arg1, Object arg2, Object arg3, Object arg4, Object arg5) {
-        return ATKMock.progress.matcherRecorder.anyOf(arg1, arg2, arg3, arg4, arg5);
-    }
-
-    public static Object anyOf(List<Object> args) {
-        return ATKMock.progress.matcherRecorder.anyOf(args);
-    }
-
-    public static Object isNot(Object arg1) {
-        return ATKMock.progress.matcherRecorder.isNot(arg1);
-    }
-
-    public static Object noneOf(Object arg1, Object arg2) {
-        return ATKMock.progress.matcherRecorder.noneOf(arg1, arg2);
-    }
-
-    public static Object noneOf(Object arg1, Object arg2, Object arg3) {
-        return ATKMock.progress.matcherRecorder.noneOf(arg1, arg2, arg3);
-    }
-
-    public static Object noneOf(Object arg1, Object arg2, Object arg3, Object arg4) {
-        return ATKMock.progress.matcherRecorder.noneOf(arg1, arg2, arg3, arg4);
-    }
-
-    public static Object noneOf(Object arg1, Object arg2, Object arg3, Object arg4, Object arg5) {
-        return ATKMock.progress.matcherRecorder.noneOf(arg1, arg2, arg3, arg4, arg5);
-    }
-
-    public static Object noneOf(List<Object> args) {
-        return ATKMock.progress.matcherRecorder.noneOf(args);
-    }
-    // #endregion
 
     public interface Matcher {
         Boolean matches(Type type, Object arg);
@@ -917,121 +519,562 @@ public with sharing class ATK {
     }
 
     // #endregion
-    // =========================
+    // =======================
 
     // =========================
-    // #region Entity Interfaces
+    // #region Argument Matchers
 
-    public static JunctionEntity prepare(Schema.SObjectType objectType, Integer size) {
-        ATKCore.EntityCommand sharedCommand = new ATKCore.EntityCommand();
-        sharedCommand.prepare(objectType, size);
-        return sharedCommand;
+    // #region - Type Matchers
+    public static Integer anyInteger() {
+        return MATCHER_RECORDER.anyInteger();
     }
 
-    public static Entity prepare(Schema.SObjectType objectType, List<SObject> objects) {
-        ATKCore.EntityCommand sharedCommand = new ATKCore.EntityCommand();
-        sharedCommand.prepare(objectType, objects);
-        return sharedCommand;
+    public static Long anyLong() {
+        return MATCHER_RECORDER.anyLong();
     }
 
-    public static Id fakeId(Schema.SObjectType objectType) {
-        return ATKCore.FAKEID.get(objectType);
+    public static Double anyDouble() {
+        return MATCHER_RECORDER.anyDouble();
     }
 
-    public static Id fakeId(Schema.SObjectType objectType, Integer index) {
-        return ATKCore.FAKEID.get(objectType, index);
+    public static Decimal anyDecimal() {
+        return MATCHER_RECORDER.anyDecimal();
     }
 
-    public interface JunctionEntity extends Entity {
-        Entity junctionOf(Schema.SObjectField parentIdField1, Schema.SObjectField parentIdField2);
-        Entity junctionOf(Schema.SObjectField parentIdField1, Schema.SObjectField parentIdField2, Schema.SObjectField parentIdField3);
-        Entity junctionOf(Schema.SObjectField parentIdField1, Schema.SObjectField parentIdField2, Schema.SObjectField parentIdField3, Schema.SObjectField parentIdField4);
-        Entity junctionOf(
-            Schema.SObjectField parentIdField1,
-            Schema.SObjectField parentIdField2,
-            Schema.SObjectField parentIdField3,
-            Schema.SObjectField parentIdField4,
-            Schema.SObjectField parentIdField5
-        );
-        Entity junctionOf(List<Schema.SObjectField> parentIdFields);
+    public static Date anyDate() {
+        return MATCHER_RECORDER.anyDate();
     }
 
-    public interface Entity {
-        // keywords to start new context
-        JunctionEntity withParents(Schema.SObjectType objectType, Schema.SObjectField parentIdField);
-        JunctionEntity withParents(Schema.SObjectType objectType, Schema.SObjectField parentIdField, Integer size);
-        JunctionEntity withParents(Schema.SObjectType objectType, Schema.SObjectField parentIdField, List<SObject> objects);
-        JunctionEntity withChildren(Schema.SObjectType objectType, Schema.SObjectField parentIdField);
-        JunctionEntity withChildren(Schema.SObjectType objectType, Schema.SObjectField parentIdField, Integer size);
-        JunctionEntity withChildren(Schema.SObjectType objectType, Schema.SObjectField parentIdField, List<SObject> objects);
-
-        // keywords to build graph
-        Entity also();
-        Entity also(Integer depth);
-        Entity build(ATK.EntityBuilder builder);
-        Field field(SObjectField field);
-
-        // keywords to lookup relation
-        Entity recordType(String name);
-        Entity profile(String name);
-        Entity permissionSet(String name);
-        Entity permissionSet(String name1, String name2);
-        Entity permissionSet(String name1, String name2, String name3);
-        Entity permissionSet(List<String> names);
-
-        // keywords to end with
-        SaveResult save();
-        SaveResult save(Boolean doInsert);
-        SaveResult mock();
+    public static Datetime anyDatetime() {
+        return MATCHER_RECORDER.anyDatetime();
     }
 
-    public interface Field {
-        // deprecated on 3.2.0
-        Entity recordType(String name);
-        Entity profile(String name);
-        Entity permissionSet(String name);
-        Entity permissionSet(String name1, String name2);
-        Entity permissionSet(String name1, String name2, String name3);
-        Entity permissionSet(List<String> names);
-
-        // Fixed Values
-        Entity index(String format);
-        Entity repeat(Object value);
-        Entity repeat(Object value1, Object value2);
-        Entity repeat(Object value1, Object value2, Object value3);
-        Entity repeat(Object value1, Object value2, Object value3, Object value4);
-        Entity repeat(Object value1, Object value2, Object value3, Object value4, Object value5);
-        Entity repeat(List<Object> values);
-        Entity repeatX(Object value1, Integer size1, Object value2, Integer size2);
-        Entity repeatX(Object value1, Integer size1, Object value2, Integer size2, Object value3, Integer size3);
-        Entity repeatX(Object value1, Integer size1, Object value2, Integer size2, Object value3, Integer size3, Object value4, Integer size4);
-        Entity repeatX(Object value1, Integer size1, Object value2, Integer size2, Object value3, Integer size3, Object value4, Integer size4, Object value5, Integer size5);
-        Entity repeatX(List<Object> values, List<Integer> sizes);
-
-        // Arithmetic
-        Entity add(Decimal init, Decimal step);
-        Entity substract(Decimal init, Decimal step);
-        Entity divide(Decimal init, Decimal factor);
-        Entity multiply(Decimal init, Decimal factor);
-
-        Entity addYears(Object init, Integer step);
-        Entity addMonths(Object init, Integer step);
-        Entity addDays(Object init, Integer step);
-        Entity addHours(Object init, Integer step);
-        Entity addMinutes(Object init, Integer step);
-        Entity addSeconds(Object init, Integer step);
+    public static Time anyTime() {
+        return MATCHER_RECORDER.anyTime();
     }
 
-    public interface EntityBuilder {
-        void build(Entity entity, Integer size);
+    public static Id anyId() {
+        return MATCHER_RECORDER.anyId();
     }
 
-    public interface SaveResult {
-        List<SObject> get(SObjectType objectType); // return the first matching lists
-        List<SObject> get(SObjectType objectType, Integer index);
-        List<SObject> getAll(SObjectType objectType);
+    public static String anyString() {
+        return MATCHER_RECORDER.anyString();
     }
+
+    public static Boolean anyBoolean() {
+        return MATCHER_RECORDER.anyBoolean();
+    }
+
+    public static List<Object> anyList() {
+        return MATCHER_RECORDER.anyList();
+    }
+
+    public static Object anySet() {
+        return MATCHER_RECORDER.anySet();
+    }
+
+    public static Object anyMap() {
+        return MATCHER_RECORDER.anyMap();
+    }
+
+    public static Object any() {
+        return MATCHER_RECORDER.any();
+    }
+
+    public static Object any(Type type) {
+        return MATCHER_RECORDER.any(type);
+    }
+
+    public static Object nullable(Type type) {
+        return MATCHER_RECORDER.nullable(type);
+    }
+
+    public static SObject anySObject() {
+        return MATCHER_RECORDER.anySObject();
+    }
+
+    public static List<SObject> anySObjectList() {
+        return MATCHER_RECORDER.anySObjectList();
+    }
+    // #endregion
+
+    // #region - Value Matchers
+    public static Object isNull() {
+        return MATCHER_RECORDER.isNull();
+    }
+
+    public static Object isNotNull() {
+        return MATCHER_RECORDER.isNotNull();
+    }
+
+    public static Object same(Object value) {
+        return MATCHER_RECORDER.same(value);
+    }
+
+    public static Object ne(Object value) {
+        return MATCHER_RECORDER.ne(value);
+    }
+
+    public static Integer neInteger(Integer value) {
+        return MATCHER_RECORDER.neInteger(value);
+    }
+
+    public static Long neLong(Long value) {
+        return MATCHER_RECORDER.neLong(value);
+    }
+
+    public static Double neDouble(Double value) {
+        return MATCHER_RECORDER.neDouble(value);
+    }
+
+    public static Decimal neDecimal(Decimal value) {
+        return MATCHER_RECORDER.neDecimal(value);
+    }
+
+    public static Date neDate(Date value) {
+        return MATCHER_RECORDER.neDate(value);
+    }
+
+    public static Datetime neDatetime(Datetime value) {
+        return MATCHER_RECORDER.neDatetime(value);
+    }
+
+    public static Time neTime(Time value) {
+        return MATCHER_RECORDER.neTime(value);
+    }
+
+    public static Id neId(Id value) {
+        return MATCHER_RECORDER.neId(value);
+    }
+
+    public static String neString(String value) {
+        return MATCHER_RECORDER.neString(value);
+    }
+
+    public static Boolean neBoolean(Boolean value) {
+        return MATCHER_RECORDER.neBoolean(value);
+    }
+
+    public static Object eq(Object value) {
+        return MATCHER_RECORDER.eq(value);
+    }
+
+    public static Integer eqInteger(Integer value) {
+        return MATCHER_RECORDER.eqInteger(value);
+    }
+
+    public static Long eqLong(Long value) {
+        return MATCHER_RECORDER.eqLong(value);
+    }
+
+    public static Double eqDouble(Double value) {
+        return MATCHER_RECORDER.eqDouble(value);
+    }
+
+    public static Decimal eqDecimal(Decimal value) {
+        return MATCHER_RECORDER.eqDecimal(value);
+    }
+
+    public static Date eqDate(Date value) {
+        return MATCHER_RECORDER.eqDate(value);
+    }
+
+    public static Datetime eqDatetime(Datetime value) {
+        return MATCHER_RECORDER.eqDatetime(value);
+    }
+
+    public static Time eqTime(Time value) {
+        return MATCHER_RECORDER.eqTime(value);
+    }
+
+    public static Id eqId(Id value) {
+        return MATCHER_RECORDER.eqId(value);
+    }
+
+    public static String eqString(String value) {
+        return MATCHER_RECORDER.eqString(value);
+    }
+
+    public static Boolean eqBoolean(Boolean value) {
+        return MATCHER_RECORDER.eqBoolean(value);
+    }
+
+    public static Integer gt(Integer value) {
+        return MATCHER_RECORDER.gt(value);
+    }
+
+    public static Long gt(Long value) {
+        return MATCHER_RECORDER.gt(value);
+    }
+
+    public static Double gt(Double value) {
+        return MATCHER_RECORDER.gt(value);
+    }
+
+    public static Decimal gt(Decimal value) {
+        return MATCHER_RECORDER.gt(value);
+    }
+
+    public static Date gt(Date value) {
+        return MATCHER_RECORDER.gt(value);
+    }
+
+    public static Datetime gt(Datetime value) {
+        return MATCHER_RECORDER.gt(value);
+    }
+
+    public static Time gt(Time value) {
+        return MATCHER_RECORDER.gt(value);
+    }
+
+    public static Id gt(Id value) {
+        return MATCHER_RECORDER.gt(value);
+    }
+
+    public static String gt(String value) {
+        return MATCHER_RECORDER.gt(value);
+    }
+
+    public static Integer gte(Integer value) {
+        return MATCHER_RECORDER.gte(value);
+    }
+
+    public static Long gte(Long value) {
+        return MATCHER_RECORDER.gte(value);
+    }
+
+    public static Double gte(Double value) {
+        return MATCHER_RECORDER.gte(value);
+    }
+
+    public static Decimal gte(Decimal value) {
+        return MATCHER_RECORDER.gte(value);
+    }
+
+    public static Date gte(Date value) {
+        return MATCHER_RECORDER.gte(value);
+    }
+
+    public static Datetime gte(Datetime value) {
+        return MATCHER_RECORDER.gte(value);
+    }
+
+    public static Time gte(Time value) {
+        return MATCHER_RECORDER.gte(value);
+    }
+
+    public static Id gte(Id value) {
+        return MATCHER_RECORDER.gte(value);
+    }
+
+    public static String gte(String value) {
+        return MATCHER_RECORDER.gte(value);
+    }
+
+    public static Integer lt(Integer value) {
+        return MATCHER_RECORDER.lt(value);
+    }
+
+    public static Long lt(Long value) {
+        return MATCHER_RECORDER.lt(value);
+    }
+
+    public static Double lt(Double value) {
+        return MATCHER_RECORDER.lt(value);
+    }
+
+    public static Decimal lt(Decimal value) {
+        return MATCHER_RECORDER.lt(value);
+    }
+
+    public static Date lt(Date value) {
+        return MATCHER_RECORDER.lt(value);
+    }
+
+    public static Datetime lt(Datetime value) {
+        return MATCHER_RECORDER.lt(value);
+    }
+
+    public static Time lt(Time value) {
+        return MATCHER_RECORDER.lt(value);
+    }
+
+    public static Id lt(Id value) {
+        return MATCHER_RECORDER.lt(value);
+    }
+
+    public static String lt(String value) {
+        return MATCHER_RECORDER.lt(value);
+    }
+
+    public static Integer lte(Integer value) {
+        return MATCHER_RECORDER.lte(value);
+    }
+
+    public static Long lte(Long value) {
+        return MATCHER_RECORDER.lte(value);
+    }
+
+    public static Double lte(Double value) {
+        return MATCHER_RECORDER.lte(value);
+    }
+
+    public static Decimal lte(Decimal value) {
+        return MATCHER_RECORDER.lte(value);
+    }
+
+    public static Date lte(Date value) {
+        return MATCHER_RECORDER.lte(value);
+    }
+
+    public static Datetime lte(Datetime value) {
+        return MATCHER_RECORDER.lte(value);
+    }
+
+    public static Time lte(Time value) {
+        return MATCHER_RECORDER.lte(value);
+    }
+
+    public static Id lte(Id value) {
+        return MATCHER_RECORDER.lte(value);
+    }
+
+    public static String lte(String value) {
+        return MATCHER_RECORDER.lte(value);
+    }
+
+    public static Integer between(Integer min, Integer max) {
+        return MATCHER_RECORDER.between(min, true, max, true);
+    }
+
+    public static Integer between(Integer min, Integer max, Boolean inclusive) {
+        return MATCHER_RECORDER.between(min, inclusive, max, inclusive);
+    }
+
+    public static Integer between(Integer min, Boolean minInclusive, Integer max, Boolean maxInclusive) {
+        return MATCHER_RECORDER.between(min, minInclusive, max, maxInclusive);
+    }
+
+    public static Long between(Long min, Long max) {
+        return MATCHER_RECORDER.between(min, true, max, true);
+    }
+
+    public static Long between(Long min, Long max, Boolean inclusive) {
+        return MATCHER_RECORDER.between(min, inclusive, max, inclusive);
+    }
+
+    public static Long between(Long min, Boolean minInclusive, Long max, Boolean maxInclusive) {
+        return MATCHER_RECORDER.between(min, minInclusive, max, maxInclusive);
+    }
+
+    public static Double between(Double min, Double max) {
+        return MATCHER_RECORDER.between(min, true, max, true);
+    }
+
+    public static Double between(Double min, Double max, Boolean inclusive) {
+        return MATCHER_RECORDER.between(min, inclusive, max, inclusive);
+    }
+
+    public static Double between(Double min, Boolean minInclusive, Double max, Boolean maxInclusive) {
+        return MATCHER_RECORDER.between(min, minInclusive, max, maxInclusive);
+    }
+
+    public static Decimal between(Decimal min, Decimal max) {
+        return MATCHER_RECORDER.between(min, true, max, true);
+    }
+
+    public static Decimal between(Decimal min, Decimal max, Boolean inclusive) {
+        return MATCHER_RECORDER.between(min, inclusive, max, inclusive);
+    }
+
+    public static Decimal between(Decimal min, Boolean minInclusive, Decimal max, Boolean maxInclusive) {
+        return MATCHER_RECORDER.between(min, minInclusive, max, maxInclusive);
+    }
+
+    public static Date between(Date min, Date max) {
+        return MATCHER_RECORDER.between(min, true, max, true);
+    }
+
+    public static Date between(Date min, Date max, Boolean inclusive) {
+        return MATCHER_RECORDER.between(min, inclusive, max, inclusive);
+    }
+
+    public static Date between(Date min, Boolean minInclusive, Date max, Boolean maxInclusive) {
+        return MATCHER_RECORDER.between(min, minInclusive, max, maxInclusive);
+    }
+
+    public static Datetime between(Datetime min, Datetime max) {
+        return MATCHER_RECORDER.between(min, true, max, true);
+    }
+
+    public static Datetime between(Datetime min, Datetime max, Boolean inclusive) {
+        return MATCHER_RECORDER.between(min, inclusive, max, inclusive);
+    }
+
+    public static Datetime between(Datetime min, Boolean minInclusive, Datetime max, Boolean maxInclusive) {
+        return MATCHER_RECORDER.between(min, minInclusive, max, maxInclusive);
+    }
+
+    public static Time between(Time min, Time max) {
+        return MATCHER_RECORDER.between(min, true, max, true);
+    }
+
+    public static Time between(Time min, Time max, Boolean inclusive) {
+        return MATCHER_RECORDER.between(min, inclusive, max, inclusive);
+    }
+
+    public static Time between(Time min, Boolean minInclusive, Time max, Boolean maxInclusive) {
+        return MATCHER_RECORDER.between(min, minInclusive, max, maxInclusive);
+    }
+
+    public static Id between(Id min, Id max) {
+        return MATCHER_RECORDER.between(min, true, max, true);
+    }
+
+    public static Id between(Id min, Id max, Boolean inclusive) {
+        return MATCHER_RECORDER.between(min, inclusive, max, inclusive);
+    }
+
+    public static Id between(Id min, Boolean minInclusive, Id max, Boolean maxInclusive) {
+        return MATCHER_RECORDER.between(min, minInclusive, max, maxInclusive);
+    }
+
+    public static String between(String min, String max) {
+        return MATCHER_RECORDER.between(min, true, max, true);
+    }
+
+    public static String between(String min, String max, Boolean inclusive) {
+        return MATCHER_RECORDER.between(min, inclusive, max, inclusive);
+    }
+
+    public static String between(String min, Boolean minInclusive, String max, Boolean maxInclusive) {
+        return MATCHER_RECORDER.between(min, minInclusive, max, maxInclusive);
+    }
+
+    public static String isBlank() {
+        return MATCHER_RECORDER.isBlank();
+    }
+
+    public static String isNotBlank() {
+        return MATCHER_RECORDER.isNotBlank();
+    }
+
+    public static String contains(String value) {
+        return MATCHER_RECORDER.contains(value);
+    }
+
+    public static String startsWith(String value) {
+        return MATCHER_RECORDER.startsWith(value);
+    }
+
+    public static String endsWith(String value) {
+        return MATCHER_RECORDER.endsWith(value);
+    }
+
+    public static String matches(String regexp) {
+        return MATCHER_RECORDER.matches(regexp);
+    }
+
+    public static SObject sObjectWithId(Id value) {
+        return MATCHER_RECORDER.sObjectWithId(value);
+    }
+
+    public static SObject sObjectWithName(String value) {
+        return MATCHER_RECORDER.sObjectWithName(value);
+    }
+
+    public static SObject sObjectWith(SObjectField field, Object value) {
+        return MATCHER_RECORDER.sObjectWith(field, value);
+    }
+
+    public static SObject sObjectWith(Map<SObjectField, Object> value) {
+        return MATCHER_RECORDER.sObjectWith(value);
+    }
+
+    public static LIst<SObject> sObjectListWith(SObjectField field, Object value) {
+        return MATCHER_RECORDER.sObjectListWith(field, value);
+    }
+
+    public static LIst<SObject> sObjectListWith(Map<SObjectField, Object> value) {
+        return MATCHER_RECORDER.sObjectListWith(value);
+    }
+
+    public static LIst<SObject> sObjectListWith(List<Map<SObjectField, Object>> value) {
+        return MATCHER_RECORDER.sObjectListWith(value, false);
+    }
+
+    public static LIst<SObject> sObjectListWith(List<Map<SObjectField, Object>> value, Boolean inOrder) {
+        return MATCHER_RECORDER.sObjectListWith(value, inOrder);
+    }
+    // #endregion
+
+    // #region - Combo Matchers
+    public static Object allOf(Object arg1, Object arg2) {
+        return MATCHER_RECORDER.allOf(arg1, arg2);
+    }
+
+    public static Object allOf(Object arg1, Object arg2, Object arg3) {
+        return MATCHER_RECORDER.allOf(arg1, arg2, arg3);
+    }
+
+    public static Object allOf(Object arg1, Object arg2, Object arg3, Object arg4) {
+        return MATCHER_RECORDER.allOf(arg1, arg2, arg3, arg4);
+    }
+
+    public static Object allOf(Object arg1, Object arg2, Object arg3, Object arg4, Object arg5) {
+        return MATCHER_RECORDER.allOf(arg1, arg2, arg3, arg4, arg5);
+    }
+
+    public static Object allOf(List<Object> args) {
+        return MATCHER_RECORDER.allOf(args);
+    }
+
+    public static Object anyOf(Object arg1, Object arg2) {
+        return MATCHER_RECORDER.anyOf(arg1, arg2);
+    }
+
+    public static Object anyOf(Object arg1, Object arg2, Object arg3) {
+        return MATCHER_RECORDER.anyOf(arg1, arg2, arg3);
+    }
+
+    public static Object anyOf(Object arg1, Object arg2, Object arg3, Object arg4) {
+        return MATCHER_RECORDER.anyOf(arg1, arg2, arg3, arg4);
+    }
+
+    public static Object anyOf(Object arg1, Object arg2, Object arg3, Object arg4, Object arg5) {
+        return MATCHER_RECORDER.anyOf(arg1, arg2, arg3, arg4, arg5);
+    }
+
+    public static Object anyOf(List<Object> args) {
+        return MATCHER_RECORDER.anyOf(args);
+    }
+
+    public static Object isNot(Object arg1) {
+        return MATCHER_RECORDER.isNot(arg1);
+    }
+
+    public static Object noneOf(Object arg1, Object arg2) {
+        return MATCHER_RECORDER.noneOf(arg1, arg2);
+    }
+
+    public static Object noneOf(Object arg1, Object arg2, Object arg3) {
+        return MATCHER_RECORDER.noneOf(arg1, arg2, arg3);
+    }
+
+    public static Object noneOf(Object arg1, Object arg2, Object arg3, Object arg4) {
+        return MATCHER_RECORDER.noneOf(arg1, arg2, arg3, arg4);
+    }
+
+    public static Object noneOf(Object arg1, Object arg2, Object arg3, Object arg4, Object arg5) {
+        return MATCHER_RECORDER.noneOf(arg1, arg2, arg3, arg4, arg5);
+    }
+
+    public static Object noneOf(List<Object> args) {
+        return MATCHER_RECORDER.noneOf(args);
+    }
+    // #endregion
 
     // #endregion
     // =========================
+
 }
